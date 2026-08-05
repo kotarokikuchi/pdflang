@@ -213,7 +213,7 @@ check "Nome do produto com tolerância" {
 
 ## 3.4 Dados pessoais (LGPD)
 
-### `text::detect_personal_data()` e `text::detect_pii()`
+### `text::detect_personal_data([texto])` e `text::detect_pii([texto])`
 
 São sinônimos. Devolvem a **lista** de dados pessoais encontrados: CPF, CNPJ,
 e-mail e telefone.

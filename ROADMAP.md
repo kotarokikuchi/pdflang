@@ -24,7 +24,7 @@ tree-walking interpreter, all shipping.
 
 | Area | State |
 |---|---|
-| Language core (lexer → parser → AST → interpreter) | complete |
+| Language core (lexer → parser → AST → interpreter) | 🟩 complete |
 | CLI commands | 10 — see the coverage table for what is missing |
 | Standard library | 135 functions across 7 namespaces |
 | Domain types | 7 (`Document`, `Page`, `Region`, `Font`, `Image`, `List`, `Str`) + `Diagnostic` |
@@ -60,43 +60,44 @@ written.
 
 ## 2. Coverage
 
-Legend: **yes** — implemented and verified · **partial** — some of it, gap noted
-· **no** — absent, verified by grep over `src/` and `Cargo.toml`.
+Legend: 🟩 **yes** — implemented and verified · 🟧 **partial** —
+some of it, gap noted · 🟥 **no** — absent, verified by grep over `src/`
+and `Cargo.toml`.
 
 ### `pdfl run`
 
 | Feature | State | Evidence / gap |
 |---|---|---|
-| Basic invocation, exit by worst severity | yes | `src/main.rs`, `src/report.rs` |
-| Exit codes 0/1/2 | yes | 0 OK, 1 warnings, 2 validation, 3 syntax |
-| Infrastructure errors in a separate range (10+) | **no** | infra errors reuse 2 and 3 — CI cannot tell "the file is corrupt" from "the file failed" |
-| `--fail-on warning` | yes | `src/main.rs` |
-| Custom exit mapping declared in the script | no | |
-| `--fail-fast` | partial | exists in `watch`, not in `run` |
-| `--max-findings N` | no | |
-| stdin input, stdin file list | no | |
-| Typed script parameters and free variables | no | scripts take no arguments; only `const` inside the file |
-| Input by URL | no | out of scope until a network namespace exists |
-| `--tags` | **no, but nearly free** | tags are parsed and discarded: `src/interpreter.rs:268` reads `Stmt::Check { tags: _ }` |
-| `--quiet` / `--verbose` | partial | `run` has `--verbose`; no `--quiet` anywhere |
-| Report language selection | no | reports are English-only by decision |
-| `--dry-run` / execution plan | partial | `fix --dry-run` exists; `run` has neither |
-| `--profile`, `--explain-skip` | no | |
-| `--json` on every subcommand | partial | `run`/`compare`/`fix`/`watch` emit JSON; `inspect`, `lint`, `doc` print text only |
-| Baseline runs, run-to-run diff | no | blocked by the ID counter above |
+| Basic invocation, exit by worst severity | 🟩 yes | `src/main.rs`, `src/report.rs` |
+| Exit codes 0/1/2 | 🟩 yes | 0 OK, 1 warnings, 2 validation, 3 syntax |
+| Infrastructure errors in a separate range (10+) | 🟥 **no** | infra errors reuse 2 and 3 — CI cannot tell "the file is corrupt" from "the file failed" |
+| `--fail-on warning` | 🟩 yes | `src/main.rs` |
+| Custom exit mapping declared in the script | 🟥 no | |
+| `--fail-fast` | 🟧 partial | exists in `watch`, not in `run` |
+| `--max-findings N` | 🟥 no | |
+| stdin input, stdin file list | 🟥 no | |
+| Typed script parameters and free variables | 🟥 no | scripts take no arguments; only `const` inside the file |
+| Input by URL | 🟥 no | out of scope until a network namespace exists |
+| `--tags` | 🟥 **no, but nearly free** | tags are parsed and discarded: `src/interpreter.rs:268` reads `Stmt::Check { tags: _ }` |
+| `--quiet` / `--verbose` | 🟧 partial | `run` has `--verbose`; no `--quiet` anywhere |
+| Report language selection | 🟥 no | reports are English-only by decision |
+| `--dry-run` / execution plan | 🟧 partial | `fix --dry-run` exists; `run` has neither |
+| `--profile`, `--explain-skip` | 🟥 no | |
+| `--json` on every subcommand | 🟧 partial | `run`/`compare`/`fix`/`watch` emit JSON; `inspect`, `lint`, `doc` print text only |
+| Baseline runs, run-to-run diff | 🟥 no | blocked by the ID counter above |
 
 ### Outputs
 
 | Feature | State |
 |---|---|
-| Self-contained HTML, PDF | yes — `src/report.rs`; the PDF is deterministic with embedded Helvetica |
-| Canonical JSON/CSV | partial — both exist, neither carries `schema_version` |
-| SARIF, JUnit XML, Markdown, NDJSON, XLSX, XML, SQLite artifact | no |
-| NDJSON progress on stderr | no |
-| stdout/stderr separation | yes — report on stdout, `print()` and progress on stderr |
-| Normalized PDF to stdout | no — `fix` always writes a file |
-| Output packaging, deterministic ZIP, checksum sidecar, filename templates | no |
-| Input hash recorded in every report | partial — `struct::calculate_sha256()` exposes it to scripts; the report does not record it automatically |
+| Self-contained HTML, PDF | 🟩 yes — `src/report.rs`; the PDF is deterministic with embedded Helvetica |
+| Canonical JSON/CSV | 🟧 partial — both exist, neither carries `schema_version` |
+| SARIF, JUnit XML, Markdown, NDJSON, XLSX, XML, SQLite artifact | 🟥 no |
+| NDJSON progress on stderr | 🟥 no |
+| stdout/stderr separation | 🟩 yes — report on stdout, `print()` and progress on stderr |
+| Normalized PDF to stdout | 🟥 no — `fix` always writes a file |
+| Output packaging, deterministic ZIP, checksum sidecar, filename templates | 🟥 no |
+| Input hash recorded in every report | 🟧 partial — `struct::calculate_sha256()` exposes it to scripts; the report does not record it automatically |
 
 ### Batch and queues
 
@@ -121,15 +122,15 @@ is in; state as a private database is out.
 
 | Feature | State |
 |---|---|
-| Invocation with `--script` | yes |
-| Multiple folders, each with its own script | no |
-| Debounce / settle | yes — polling with debounce, `src/watch.rs` |
-| Sentinel file, manifest trigger, event coalescing, rename detection, double-processing lock | no |
-| Include/exclude globs, depth limit | yes — `--pattern`, `--exclude`, `--depth` |
-| Symlink policy, network-share fallback | no — though polling is the only mode, so network shares work by accident |
-| `--once` | yes |
-| `--status`, hot reload, catch-up scan, log rotation, disk guard, status artifact | no |
-| Service unit generation, watchdog integration, cron overlap lock, jitter, calendar awareness | no |
+| Invocation with `--script` | 🟩 yes |
+| Multiple folders, each with its own script | 🟥 no |
+| Debounce / settle | 🟩 yes — polling with debounce, `src/watch.rs` |
+| Sentinel file, manifest trigger, event coalescing, rename detection, double-processing lock | 🟥 no |
+| Include/exclude globs, depth limit | 🟩 yes — `--pattern`, `--exclude`, `--depth` |
+| Symlink policy, network-share fallback | 🟥 no — though polling is the only mode, so network shares work by accident |
+| `--once` | 🟩 yes |
+| `--status`, hot reload, catch-up scan, log rotation, disk guard, status artifact | 🟥 no |
+| Service unit generation, watchdog integration, cron overlap lock, jitter, calendar awareness | 🟥 no |
 
 `notify` is not a dependency; the watcher polls. `src/watch.rs:3` records this as
 a deliberate choice — portable, no new dependency — with the upgrade path noted.
@@ -140,14 +141,14 @@ Six of the planned tooling subcommands exist in some form; eleven do not.
 
 | Command | State |
 |---|---|
-| `fmt` (+ `--check`) | yes |
-| `lint` | partial — 6 rule categories; no config file, no custom rules, no autofix |
-| `doc` | partial — generates Markdown/HTML from the AST; no docstrings, so descriptions come from assert messages |
-| `inspect` | yes |
-| `pack` | yes |
-| `add` | yes |
-| `test`, `repl`, `debug`, `bench`, `explain`, `new`, `migrate`, `graph`, `doctor`, `capabilities`, `cache` | no |
-| LSP, editor extension, shell completions, man pages, corpus runner | no |
+| `fmt` (+ `--check`) | 🟩 yes |
+| `lint` | 🟧 partial — 6 rule categories; no config file, no custom rules, no autofix |
+| `doc` | 🟧 partial — generates Markdown/HTML from the AST; no docstrings, so descriptions come from assert messages |
+| `inspect` | 🟩 yes |
+| `pack` | 🟩 yes |
+| `add` | 🟩 yes |
+| `test`, `repl`, `debug`, `bench`, `explain`, `new`, `migrate`, `graph`, `doctor`, `capabilities`, `cache` | 🟥 no |
+| LSP, editor extension, shell completions, man pages, corpus runner | 🟥 no |
 
 `clap` gives shell completions almost free via `clap_complete`; that is the
 cheapest item here.
@@ -156,12 +157,12 @@ cheapest item here.
 
 | Feature | State |
 |---|---|
-| `.pdflpkg` with manifest and SHA-256, reproducible `pdfl pack` | yes — determinism has a test |
-| Data schema validation at packaging time | no |
-| Registry, search, publish, signing, dependency resolution, vendoring | no |
-| `data::` reading CSV and TXT | yes |
-| `data::` reading SQLite, JSON, XLSX, Parquet, TOML/YAML | no |
-| Versioned datasets, data dictionary, remote pinning | no |
+| `.pdflpkg` with manifest and SHA-256, reproducible `pdfl pack` | 🟩 yes — determinism has a test |
+| Data schema validation at packaging time | 🟥 no |
+| Registry, search, publish, signing, dependency resolution, vendoring | 🟥 no |
+| `data::` reading CSV and TXT | 🟩 yes |
+| `data::` reading SQLite, JSON, XLSX, Parquet, TOML/YAML | 🟥 no |
+| Versioned datasets, data dictionary, remote pinning | 🟥 no |
 
 **Inconsistency worth fixing cheaply:** `src/pack.rs:12` packages `.json` and
 `.xlsx` as data files, but `src/datans.rs` can only read CSV and TXT. A package
@@ -180,26 +181,26 @@ same thing as a published action other people can use.
 
 | Feature | State |
 |---|---|
-| Same script + same PDF = same bytes | yes — CI asserts it on every push |
+| Same script + same PDF = same bytes | 🟩 yes — CI asserts it on every push |
 | Seeded sampling, deterministic parallel output, reproducible builds | n/a — no sampling and no parallelism yet |
-| Strict vs lenient parsing, repair diagnostics | no — a corrupt PDF fails with one error |
-| Partial result on timeout | no — there are no timeouts |
-| Memory/time limits, recursion limit, path sandbox, large-file guard | partial — recursion is bounded and tested; nothing else |
-| Memory-mapped reads, page streaming, lazy images | no — `visual::` renders on demand and caches, which bounds cost in practice but is not streaming |
-| Structured logging, resource report, SBOM, dependency audit | no |
+| Strict vs lenient parsing, repair diagnostics | 🟥 no — a corrupt PDF fails with one error |
+| Partial result on timeout | 🟥 no — there are no timeouts |
+| Memory/time limits, recursion limit, path sandbox, large-file guard | 🟧 partial — recursion is bounded and tested; nothing else |
+| Memory-mapped reads, page streaming, lazy images | 🟥 no — `visual::` renders on demand and caches, which bounds cost in practice but is not streaming |
+| Structured logging, resource report, SBOM, dependency audit | 🟥 no |
 
 ### The language itself
 
 | Area | State |
 |---|---|
-| Core and inspection | **yes** — domain types, `check`/`rule`, imports, metadata, SHA-256, normalized text extraction, glossaries, region masks, personal data with valid check digits |
-| Diagnostics in more than one language | no — output is English-only |
-| Comparison | partial — text diff with LCS page alignment, pHash, SSIM, pixel diff, Delta-E; **no** typography/table/vector diff, no anchor alignment, no moved-vs-changed semantics, no accept/reject/review triage |
+| Core and inspection | 🟩 **yes** — domain types, `check`/`rule`, imports, metadata, SHA-256, normalized text extraction, glossaries, region masks, personal data with valid check digits |
+| Diagnostics in more than one language | 🟥 no — output is English-only |
+| Comparison | 🟧 partial — text diff with LCS page alignment, pHash, SSIM, pixel diff, Delta-E; **no** typography/table/vector diff, no anchor alignment, no moved-vs-changed semantics, no accept/reject/review triage |
 | Preflight | **largely yes** — exact TAC from real separations, hairlines, overprint, bleed, spot colors, rich black, output intent, font details |
-| PDF/A/X/UA conformance, signature validation, Braille, OCR, spell check | no — signatures are detected as present, never validated |
-| `fix::` normalization | partial — boxes, rotate, delete, duplicate, reorder, watermark, page numbers, split, merge, image downsample/recompress; **no** RGB→CMYK, font embedding, flattening, Bates numbering, redaction, imposition |
-| Vertical niches (packaging, regulatory, legal, fiscal) | no — beyond the Brazilian pieces already present: CPF/CNPJ, GTIN, postal codes |
-| Network namespace | no — nothing in the binary touches the network |
+| PDF/A/X/UA conformance, signature validation, Braille, OCR, spell check | 🟥 no — signatures are detected as present, never validated |
+| `fix::` normalization | 🟧 partial — boxes, rotate, delete, duplicate, reorder, watermark, page numbers, split, merge, image downsample/recompress; **no** RGB→CMYK, font embedding, flattening, Bates numbering, redaction, imposition |
+| Vertical niches (packaging, regulatory, legal, fiscal) | 🟥 no — beyond the Brazilian pieces already present: CPF/CNPJ, GTIN, postal codes |
+| Network namespace | 🟥 no — nothing in the binary touches the network |
 
 ---
 

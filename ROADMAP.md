@@ -1,0 +1,304 @@
+# Roadmap
+
+What exists, what does not, and what gets built next.
+
+pdfl is a **solo project with open code**. This document is not a call for
+contributions; it is here so that anyone deciding whether to depend on the tool
+can see where it is going, and so that anyone who forks it inherits the reasoning
+behind what was left out.
+
+Every "exists" claim was verified by reading the source or running the binary,
+not by reading the documentation — during this project the documentation was
+found to disagree with the code more than once. Where a claim could not be
+verified, it is marked **partial** with the doubt stated, never rounded up to a
+yes.
+
+State at **0.10.1**.
+
+---
+
+## 1. Summary
+
+The language core is **done and in production**: lexer, parser, AST and a
+tree-walking interpreter, all shipping.
+
+| Area | State |
+|---|---|
+| Language core (lexer → parser → AST → interpreter) | complete |
+| CLI commands | 10 — see the coverage table for what is missing |
+| Standard library | 135 functions across 7 namespaces |
+| Domain types | 7 (`Document`, `Page`, `Region`, `Font`, `Image`, `List`, `Str`) + `Diagnostic` |
+| Report formats | 4 of 10 (JSON, CSV, HTML, PDF) |
+| Distribution | 5 platforms, installers + one portable tarball |
+| Documentation | 7 languages, verified in sync with the code |
+
+### The three gaps that block everything downstream
+
+Each is small; each unblocks a family of features that cannot start without it.
+
+**1. Diagnostic IDs are positional.** `src/interpreter.rs:377` builds them with
+`format!("PDFL-{:03}", self.next_id)` — a per-run counter. Insert a check at the
+top of a script and every ID below it shifts. A stable identifier, derived from
+what actually identifies a finding, is the prerequisite for three separate
+features: running against an approved baseline so only new findings fail,
+carrying a triage decision across versions of a document, and giving a batch job
+an idempotency key. None of them can start while the ID means "the second thing
+we happened to find".
+
+**2. Severity is not part of the language.** The design principles call for
+severity as language semantics — `error`/`warning`/`info` mapping to exit codes.
+Today `assert` and `require` always emit `Error`; `Warning` and `Info` come only
+from `lint` and `compare`. A script author cannot say "this one is a warning".
+`--fail-on warning` exists, but it moves a threshold for severities scripts
+cannot yet produce.
+
+**3. The JSON report has no `schema_version`.** Without it no consumer can detect
+a format change, which makes every downstream integration fragile before it is
+written.
+
+---
+
+## 2. Coverage
+
+Legend: **yes** — implemented and verified · **partial** — some of it, gap noted
+· **no** — absent, verified by grep over `src/` and `Cargo.toml`.
+
+### `pdfl run`
+
+| Feature | State | Evidence / gap |
+|---|---|---|
+| Basic invocation, exit by worst severity | yes | `src/main.rs`, `src/report.rs` |
+| Exit codes 0/1/2 | yes | 0 OK, 1 warnings, 2 validation, 3 syntax |
+| Infrastructure errors in a separate range (10+) | **no** | infra errors reuse 2 and 3 — CI cannot tell "the file is corrupt" from "the file failed" |
+| `--fail-on warning` | yes | `src/main.rs` |
+| Custom exit mapping declared in the script | no | |
+| `--fail-fast` | partial | exists in `watch`, not in `run` |
+| `--max-findings N` | no | |
+| stdin input, stdin file list | no | |
+| Typed script parameters and free variables | no | scripts take no arguments; only `const` inside the file |
+| Input by URL | no | out of scope until a network namespace exists |
+| `--tags` | **no, but nearly free** | tags are parsed and discarded: `src/interpreter.rs:268` reads `Stmt::Check { tags: _ }` |
+| `--quiet` / `--verbose` | partial | `run` has `--verbose`; no `--quiet` anywhere |
+| Report language selection | no | reports are English-only by decision |
+| `--dry-run` / execution plan | partial | `fix --dry-run` exists; `run` has neither |
+| `--profile`, `--explain-skip` | no | |
+| `--json` on every subcommand | partial | `run`/`compare`/`fix`/`watch` emit JSON; `inspect`, `lint`, `doc` print text only |
+| Baseline runs, run-to-run diff | no | blocked by the ID counter above |
+
+### Outputs
+
+| Feature | State |
+|---|---|
+| Self-contained HTML, PDF | yes — `src/report.rs`; the PDF is deterministic with embedded Helvetica |
+| Canonical JSON/CSV | partial — both exist, neither carries `schema_version` |
+| SARIF, JUnit XML, Markdown, NDJSON, XLSX, XML, SQLite artifact | no |
+| NDJSON progress on stderr | no |
+| stdout/stderr separation | yes — report on stdout, `print()` and progress on stderr |
+| Normalized PDF to stdout | no — `fix` always writes a file |
+| Output packaging, deterministic ZIP, checksum sidecar, filename templates | no |
+| Input hash recorded in every report | partial — `struct::calculate_sha256()` exposes it to scripts; the report does not record it automatically |
+
+### Batch and queues
+
+Essentially **absent**. `watch --once` processes a folder and exits with the
+worst code, which covers the simplest case. Everything else — a job type, a
+declarative batch block, manifests, priorities, SLAs, dependency graphs, retry,
+quarantine, timeouts, incremental hash cache, journal, multi-machine
+coordination, queue status, metrics, routing, digests — is unwritten.
+
+`rayon` is not a dependency: there is no parallelism at all, so a `--jobs N` flag
+is not one flag away.
+
+### Watch mode
+
+| Feature | State |
+|---|---|
+| Invocation with `--script` | yes |
+| Multiple folders, each with its own script | no |
+| Debounce / settle | yes — polling with debounce, `src/watch.rs` |
+| Sentinel file, manifest trigger, event coalescing, rename detection, double-processing lock | no |
+| Include/exclude globs, depth limit | yes — `--pattern`, `--exclude`, `--depth` |
+| Symlink policy, network-share fallback | no — though polling is the only mode, so network shares work by accident |
+| `--once` | yes |
+| `--status`, hot reload, catch-up scan, log rotation, disk guard, status artifact | no |
+| Service unit generation, watchdog integration, cron overlap lock, jitter, calendar awareness | no |
+
+`notify` is not a dependency; the watcher polls. `src/watch.rs:3` records this as
+a deliberate choice — portable, no new dependency — with the upgrade path noted.
+
+### Developer tooling
+
+Six of the planned tooling subcommands exist in some form; eleven do not.
+
+| Command | State |
+|---|---|
+| `fmt` (+ `--check`) | yes |
+| `lint` | partial — 6 rule categories; no config file, no custom rules, no autofix |
+| `doc` | partial — generates Markdown/HTML from the AST; no docstrings, so descriptions come from assert messages |
+| `inspect` | yes |
+| `pack` | yes |
+| `add` | yes |
+| `test`, `repl`, `debug`, `bench`, `explain`, `new`, `migrate`, `graph`, `doctor`, `capabilities`, `cache` | no |
+| LSP, editor extension, shell completions, man pages, corpus runner | no |
+
+`clap` gives shell completions almost free via `clap_complete`; that is the
+cheapest item here.
+
+### Packages and data
+
+| Feature | State |
+|---|---|
+| `.pdflpkg` with manifest and SHA-256, reproducible `pdfl pack` | yes — determinism has a test |
+| Data schema validation at packaging time | no |
+| Registry, search, publish, signing, dependency resolution, vendoring | no |
+| `data::` reading CSV and TXT | yes |
+| `data::` reading SQLite, JSON, XLSX, Parquet, TOML/YAML | no |
+| Versioned datasets, data dictionary, remote pinning | no |
+
+**Inconsistency worth fixing cheaply:** `src/pack.rs:12` packages `.json` and
+`.xlsx` as data files, but `src/datans.rs` can only read CSV and TXT. A package
+can carry data the language cannot open.
+
+### CI and integration
+
+All **no**: container image, published CI action, pre-commit hook, an offline
+mode that makes network calls fail explicitly, recorded network fixtures, a local
+server mode, C ABI, Python/Node bindings, WASM, telemetry.
+
+The repository ships GitHub Actions workflows for its own CI, which is not the
+same thing as a published action other people can use.
+
+### Robustness and determinism
+
+| Feature | State |
+|---|---|
+| Same script + same PDF = same bytes | yes — CI asserts it on every push |
+| Seeded sampling, deterministic parallel output, reproducible builds | n/a — no sampling and no parallelism yet |
+| Strict vs lenient parsing, repair diagnostics | no — a corrupt PDF fails with one error |
+| Partial result on timeout | no — there are no timeouts |
+| Memory/time limits, recursion limit, path sandbox, large-file guard | partial — recursion is bounded and tested; nothing else |
+| Memory-mapped reads, page streaming, lazy images | no — `visual::` renders on demand and caches, which bounds cost in practice but is not streaming |
+| Structured logging, resource report, SBOM, dependency audit | no |
+
+### The language itself
+
+| Area | State |
+|---|---|
+| Core and inspection | **yes** — domain types, `check`/`rule`, imports, metadata, SHA-256, normalized text extraction, glossaries, region masks, personal data with valid check digits |
+| Diagnostics in more than one language | no — output is English-only |
+| Comparison | partial — text diff with LCS page alignment, pHash, SSIM, pixel diff, Delta-E; **no** typography/table/vector diff, no anchor alignment, no moved-vs-changed semantics, no accept/reject/review triage |
+| Preflight | **largely yes** — exact TAC from real separations, hairlines, overprint, bleed, spot colors, rich black, output intent, font details |
+| PDF/A/X/UA conformance, signature validation, Braille, OCR, spell check | no — signatures are detected as present, never validated |
+| `fix::` normalization | partial — boxes, rotate, delete, duplicate, reorder, watermark, page numbers, split, merge, image downsample/recompress; **no** RGB→CMYK, font embedding, flattening, Bates numbering, redaction, imposition |
+| Vertical niches (packaging, regulatory, legal, fiscal) | no — beyond the Brazilian pieces already present: CPF/CNPJ, GTIN, postal codes |
+| Network namespace | no — nothing in the binary touches the network |
+
+---
+
+## 3. Order of work
+
+### Wave 1 — unblock
+
+1. **Stable diagnostic identifier** replacing the positional counter. Derive it
+   from what identifies the finding — check name, rule, location, normalized
+   message — so it survives reordering and edits elsewhere in the script. Keep
+   the sequential number as a separate field if reports need ordering.
+2. **Severity in the language.** Let a check or an assertion declare
+   `warning`/`info`. This is what makes the severity principle true and gives
+   `--fail-on` something to act on. It changes exit-code behaviour, so it comes
+   before anything that consumes exit codes.
+3. **`schema_version` in JSON and CSV.** One field, added before anyone writes an
+   integration rather than after.
+4. **Move infrastructure errors out of the finding range.** Today a corrupt file
+   and a failed validation both exit 2, so CI cannot tell them apart.
+
+### Wave 2 — collect what is already paid for
+
+Each of these reuses structure that exists; none needs a new dependency.
+
+5. **`--tags`** — the AST already carries tags and the interpreter discards them.
+6. **`--json` for `inspect`, `lint` and `doc`** — a fully scriptable CLI is three
+   subcommands away.
+7. **SARIF and JUnit output** — `src/report.rs` already models a diagnostic with
+   id, severity, check name, message and line. Two more serializers, and they are
+   what makes the tool visible inside GitHub and any CI.
+8. **Shell completions** via `clap_complete`, and `--quiet`.
+9. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
+   stop packaging formats it cannot open.
+
+### Wave 3 — real cost, decided deliberately
+
+Each adds a dependency and a support surface. None starts before Waves 1–2.
+
+10. **`pdfl test`** — a golden-file runner. Anyone writing profiles has no way to
+    test them today, which limits how far the package format can go.
+11. **Parallelism** — needed before batch means anything.
+12. **Event-based watch**, keeping polling as the fallback for network shares.
+13. **Batch as runtime semantics** — the largest single block of work. Worth
+    starting only once 10–12 exist.
+
+---
+
+## 4. Out of scope for this project
+
+These are deliberate exclusions, not oversights. A fork is free to decide
+otherwise, and the reasoning is recorded here so that decision can be an informed
+one.
+
+**Curated regulatory datasets.** Allergen tables, tobacco rules, medical-device
+and health-agency lists. The cost is continuous curation, not code. Such lists go
+stale silently and then produce confident wrong answers — the worst failure mode
+for a tool whose stated principle is that a false alarm is a bug. The
+*mechanism* ships: `data::` already reads a user-supplied dataset. The data
+belongs to whoever is accountable for it being current.
+
+**A package registry.** Publishing, search, signing, dependency resolution and a
+private registry add up to a package manager, and one that competes with `git
+clone`. `.pdflpkg` plus `pdfl add` from a local file already covers
+distribution. Worth revisiting only if profiles are actually being exchanged.
+
+**A local server mode and a WASM build.** Both are new runtime surfaces with
+their own security posture, for a tool that is invoked from a shell and from CI.
+A stable C ABI and a Python binding are more defensible than either, and even
+those should wait for a caller that wants them.
+
+**Multi-machine coordination.** Nothing in the code has any concept of shared
+state, and a claim protocol over a shared filesystem is a distributed system with
+all of the failure modes and none of the tooling. If coordination is ever needed,
+consuming a queue the user already runs is the smaller and more honest design.
+
+**Report translation.** Output settled on English, documented in seven languages.
+Translating every diagnostic means keeping those translations in sync with the
+code — the exact maintenance trap that let the documentation drift three releases
+behind before it was caught. Language coverage belongs in the documentation, not
+in the diagnostics.
+
+**Redaction that claims to remove information.** `fix::` may reorganize and
+re-encode a PDF. It will not claim to have removed content, because a redaction
+that silently fails leaks precisely what it was asked to hide. Reorganizing is
+recoverable; a false guarantee is not.
+
+---
+
+## 5. Re-verifying this document
+
+Each claim maps to a command:
+
+```bash
+# commands the binary actually has
+./target/debug/pdfl --help
+
+# functions per namespace
+grep -cE '^\s+"[a-z0-9_]+"( \| "[a-z0-9_]+")* =>' src/textns.rs   # and the others
+
+# the absences
+grep -rin "sarif\|junit\|baseline\|rayon\|serve\|repl" src/ Cargo.toml
+
+# the ID counter and the discarded tags
+grep -n 'PDFL-{:03}' src/interpreter.rs
+grep -n 'tags: _' src/interpreter.rs
+```
+
+Beware that a plain grep for `ocr`, `notify` or `xlsx` returns hits which are
+comments saying the feature is *absent*, or an extension whitelist rather than a
+reader. Every hit recorded here was opened and read first.

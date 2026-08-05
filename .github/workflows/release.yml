@@ -16,6 +16,9 @@ env:
 jobs:
   build:
     strategy:
+      # One platform failing must not cancel the others: each publishes its own
+      # assets, and a partial release is easier to finish than to redo.
+      fail-fast: false
       matrix:
         include:
           - target: linux-x64
@@ -144,9 +147,26 @@ jobs:
             [ -f "$ISCC" ] || { choco install innosetup -y --no-progress >/dev/null; }
             [ -f "$ISCC" ] || ISCC="$(command -v iscc)"
             OUT="$NAME-setup"
-            "$ISCC" //DAppVersion="$VERSION" //DSourceDir="dist\\$NAME" \
-                    //DOutputName="$OUT" packaging/pdfl.iss > /dev/null
+            # Absolute Windows paths: Inno resolves relative ones against the
+            # .iss file's directory, so "dist\..." became "packaging\dist\...".
+            HERE="$(cygpath -w "$PWD")"
+            "$ISCC" //DAppVersion="$VERSION" //DSourceDir="$HERE\\dist\\$NAME" \
+                    //DOutputDir="$HERE" //DOutputName="$OUT" \
+                    packaging/pdfl.iss > /dev/null
             sha256sum "$OUT.exe" > "$OUT.exe.sha256"
+
+            # .msi as well as .exe: the MSI is what deploys unattended, through
+            # Group Policy, Intune or `msiexec /qn`. WiX is a dotnet tool, and
+            # the runner already has the SDK.
+            dotnet tool install --global wix --version 5.0.2 > /dev/null
+            export PATH="$PATH:$HOME/.dotnet/tools"
+            # MSI ProductVersion takes only x.y.z, so a tag like 1.0.0-rc1 would
+            # be rejected outright. Feed it the numeric part alone.
+            MSI_VERSION="$(printf '%s' "$VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')"
+            wix build -arch x64 -d Version="$MSI_VERSION" \
+                      -bindpath src="$HERE\\dist\\$NAME" \
+                      -o "$NAME.msi" packaging/pdfl.wxs
+            sha256sum "$NAME.msi" > "$NAME.msi.sha256"
             ;;
           esac
 
@@ -164,4 +184,6 @@ jobs:
             *.dmg.sha256
             *-setup.exe
             *-setup.exe.sha256
+            *.msi
+            *.msi.sha256
           generate_release_notes: true

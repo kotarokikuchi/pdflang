@@ -24,7 +24,7 @@ what CI should use. pdfium is bundled in both.
 |---|---|---|
 | Linux x64 / arm64 | `pdfl_<version>_amd64.deb` · `_arm64.deb` | `pdfl-<version>-linux-{x64,arm64}.tar.gz` |
 | macOS x64 / arm64 | `pdfl-<version>-macos-{x64,arm64}.dmg` | `pdfl-<version>-macos-{x64,arm64}.tar.gz` |
-| Windows x64 | `pdfl-<version>-windows-x64-setup.exe` | `pdfl-<version>-windows-x64.zip` |
+| Windows x64 | `pdfl-<version>-windows-x64-setup.exe` · `.msi` | `pdfl-<version>-windows-x64.zip` |
 
 Every asset has a matching `.sha256`.
 
@@ -39,6 +39,14 @@ pdfl inspect document.pdf
 On macOS, open the `.dmg` and copy `pdfl` wherever you keep local binaries. On
 Windows, run the `-setup.exe` and keep the "add to PATH" box ticked; then use
 `pdfl` from any terminal.
+
+For unattended Windows deployment — Group Policy, Intune, or a scripted rollout
+— use the `.msi` instead. It installs to Program Files and adds itself to the
+system `PATH`:
+
+```powershell
+msiexec /i pdfl-<version>-windows-x64.msi /qn
+```
 
 > The macOS and Windows installers are unsigned, so Gatekeeper and SmartScreen
 > will warn on first run. On macOS, right-click → Open; on Windows, "More info"

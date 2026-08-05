@@ -13,7 +13,9 @@ DefaultDirName={autopf}\pdfl
 DefaultGroupName=pdfl
 LicenseFile={#SourceDir}\LICENSE
 OutputBaseFilename={#OutputName}
-OutputDir=.
+; Absolute, passed in by the workflow: Inno resolves relative paths against
+; the .iss file's own directory, not the working directory.
+OutputDir={#OutputDir}
 Compression=lzma2
 SolidCompression=yes
 ; pdfium.dll is x64-only, so refuse to install where it could not run.

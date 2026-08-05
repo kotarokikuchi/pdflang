@@ -1,7 +1,7 @@
-//! Comparação semântica entre dois PDFs (comando `pdfl compare`).
-//! Fora desta fatia: --granularity char, máscaras de região (--ignore-regions),
-//! detecção explícita de reordenação (aparece como remoção+inserção) e
-//! comparação visual — ainda não implementados.
+//! Semantic comparison between two PDFs (the `pdfl compare` command).
+//! Out of scope here: --granularity char, region masks (--ignore-regions),
+//! explicit reorder detection (it shows up as removal+insertion) and
+//! visual comparison — not implemented yet.
 
 use crate::interpreter::DocData;
 use crate::report::{Diagnostic, Severity};
@@ -10,13 +10,13 @@ use regex::Regex;
 pub struct CompareOptions {
     pub normalize: bool,
     pub ignore_dates: bool,
-    /// Similaridade mínima (0–100) para o documento passar.
+    /// Minimum similarity (0–100) for the document to pass.
     pub similarity_threshold: f64,
 }
 
 pub struct CompareResult {
     pub diagnostics: Vec<Diagnostic>,
-    /// Similaridade geral do texto, 0–100.
+    /// Overall text similarity, 0–100.
     pub similarity: f64,
 }
 
@@ -34,7 +34,7 @@ pub fn compare_documents(a: &DocData, b: &DocData, opts: &CompareOptions) -> Com
         next_id += 1;
     };
 
-    // ---- metadados (mudança = aviso, não erro) ----
+    // ---- metadata (a change is a warning, not an error) ----
     for (key, va) in &a.metadata {
         let vb = b.metadata.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str()).unwrap_or("");
         if va != vb && !(va.is_empty() && vb.is_empty()) {
@@ -42,7 +42,7 @@ pub fn compare_documents(a: &DocData, b: &DocData, opts: &CompareOptions) -> Com
         }
     }
 
-    // ---- alinhamento de páginas por similaridade de texto (LCS) ----
+    // ---- page alignment by text similarity (LCS) ----
     let pages_a: Vec<String> = a.pages.iter().map(|p| prepare(&p.text, opts)).collect();
     let pages_b: Vec<String> = b.pages.iter().map(|p| prepare(&p.text, opts)).collect();
     let pairs = align_pages(&pages_a, &pages_b);
@@ -69,14 +69,14 @@ pub fn compare_documents(a: &DocData, b: &DocData, opts: &CompareOptions) -> Com
         }
     }
 
-    // ---- diff de texto por página alinhada ----
+    // ---- text diff per aligned page ----
     let mut total_sim = 0.0;
     for (i, j) in &pairs {
         let sim = word_similarity(&pages_a[*i], &pages_b[*j]);
         total_sim += sim;
         if sim < 1.0 {
             let sample = line_diff_sample(&pages_a[*i], &pages_b[*j]);
-            // Acima do threshold a mudança é tolerada: vira aviso informativo.
+            // Above the threshold the change is tolerated: it becomes an informative warning.
             let severity = if sim * 100.0 < opts.similarity_threshold {
                 Severity::Error
             } else {
@@ -96,7 +96,7 @@ pub fn compare_documents(a: &DocData, b: &DocData, opts: &CompareOptions) -> Com
         }
     }
 
-    // Similaridade geral: pares alinhados contam a média; páginas sem par contam 0.
+    // Overall similarity: aligned pairs count their average; unpaired pages count 0.
     let denom = pairs.len() + (pages_a.len() - pairs.len()) + (pages_b.len() - pairs.len());
     let similarity = if denom == 0 { 100.0 } else { (total_sim / denom as f64) * 100.0 };
     let similarity = (similarity * 10.0).round() / 10.0;
@@ -113,11 +113,11 @@ pub fn compare_documents(a: &DocData, b: &DocData, opts: &CompareOptions) -> Com
     CompareResult { diagnostics: diags, similarity }
 }
 
-/// Normalizações opcionais aplicadas antes de comparar.
+/// Optional normalizations applied before comparing.
 fn prepare(text: &str, opts: &CompareOptions) -> String {
     let mut t = text.to_string();
     if opts.ignore_dates {
-        // dd/mm/aaaa, aaaa-mm-dd, "12 de março de 2026", datas PDF D:...
+        // dd/mm/yyyy, yyyy-mm-dd, "12 de março de 2026", PDF dates D:...
         for pat in [
             r"\b\d{1,2}/\d{1,2}/\d{2,4}\b",
             r"\b\d{4}-\d{2}-\d{2}\b",
@@ -133,11 +133,11 @@ fn prepare(text: &str, opts: &CompareOptions) -> String {
     t
 }
 
-/// LCS sobre páginas: pares (i, j) alinhados quando parecidos o bastante.
-/// Para escalar a documentos de centenas/milhares de páginas, o casamento
-/// usa um teste barato (igualdade de texto, senão Jaccard de conjuntos de
-/// palavras pré-computados) e uma banda diagonal — a similaridade fina
-/// (Levenshtein) só roda nos pares já alinhados.
+/// LCS over pages: pairs (i, j) are aligned when similar enough.
+/// To scale to documents of hundreds/thousands of pages, matching uses a
+/// cheap test (text equality, otherwise Jaccard over precomputed word sets)
+/// and a diagonal band — the fine-grained similarity (Levenshtein) only runs
+/// on pairs that are already aligned.
 fn align_pages(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
     const MATCH: f64 = 0.6;
     let (n, m) = (a.len(), b.len());
@@ -145,8 +145,8 @@ fn align_pages(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
         a.iter().map(|t| t.split_whitespace().collect()).collect();
     let sets_b: Vec<std::collections::HashSet<&str>> =
         b.iter().map(|t| t.split_whitespace().collect()).collect();
-    // ponytail: banda diagonal — deslocamentos de página maiores que isso
-    // aparecem como remoção+inserção em vez de par alinhado
+    // ponytail: diagonal band — page shifts larger than this show up as
+    // removal+insertion instead of an aligned pair
     let band = n.abs_diff(m) + 25;
 
     let is_match = |i: usize, j: usize| -> bool {
@@ -165,7 +165,7 @@ fn align_pages(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
         union > 0 && inter as f64 / union as f64 >= MATCH
     };
 
-    // dp[i][j] = tamanho do melhor alinhamento de a[i..] com b[j..]
+    // dp[i][j] = length of the best alignment of a[i..] with b[j..]
     let mut dp = vec![vec![0u32; m + 1]; n + 1];
     for i in (0..n).rev() {
         for j in (0..m).rev() {
@@ -192,8 +192,8 @@ fn align_pages(a: &[String], b: &[String]) -> Vec<(usize, usize)> {
     pairs
 }
 
-/// Similaridade Levenshtein sobre PALAVRAS (1.0 = idênticas).
-/// ponytail: nível de palavra fixo; --granularity char|line fica para depois
+/// Levenshtein similarity over WORDS (1.0 = identical).
+/// ponytail: fixed at word level; --granularity char|line is left for later
 fn word_similarity(a: &str, b: &str) -> f64 {
     let wa: Vec<&str> = a.split_whitespace().collect();
     let wb: Vec<&str> = b.split_whitespace().collect();
@@ -213,7 +213,7 @@ fn word_similarity(a: &str, b: &str) -> f64 {
     1.0 - prev[wb.len()] as f64 / wa.len().max(wb.len()) as f64
 }
 
-/// Amostra das primeiras linhas que mudaram (até 3 de cada lado).
+/// Sample of the first lines that changed (up to 3 on each side).
 fn line_diff_sample(a: &str, b: &str) -> String {
     let la: Vec<&str> = a.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
     let lb: Vec<&str> = b.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
@@ -274,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    fn identicos() {
+    fn identical() {
         let a = doc(&["um dois três", "quatro cinco"], "T");
         let r = compare_documents(&a, &doc(&["um dois três", "quatro cinco"], "T"), &opts());
         assert_eq!(r.similarity, 100.0);
@@ -282,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn texto_mudou() {
+    fn text_changed() {
         let a = doc(&["um dois três quatro"], "T");
         let b = doc(&["um dois TRÊS quatro"], "T");
         let r = compare_documents(&a, &b, &opts());
@@ -292,7 +292,7 @@ mod tests {
     }
 
     #[test]
-    fn pagina_inserida() {
+    fn page_inserted() {
         let a = doc(&["primeira página conteúdo", "última página conteúdo"], "T");
         let b = doc(&["primeira página conteúdo", "página nova no meio", "última página conteúdo"], "T");
         let r = compare_documents(&a, &b, &opts());
@@ -302,7 +302,7 @@ mod tests {
     }
 
     #[test]
-    fn metadados_mudaram() {
+    fn metadata_changed() {
         let a = doc(&["texto igual aqui"], "Versão 1");
         let b = doc(&["texto igual aqui"], "Versão 2");
         let r = compare_documents(&a, &b, &opts());
@@ -313,7 +313,7 @@ mod tests {
     }
 
     #[test]
-    fn ignora_datas_e_normaliza() {
+    fn ignores_dates_and_normalizes() {
         let a = doc(&["Emitido em 01/02/2026 VALOR TOTAL"], "T");
         let b = doc(&["Emitido em 15/03/2026 valor  total"], "T");
         let com = CompareOptions { normalize: true, ignore_dates: true, similarity_threshold: 100.0 };
@@ -324,9 +324,9 @@ mod tests {
     }
 
     #[test]
-    fn threshold_tolera_mudancas() {
+    fn threshold_tolerates_changes() {
         let a = doc(&["um dois três quatro"], "T");
-        let b = doc(&["um dois TRÊS quatro"], "T"); // 75% de similaridade
+        let b = doc(&["um dois TRÊS quatro"], "T"); // 75% similarity
         let tolerante = CompareOptions { normalize: false, ignore_dates: false, similarity_threshold: 50.0 };
         let r = compare_documents(&a, &b, &tolerante);
         assert!(r.diagnostics.iter().all(|d| d.severity != Severity::Error), "{:?}", r.diagnostics);
@@ -334,7 +334,7 @@ mod tests {
     }
 
     #[test]
-    fn amostra_de_diff() {
+    fn diff_sample() {
         let a = doc(&["linha um\nlinha dois\nlinha três"], "T");
         let b = doc(&["linha um\nlinha DOIS\nlinha três"], "T");
         let r = compare_documents(&a, &b, &opts());

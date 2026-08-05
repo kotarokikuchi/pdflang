@@ -2,9 +2,9 @@ name: Release
 
 on:
   push:
-    # A tag é a versão nua (0.6.2). O `v*` continua aceito porque a v0.6.1 já
-    # foi publicada assim — sem ele, uma tag antiga não dispararia nada, que é
-    # a falha silenciosa pior de diagnosticar.
+    # The tag is the bare version (0.6.2). `v*` stays accepted because v0.6.1
+    # was already published that way — without it an old-style tag would trigger
+    # nothing, the hardest kind of failure to diagnose.
     tags: ["[0-9]*", "v*"]
 
 permissions:
@@ -35,17 +35,17 @@ jobs:
       - name: Build release
         run: cargo build --release
 
-      - name: Baixar pdfium
+      - name: Download pdfium
         run: ./setup_pdfium.sh
 
-      - name: Empacotar (binário + libpdfium + docs)
+      - name: Package (binary + libpdfium + docs)
         run: |
-          # A versão vai no nome do artefato e no diretório de dentro, para que
-          # um pacote baixado continue identificável depois de extraído.
-          # Em troca, .../releases/latest/download/<nome> deixa de servir: ele
-          # exige o nome exato. Quem instala em CI usa `gh release download
-          # --pattern 'pdfl-*-<alvo>.tar.gz'` (ver docs/*/12-*.md).
-          VERSION="${GITHUB_REF_NAME#v}"   # tag 0.6.2 ou v0.6.2 dão o mesmo nome
+          # The version goes in the artifact's name and in the directory inside
+          # it, so a downloaded package stays identifiable after extraction.
+          # In exchange, .../releases/latest/download/<name> no longer works: it
+          # needs the exact name. CI installs use `gh release download
+          # --pattern 'pdfl-*-<target>.tar.gz'` (see docs/*/12-*.md).
+          VERSION="${GITHUB_REF_NAME#v}"   # tags 0.6.2 and v0.6.2 give the same name
           NAME="pdfl-${VERSION}-${{ matrix.target }}"
           mkdir -p "dist/$NAME"
           cp target/release/pdfl "dist/$NAME/"
@@ -55,7 +55,7 @@ jobs:
           tar -C dist -czf "$NAME.tar.gz" "$NAME"
           shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" || sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
 
-      - name: Publicar no release
+      - name: Publish to the release
         uses: softprops/action-gh-release@v2
         with:
           files: |

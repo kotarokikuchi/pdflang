@@ -1,4 +1,4 @@
-//! Interpretador tree-walking da linguagem PDFLang.
+//! Tree-walking interpreter for the PDFLang language.
 
 use crate::ast::*;
 use crate::report::{Diagnostic, Severity};
@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
-// ---- dados do documento (preenchidos por pdf.rs, ou mockados nos testes) ----
+// ---- document data (filled in by pdf.rs, or mocked in the tests) ----
 
 #[derive(Debug)]
 pub struct DocData {
@@ -15,22 +15,22 @@ pub struct DocData {
     pub author: String,
     pub pages: Vec<Rc<PageData>>,
     pub fonts: Vec<Rc<FontData>>,
-    /// Todas as entradas de metadados na ordem do PDF: (chave, valor).
+    /// Every metadata entry in the PDF's order: (key, value).
     pub metadata: Vec<(String, String)>,
     pub file_size: i64,
     pub sha256: String,
-    /// Total de objetos de conteúdo (texto, imagem, path...) nas páginas.
+    /// Total content objects (text, image, path...) across the pages.
     pub object_count: i64,
-    /// Caminho do arquivo original (para escaneamentos sob demanda).
+    /// Path of the original file (for on-demand scans).
     pub path: std::path::PathBuf,
-    /// Códigos de barras/QR — preenchido sob demanda no primeiro uso de
-    /// `codes::` (o escaneamento renderiza as páginas e é caro).
+    /// Barcodes/QR codes — filled on demand on the first use of `codes::`
+    /// (the scan renders the pages and is expensive).
     pub barcodes: std::cell::OnceCell<Vec<Rc<BarcodeData>>>,
-    /// Análise estrutural de baixo nível (lopdf) — sob demanda, no primeiro
-    /// uso das funções struct:: que precisam da tabela de objetos.
+    /// Low-level structural analysis (lopdf) — on demand, on the first use of
+    /// the struct:: functions that need the object table.
     pub lowlevel: std::cell::OnceCell<crate::structns::StructInfo>,
-    /// Separações de cor lidas do content stream — sob demanda, no primeiro
-    /// uso das funções prepress:: que precisam de cor real.
+    /// Color separations read from the content stream — on demand, on the first
+    /// use of the prepress:: functions that need real color.
     pub colors: std::cell::OnceCell<crate::colors::ColorInfo>,
 }
 
@@ -38,8 +38,8 @@ pub struct DocData {
 pub struct BarcodeData {
     pub page_number: i64,    // 1-based
     pub format: String,      // EAN_13, QR_CODE, CODE_128, ...
-    pub text: String,        // conteúdo decodificado
-    pub x: f64,              // posição na página, em pontos
+    pub text: String,        // decoded content
+    pub x: f64,              // position on the page, in points
     pub y: f64,
 }
 
@@ -50,18 +50,18 @@ pub struct PageData {
     pub height: f64, // pontos
     pub text: String,
     pub images: Vec<Rc<ImageData>>,
-    /// TAC máximo aproximado da página, em % (0–400).
-    /// ponytail: aproximado via render RGB + conversão ingênua para CMYK;
-    /// TAC exato exige separações reais: `prepress::calculate_exact_tac`
+    /// Approximate maximum TAC of the page, in % (0–400).
+    /// ponytail: approximated via an RGB render + naive conversion to CMYK;
+    /// exact TAC needs real separations: `prepress::calculate_exact_tac`
     pub tac_max: f64,
-    /// Cobertura média de tinta aproximada, em %.
+    /// Approximate average ink coverage, in %.
     pub ink_avg: f64,
-    /// Menor largura de traço entre os paths da página, em pontos.
+    /// Smallest stroke width among the page's paths, in points.
     pub min_stroke_pt: Option<f64>,
     pub boxes: PageBoxes,
 }
 
-/// Caixas da página em pontos: [esquerda, base, direita, topo].
+/// Page boxes in points: [left, bottom, right, top].
 #[derive(Debug, Default)]
 pub struct PageBoxes {
     pub media: Option<[f64; 4]>,
@@ -76,7 +76,7 @@ pub struct ImageData {
     pub page_number: i64, // 1-based
     pub width: i64,       // pixels
     pub height: i64,      // pixels
-    pub dpi_x: f64,       // DPI efetivo na página
+    pub dpi_x: f64,       // effective DPI on the page
     pub dpi_y: f64,
     pub color_space: String, // DeviceRGB, DeviceCMYK, ...
     pub bits_per_pixel: i64,
@@ -88,8 +88,8 @@ pub struct FontData {
     pub is_embedded: bool,
 }
 
-/// Área declarativa na página, em pontos (origem no canto inferior esquerdo,
-/// como no PDF).
+/// A declarative area on the page, in points (origin at the bottom-left
+/// corner, as in the PDF).
 #[derive(Debug, Clone)]
 pub struct RegionData {
     pub name: String,
@@ -186,7 +186,7 @@ impl Value {
     }
 }
 
-// ---- erro de execução ----
+// ---- runtime error ----
 
 #[derive(Debug)]
 pub struct RuntimeError {
@@ -213,13 +213,13 @@ pub struct Interpreter {
     pub profile_name: Option<String>,
     current_check: String,
     next_id: usize,
-    /// Operações fix:: são permitidas só no comando `pdfl fix`.
+    /// fix:: operations are only allowed in the `pdfl fix` command.
     pub allow_fixes: bool,
     pub fix_ops: Vec<crate::fixns::FixOp>,
-    /// Functions definidas pelo usuário (registro global).
+    /// User-defined functions (a global registry).
     functions: HashMap<String, Rc<(Vec<String>, Vec<Stmt>)>>,
     call_depth: usize,
-    /// Diretório do script (base para imports relativos).
+    /// The script's directory (the base for relative imports).
     pub script_dir: std::path::PathBuf,
     imported: std::collections::HashSet<std::path::PathBuf>,
 }
@@ -241,9 +241,9 @@ impl Interpreter {
         }
     }
 
-    /// Executa o programa com `doc` disponível como variável global.
-    /// Erro fora de um check aborta tudo; dentro de um check vira diagnóstico
-    /// e a execução continua no próximo check.
+    /// Runs the program with `doc` available as a global variable.
+    /// An error outside a check aborts everything; inside a check it becomes a
+    /// diagnostic and execution continues at the next check.
     pub fn run(&mut self, program: &[Stmt], doc: Rc<DocData>) -> Result<(), RuntimeError> {
         self.scopes[0].insert("doc".into(), Value::Doc(doc));
         self.exec_stmts(program)
@@ -276,8 +276,8 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Rule { name, pages, body } => {
-                // Uma regra é um check aplicado página a página, com `page`
-                // ligado no escopo do corpo.
+                // A rule is a check applied page by page, with `page` bound in
+                // the body's scope.
                 let previous_check = std::mem::replace(&mut self.current_check, name.clone());
                 let selected: Vec<Value> = match pages {
                     Some(expr) => match self.eval(expr) {
@@ -327,13 +327,13 @@ impl Interpreter {
                     message: format!("import \"{path}\": could not open {}: {e}", full.display()),
                 })?;
                 if !self.imported.insert(canonical.clone()) {
-                    return Ok(()); // já importado (também corta ciclos)
+                    return Ok(()); // already imported (this also breaks cycles)
                 }
                 let source = std::fs::read_to_string(&canonical)
                     .map_err(|e| RuntimeError { message: format!("import \"{path}\": {e}") })?;
                 let program = crate::parser::parse(&source)
                     .map_err(|e| RuntimeError { message: format!("import \"{path}\": {e}") })?;
-                // imports aninhados resolvem relativo ao arquivo importado
+                // nested imports resolve relative to the imported file
                 let previous_dir = std::mem::replace(
                     &mut self.script_dir,
                     canonical.parent().map(|d| d.to_path_buf()).unwrap_or_default(),
@@ -385,7 +385,7 @@ impl Interpreter {
         });
     }
 
-    // ---- avaliação de expressões ----
+    // ---- expression evaluation ----
 
     fn eval(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         match expr {
@@ -544,7 +544,7 @@ impl Interpreter {
         }
     }
 
-    // ---- métodos ----
+    // ---- methods ----
 
     fn method(
         &mut self,
@@ -607,7 +607,7 @@ impl Interpreter {
             }
             (Value::List(items), "length") => Ok(Value::Int(items.len() as i64)),
             (Value::List(items), "get") => {
-                // 1-based, pensado para quem não programa: get(1) é o primeiro
+                // 1-based, meant for non-programmers: get(1) is the first one
                 let n = match one_arg(args, "get")? {
                     Value::Int(n) => *n,
                     other => return rerr(format!("get expects the item number, got {}", other.type_name())),
@@ -648,7 +648,7 @@ impl Interpreter {
             (Value::Str(s), "to_uppercase") => Ok(Value::Str(s.to_uppercase())),
             (Value::Str(s), "to_lowercase") => Ok(Value::Str(s.to_lowercase())),
             (Value::Str(s), "length") => Ok(Value::Int(s.chars().count() as i64)),
-            // Regiões
+            // Regions
             (Value::Region(r), "contains_point") => {
                 let num = |i: usize| match args.get(i) {
                     Some(Value::Int(v)) => Ok(*v as f64),
@@ -698,19 +698,19 @@ impl Interpreter {
                 Value::Float(r.right()),
                 Value::Float(r.top()),
             ]))),
-            // Documento / página
+            // Document / page
             (Value::Page(p), "extract_text") => Ok(Value::Str(p.text.clone())),
             (Value::Doc(d), "extract_text") => {
                 Ok(Value::Str(d.pages.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n")))
             }
-            // Propriedade chamada como método sem args: doc.pages() etc.
+            // A property called as a no-arg method: doc.pages() etc.
             (_, _) if args.is_empty() && block.is_none() => self.member(v, name),
             _ => rerr(format!("{} has no method '{name}'", v.type_name())),
         }
     }
 
     fn global_fn(&mut self, name: &str, args: &[Value]) -> Result<Value, RuntimeError> {
-        // Functions do usuário têm precedência (namespaces têm :: e não colidem)
+        // User functions take precedence (namespaces use :: and do not collide)
         if let Some(def) = self.functions.get(name).cloned() {
             if self.call_depth >= 200 {
                 return rerr(format!("recursion too deep in '{name}' (limit: 200 calls)"));
@@ -792,7 +792,7 @@ impl Interpreter {
                 other => rerr(format!("round expects a number, got {}", other.type_name())),
             },
             "region" => {
-                // region(x, y, largura, altura [, "nome"]) — em pontos
+                // region(x, y, width, height [, "name"]) — in points
                 let n = |i: usize| -> Result<f64, RuntimeError> {
                     match args.get(i) {
                         Some(Value::Int(v)) => Ok(*v as f64),
@@ -811,7 +811,7 @@ impl Interpreter {
                 Ok(Value::Region(Rc::new(RegionData { name, x, y, width, height })))
             }
             "print" => {
-                // stderr: o stdout é reservado ao relatório (JSON/CSV/HTML)
+                // stderr: stdout is reserved for the report (JSON/CSV/HTML)
                 eprintln!("{}", args.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" "));
                 Ok(Value::Null)
             }
@@ -828,8 +828,8 @@ impl Interpreter {
         rerr("no document loaded (variable 'doc' not found)".into())
     }
 
-    /// Executa um bloco `{ |params| ... }`; retorna o valor do último
-    /// statement se ele for uma expressão, senão Null.
+    /// Runs a `{ |params| ... }` block; returns the value of the last statement
+    /// if it is an expression, otherwise Null.
     fn run_block(&mut self, block: &Block, args: &[Value]) -> Result<Value, RuntimeError> {
         self.scopes.push(HashMap::new());
         for (i, param) in block.params.iter().enumerate() {
@@ -943,7 +943,7 @@ mod tests {
     use super::*;
     use crate::parser::parse;
 
-    /// Serializa os testes que mexem em variáveis de ambiente (globais).
+    /// Serializes the tests that touch environment variables (globals).
     static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     fn mock_doc() -> Rc<DocData> {
@@ -1051,7 +1051,7 @@ mod tests {
     }
 
     #[test]
-    fn assert_passa_e_falha() {
+    fn assert_passes_and_fails() {
         let i = run(r#"
 check "Páginas" {
   require doc.page_count > 0
@@ -1065,14 +1065,14 @@ check "Páginas" {
     }
 
     #[test]
-    fn require_gera_mensagem_automatica() {
+    fn require_generates_automatic_message() {
         let i = run("check \"Autor\" { require doc.author != \"\" }");
         assert_eq!(i.diagnostics.len(), 1);
         assert!(i.diagnostics[0].message.contains("doc.author != \"\""));
     }
 
     #[test]
-    fn each_com_interpolacao() {
+    fn each_with_interpolation() {
         let i = run(r#"
 check "Fontes" {
   doc.fonts.each { |font|
@@ -1085,7 +1085,7 @@ check "Fontes" {
     }
 
     #[test]
-    fn profile_const_e_aritmetica() {
+    fn profile_const_and_arithmetic() {
         let i = run(r#"
 profile "teste" {
   const MIN = 2 * 300
@@ -1109,12 +1109,12 @@ check "Listas" {
   require doc.fonts.filter { |f| !f.is_embedded }.length == 1
 }
 "#);
-        assert_eq!(i.diagnostics.len(), 1); // só o all falha
+        assert_eq!(i.diagnostics.len(), 1); // only `all` fails
         assert!(i.diagnostics[0].message.contains("all"));
     }
 
     #[test]
-    fn texto_e_strings() {
+    fn text_and_strings() {
         let i = run(r#"
 check "Texto" {
   page1 = doc.pages.filter { |p| p.index == 0 }
@@ -1126,7 +1126,7 @@ check "Texto" {
     }
 
     #[test]
-    fn erro_em_um_check_nao_para_o_proximo() {
+    fn error_in_one_check_does_not_stop_the_next() {
         let i = run(r#"
 check "Quebrado" { require variavel_inexistente > 0 }
 check "OK" { require doc.page_count == 2 }
@@ -1137,7 +1137,7 @@ check "OK" { require doc.page_count == 2 }
     }
 
     #[test]
-    fn namespace_text_basico() {
+    fn namespace_text_basics() {
         let i = run(r#"
 check "Texto" {
   require text::require_text("olá MUNDO")
@@ -1153,7 +1153,7 @@ check "Texto" {
     }
 
     #[test]
-    fn namespace_text_regex_e_fuzzy() {
+    fn namespace_text_regex_and_fuzzy() {
         let i = run(r#"
 check "Padrões" {
   require text::require_match("Olá \w+")
@@ -1178,7 +1178,7 @@ check "PII" {
     }
 
     #[test]
-    fn namespace_text_erros_amigaveis() {
+    fn namespace_text_friendly_errors() {
         let i = run(r#"check "Erro" { text::extract_from_page(99) }"#);
         assert_eq!(i.diagnostics.len(), 1);
         assert!(i.diagnostics[0].message.contains("page 99 does not exist"));
@@ -1188,7 +1188,7 @@ check "PII" {
     }
 
     #[test]
-    fn namespace_struct_metadados() {
+    fn namespace_struct_metadata() {
         let i = run(r#"
 check "Metadados" {
   require struct::get_title() == "Título"
@@ -1202,7 +1202,7 @@ check "Metadados" {
     }
 
     #[test]
-    fn namespace_struct_objetos_e_hash() {
+    fn namespace_struct_objects_and_hash() {
         let i = run(r#"
 check "Estrutura" {
   require struct::count_objects() == 7
@@ -1216,7 +1216,7 @@ check "Estrutura" {
     }
 
     #[test]
-    fn namespace_visual_basico() {
+    fn namespace_visual_basics() {
         let i = run(r#"
 check "Imagens" {
   require visual::detect_images()
@@ -1231,7 +1231,7 @@ check "Imagens" {
     }
 
     #[test]
-    fn namespace_visual_baixa_resolucao() {
+    fn namespace_visual_low_resolution() {
         let i = run(r#"
 check "Resolução" {
   require visual::detect_low_resolution()
@@ -1248,9 +1248,9 @@ check "Resolução" {
     }
 
     #[test]
-    fn namespace_visual_fase2_erros_amigaveis() {
-        // mock_doc não tem arquivo real: as funções visuais devem falhar
-        // com mensagem clara, não com pânico
+    fn namespace_visual_friendly_errors() {
+        // mock_doc has no real file: the visual functions must fail with a
+        // clear message, not a panic
         let i = run(r#"check "Erro" { visual::measure_ssim(1) }"#);
         assert!(i.diagnostics[0].message.contains("path of the other PDF"), "{:?}", i.diagnostics);
 
@@ -1259,7 +1259,7 @@ check "Resolução" {
     }
 
     #[test]
-    fn namespace_visual_erros() {
+    fn namespace_visual_errors() {
         let i = run(r#"check "Erro" { visual::get_image_size(9) }"#);
         assert!(i.diagnostics[0].message.contains("image 9 does not exist"));
     }
@@ -1282,7 +1282,7 @@ check "TAC" {
     }
 
     #[test]
-    fn namespace_prepress_linhas_e_fontes() {
+    fn namespace_prepress_lines_and_fonts() {
         let i = run(r#"
 check "Linhas" {
   require prepress::detect_hairlines()
@@ -1297,7 +1297,7 @@ check "Linhas" {
     }
 
     #[test]
-    fn namespace_prepress_caixas() {
+    fn namespace_prepress_boxes() {
         let i = run(r#"
 check "Caixas" {
   require prepress::validate_media_box()
@@ -1313,8 +1313,8 @@ check "Caixas" {
     }
 
     #[test]
-    fn namespace_prepress_fase2_delta_e() {
-        // delta_e não precisa do arquivo: compara cores dadas no script
+    fn namespace_prepress_delta_e() {
+        // delta_e does not need the file: it compares colors given in the script
         let i = run(r#"
 check "Cores" {
   require prepress::compare_colors_delta_e([0, 0, 0, 1], [0, 0, 0, 1]) == 0.0
@@ -1326,14 +1326,14 @@ check "Cores" {
     }
 
     #[test]
-    fn namespace_prepress_fase2_erros() {
+    fn namespace_prepress_errors() {
         let i = run(r#"check "E" { prepress::compare_colors_delta_e([1, 2], [1, 2]) }"#);
         assert!(i.diagnostics[0].message.contains("1 (gray), 3 (RGB) or 4 (CMYK)"), "{:?}", i.diagnostics);
     }
 
     #[test]
-    fn namespace_prepress_geometria() {
-        // página 1 tem trim 8.5pt (~3mm) dentro da bleed; página 2 não tem as caixas
+    fn namespace_prepress_geometry() {
+        // page 1 has a trim of 8.5pt (~3mm) inside the bleed; page 2 has no boxes
         let i = run(r#"
 check "Geometria" {
   require !prepress::check_page_geometry()
@@ -1344,7 +1344,7 @@ check "Geometria" {
     }
 
     #[test]
-    fn namespace_codes_deteccao() {
+    fn namespace_codes_detection() {
         let i = run(r#"
 check "Códigos" {
   require codes::detect_barcodes()
@@ -1359,7 +1359,7 @@ check "Códigos" {
     }
 
     #[test]
-    fn namespace_codes_validacao() {
+    fn namespace_codes_validation() {
         let i = run(r#"
 check "GTIN" {
   require codes::validate_barcode_checksum(1)
@@ -1375,7 +1375,7 @@ check "GTIN" {
     }
 
     #[test]
-    fn namespace_fix_enfileira_validado() {
+    fn namespace_fix_queues_validated() {
         use crate::fixns::FixOp;
         let prog = parse(
             r#"
@@ -1396,7 +1396,7 @@ fix::add_page_numbers()
     }
 
     #[test]
-    fn namespace_fix_fase2_enfileira() {
+    fn namespace_fix_queues_advanced() {
         use crate::fixns::FixOp;
         let prog = parse(
             r#"
@@ -1421,7 +1421,7 @@ fix::remove_unused_resources()
     }
 
     #[test]
-    fn namespace_fix_valida_argumentos() {
+    fn namespace_fix_validates_arguments() {
         let casos = [
             ("fix::rotate_page(1, 45)", "90, 180 or 270"),
             ("fix::delete_page(9)", "page 9 does not exist"),
@@ -1443,13 +1443,13 @@ fix::remove_unused_resources()
     }
 
     #[test]
-    fn fix_bloqueado_no_modo_run() {
+    fn fix_blocked_in_run_mode() {
         let i = run(r#"check "Fix" { fix::rotate_page(90) }"#);
         assert!(i.diagnostics[0].message.contains("pdfl fix"));
     }
 
     #[test]
-    fn namespace_data_glossario_e_dataset() {
+    fn namespace_data_glossary_and_dataset() {
         let i = run(r#"
 check "Dados" {
   termos = data::load_glossary("tests/fixtures/glossario.txt")
@@ -1469,8 +1469,8 @@ check "Dados" {
     }
 
     #[test]
-    fn namespace_data_referencia() {
-        // mock: texto do doc é "Olá mundo" — "Garantia Total" falta
+    fn namespace_data_reference() {
+        // mock: the doc's text is "Olá mundo" — "Garantia Total" is missing
         let i = run(r#"
 check "Glossário" {
   faltando = data::validate_against_reference("tests/fixtures/glossario.txt")
@@ -1482,8 +1482,8 @@ check "Glossário" {
     }
 
     #[test]
-    fn namespace_data_fase2_consultas() {
-        // as bases ficam em tests/fixtures/dados/ (PDFL_DATA_DIR aponta pra lá)
+    fn namespace_data_lookups() {
+        // the bases live in tests/fixtures/dados/ (PDFL_DATA_DIR points there)
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("PDFL_DATA_DIR", "tests/fixtures/dados");
         let i = run(r#"
@@ -1507,14 +1507,14 @@ check "Consultas" {
     }
 
     #[test]
-    fn namespace_data_fase2_erros() {
+    fn namespace_data_errors() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("PDFL_DATA_DIR", "tests/fixtures/dados");
         let i = run(r#"check "E" { data::query_postal_code("123") }"#);
         assert!(i.diagnostics[0].message.contains("8 digits"), "{:?}", i.diagnostics);
         std::env::remove_var("PDFL_DATA_DIR");
 
-        // base ausente: mensagem explica onde colocar o arquivo
+        // missing base: the message explains where to put the file
         std::env::set_var("PDFL_DATA_DIR", "/tmp/pdfl-sem-base");
         let i = run(r#"check "E" { data::query_gtin("7891234567895") }"#);
         assert!(i.diagnostics[0].message.contains("not found"), "{:?}", i.diagnostics);
@@ -1522,7 +1522,7 @@ check "Consultas" {
     }
 
     #[test]
-    fn namespace_fix_fase2_imagens() {
+    fn namespace_fix_images() {
         use crate::fixns::FixOp;
         let prog = parse("fix::downsample_images(150)\nfix::compress_images(70)").unwrap();
         let mut i = Interpreter::new();
@@ -1531,7 +1531,7 @@ check "Consultas" {
         assert_eq!(i.fix_ops[0], FixOp::DownsampleImages { dpi: 150.0 });
         assert_eq!(i.fix_ops[1], FixOp::CompressImages { quality: 70 });
 
-        // validação de argumentos
+        // argument validation
         let prog = parse("fix::compress_images(150)").unwrap();
         let mut i = Interpreter::new();
         i.allow_fixes = true;
@@ -1539,7 +1539,7 @@ check "Consultas" {
     }
 
     #[test]
-    fn lista_get_first_last() {
+    fn list_get_first_last() {
         let i = run(r#"
 check "Listas" {
   l = [10, 20, 30]
@@ -1554,7 +1554,7 @@ check "Erro" { [1].get(5) }
     }
 
     #[test]
-    fn unidades_viram_pontos() {
+    fn units_become_points() {
         let i = run(r#"
 check "Unidades" {
   require 1in == 72.0
@@ -1568,12 +1568,12 @@ check "Unidades" {
     }
 
     #[test]
-    fn unidade_desconhecida_erra_no_lexer() {
+    fn unknown_unit_fails_in_lexer() {
         assert!(parse("require 3kg > 1").is_err());
     }
 
     #[test]
-    fn function_de_usuario() {
+    fn user_function() {
         let i = run(r#"
 function dobro(x) {
   x * 2
@@ -1590,7 +1590,7 @@ check "Functions" {
     }
 
     #[test]
-    fn function_recursao_limitada() {
+    fn function_recursion_is_limited() {
         let i = run(r#"
 function loop_infinito(x) { loop_infinito(x) }
 check "Recursão" { loop_infinito(1) }
@@ -1600,7 +1600,7 @@ check "Recursão" { loop_infinito(1) }
     }
 
     #[test]
-    fn import_carrega_functions_e_consts() {
+    fn import_loads_functions_and_consts() {
         let i = run(r#"
 import "tests/fixtures/lib.pdfl"
 check "Import" {
@@ -1612,7 +1612,7 @@ check "Import" {
     }
 
     #[test]
-    fn import_inexistente_e_amigavel() {
+    fn missing_import_is_friendly() {
         let prog = parse("import \"nao_existe.pdfl\"").unwrap();
         let mut interp = Interpreter::new();
         let err = interp.run(&prog, mock_doc()).unwrap_err();
@@ -1620,7 +1620,7 @@ check "Import" {
     }
 
     #[test]
-    fn namespace_text_fase2_validacoes() {
+    fn namespace_text_validations() {
         let i = run(r#"
 check "Validações BR" {
   require text::validate_cpf("529.982.247-25")
@@ -1640,7 +1640,7 @@ check "Validações BR" {
     }
 
     #[test]
-    fn namespace_text_fase2_diff_e_pii() {
+    fn namespace_text_diff_and_pii() {
         let i = run(r#"
 check "Diff e PII" {
   mudancas = text::diff("linha um\nlinha dois", "linha um\nlinha DOIS")
@@ -1648,7 +1648,7 @@ check "Diff e PII" {
   require mudancas.first() == "-linha dois"
   require mudancas.last() == "+linha DOIS"
 
-  // CPF inválido (dígito errado) NÃO é mais reportado como dado pessoal
+  // An invalid CPF (wrong check digit) is NO LONGER reported as personal data
   require text::detect_personal_data("CPF falso: 529.982.247-26").length == 0
   require text::detect_personal_data("CPF real: 529.982.247-25").length == 1
   require !text::detect_rasterized_text()
@@ -1659,7 +1659,7 @@ check "Diff e PII" {
     }
 
     #[test]
-    fn tipo_region() {
+    fn region_type() {
         let i = run(r#"
 check "Regiões" {
   cabecalho = region(0, 742, 595, 100, "cabeçalho")
@@ -1683,7 +1683,7 @@ check "Regiões" {
     }
 
     #[test]
-    fn region_valida_argumentos() {
+    fn region_validates_arguments() {
         let i = run(r#"check "R" { region(0, 0, -5, 10) }"#);
         assert!(i.diagnostics[0].message.contains("positive"), "{:?}", i.diagnostics);
         let i = run(r#"check "R" { region(0, 0, 10, 10).inset(20) }"#);
@@ -1691,15 +1691,15 @@ check "Regiões" {
     }
 
     #[test]
-    fn bloco_rule_todas_as_paginas() {
-        // mock tem 2 páginas 595x842; a regra roda em cada uma
+    fn rule_block_all_pages() {
+        // the mock has 2 pages of 595x842; the rule runs on each one
         let i = run(r#"
 rule "Formato A4" {
   assert page.width == 595.0, "página #{page.number} fora do A4"
   assert page.height == 100.0, "altura errada na página #{page.number}"
 }
 "#);
-        // a segunda asserção falha nas duas páginas
+        // the second assertion fails on both pages
         assert_eq!(i.diagnostics.len(), 2);
         assert_eq!(i.diagnostics[0].check_name, "Formato A4");
         assert!(i.diagnostics[0].message.contains("página 1"));
@@ -1707,19 +1707,19 @@ rule "Formato A4" {
     }
 
     #[test]
-    fn bloco_rule_com_selecao() {
-        // filtro com bloco funciona direto: o primeiro `{` é do filter,
-        // o segundo é o corpo da regra
+    fn rule_block_with_selection() {
+        // a filter with a block works directly: the first `{` belongs to filter,
+        // the second is the rule's body
         let i = run(r#"
 rule "Só com texto" on doc.pages.filter { |p| p.extract_text() != "" } {
   assert page.number == 99, "rodou na página #{page.number}"
 }
 "#);
-        // só a página 1 do mock tem texto
+        // only page 1 of the mock has text
         assert_eq!(i.diagnostics.len(), 1);
         assert!(i.diagnostics[0].message.contains("rodou na página 1"));
 
-        // parênteses também são aceitos (forma explícita)
+        // parentheses are accepted too (the explicit form)
         let i = run(r#"
 rule "Idem" on (doc.pages.filter { |p| p.extract_text() != "" }) {
   assert false, "página #{page.number}"
@@ -1729,18 +1729,18 @@ rule "Idem" on (doc.pages.filter { |p| p.extract_text() != "" }) {
     }
 
     #[test]
-    fn bloco_rule_erro_amigavel() {
-        // seleção que não é lista de páginas
+    fn rule_block_friendly_error() {
+        // a selection that is not a list of pages
         let i = run(r#"rule "Ruim" on 42 { require page.width > 0 }"#);
         assert!(i.diagnostics[0].message.contains("expects a list of pages"), "{:?}", i.diagnostics);
 
-        // seleção terminando em acesso a membro engole o corpo: erro orienta
+        // a selection ending in member access swallows the body: the error guides
         let err = parse("rule \"x\" on doc.title {\n  require page.width > 0\n}").unwrap_err();
         assert!(err.message.contains("wrap it in parentheses"), "{err}");
     }
 
     #[test]
-    fn curto_circuito() {
+    fn short_circuit() {
         let i = run("check \"cc\" { require doc.page_count > 0 || variavel_inexistente }");
         assert!(i.diagnostics.is_empty());
     }

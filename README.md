@@ -2,56 +2,56 @@
 
 [![CI](https://github.com/kotarokikuchi/pdflang/actions/workflows/ci.yml/badge.svg)](https://github.com/kotarokikuchi/pdflang/actions/workflows/ci.yml)
 
-Linguagem de script para validação de PDFs, interpretada pelo CLI `pdfl` (Rust).
-Feita para ser legível por pessoas não técnicas — sem orientação a objetos, só
-`check`s e asserções.
+A scripting language for validating PDFs, interpreted by the `pdfl` CLI (Rust).
+Built to be readable by non-technical people — no object orientation, just
+`check`s and assertions.
 
-📖 **Documentação completa** — manual da linguagem, referência de todas as
-funções e receitas prontas:
-[Português (Brasil)](docs/pt-br/) · [English](docs/en/) · [日本語](docs/ja/) ·
+📖 **Full documentation** — language manual, reference for every function and
+ready-made recipes:
+[English](docs/en/) · [Português (Brasil)](docs/pt-br/) · [日本語](docs/ja/) ·
 [中文](docs/zh/) · [Français](docs/fr/) · [العربية](docs/ar/) · [Deutsch](docs/de/)
 
-As mensagens do CLI, os diagnósticos e os relatórios são em **inglês**.
+CLI messages, diagnostics and reports are in **English**.
 
-## Instalação (binário pronto)
+## Installation (prebuilt binary)
 
-Baixe o pacote da sua plataforma em
+Download the package for your platform from
 [Releases](https://github.com/kotarokikuchi/pdflang/releases) (Linux x64/arm64,
-macOS arm64 — a libpdfium já vem dentro), extraia e rode:
+macOS arm64 — libpdfium is bundled), extract it and run:
 
 ```bash
 tar -xzf pdfl-*.tar.gz && cd pdfl-*/
-./pdfl inspect documento.pdf
+./pdfl inspect document.pdf
 ```
 
-## Início rápido (compilando do código)
+## Quick start (building from source)
 
 ```bash
-./setup_pdfium.sh          # baixa a biblioteca nativa pdfium (uma vez)
+./setup_pdfium.sh          # downloads the native pdfium library (once)
 cargo build --release
-./target/release/pdfl run examples/exemplo.pdfl documento.pdf --output json
+./target/release/pdfl run examples/basic.pdfl document.pdf --output json
 ```
 
-Exit codes: `0` = OK, `1` = warnings, `2` = erros de validação, `3` = erro de sintaxe.
+Exit codes: `0` = OK, `1` = warnings, `2` = validation errors, `3` = syntax error.
 
-Formatos de saída (`--output` no `run`/`compare`, `--report` no `fix`/`watch`):
-`json` (padrão), `csv` (uma linha por diagnóstico), `html` (autocontido)
-e `pdf` (arquivo de auditoria A4). Os formatos de texto saem no stdout ou em
-`--output-file`; o `pdf` vai sempre para arquivo (`--output-file` ou
-`<entrada>.report.pdf`). `print()` e progresso saem no stderr.
+Output formats (`--output` on `run`/`compare`, `--report` on `fix`/`watch`):
+`json` (default), `csv` (one line per diagnostic), `html` (self-contained) and
+`pdf` (A4 audit file). Text formats go to stdout or to `--output-file`; `pdf`
+always writes to a file (`--output-file` or `<input>.report.pdf`). `print()` and
+progress go to stderr.
 
-## Exemplo de script
+## Example script
 
 ```pdfl
-profile "validacao-basica" {
-  const MIN_PAGINAS = 1
+profile "basic-validation" {
+  const MIN_PAGES = 1
 
-  check "Estrutura" tags: ["basico"] {
-    require doc.page_count >= MIN_PAGINAS
+  check "Structure" tags: ["basic"] {
+    require doc.page_count >= MIN_PAGES
     assert doc.title != "", "PDF has no title"
   }
 
-  check "Fontes" {
+  check "Fonts" {
     doc.fonts.each { |font|
       assert font.is_embedded, "Font #{font.name} is not embedded"
     }
@@ -59,237 +59,240 @@ profile "validacao-basica" {
 }
 ```
 
-- `require expr` — falha com mensagem automática gerada da expressão
-- `assert expr, "mensagem"` — falha com mensagem customizada (aceita interpolação `#{...}`)
-- **Unidades**: `3mm`, `2.5cm`, `1in`, `10pt` viram pontos automaticamente
-  (`const SANGRIA = 3mm`); `300%` mantém o valor numérico
-- **Functions**: `function dobro(x) { x * 2 }` — o valor é o da última expressão;
-  chame de qualquer check (`require dobro(21) == 42`)
-- **Imports**: `import "biblioteca.pdfl"` — caminho relativo ao script; carrega
-  functions, constantes e checks (cada arquivo é importado uma única vez)
-- `doc` — o PDF carregado: `page_count`, `title`, `author`, `pages`, `fonts`, `extract_text()`
-- `page` — `number`, `width`, `height` (pontos), `extract_text()`
-- Listas: `each`, `all`, `any`, `filter`, `map`, `length`, `contains`, `join`
+- `require expr` — fails with a message generated automatically from the expression
+- `assert expr, "message"` — fails with a custom message (accepts `#{...}` interpolation)
+- **Units**: `3mm`, `2.5cm`, `1in`, `10pt` become points automatically
+  (`const BLEED = 3mm`); `300%` keeps the numeric value
+- **Functions**: `function double(x) { x * 2 }` — the value is that of the last
+  expression; call it from any check (`require double(21) == 42`)
+- **Imports**: `import "library.pdfl"` — path relative to the script; loads
+  functions, constants and checks (each file is imported only once)
+- `doc` — the loaded PDF: `page_count`, `title`, `author`, `pages`, `fonts`, `extract_text()`
+- `page` — `number`, `width`, `height` (points), `extract_text()`
+- Lists: `each`, `all`, `any`, `filter`, `map`, `length`, `contains`, `join`
 - Strings: `contains`, `starts_with`, `ends_with`, `trim`, `length`, `to_uppercase`, `to_lowercase`
-- Globais: `min`, `max`, `abs`, `round`, `print`
+- Globals: `min`, `max`, `abs`, `round`, `print`
 
 ## Namespace `text::`
 
-Funções sobre o texto do documento (a maioria aceita uma string como argumento
-opcional para operar sobre ela em vez do documento):
+Functions over the document's text (most accept a string as an optional argument
+to operate on it instead of the document):
 
-- Extração: `text::extract_all()`, `text::extract_from_page(n)`
-- Normalização: `text::normalize()`, `text::split_words()`, `text::split_sentences()`,
+- Extraction: `text::extract_all()`, `text::extract_from_page(n)`
+- Normalization: `text::normalize()`, `text::split_words()`, `text::split_sentences()`,
   `text::split_paragraphs()`, `text::count_words()`, `text::count_characters()`,
   `text::detect_language()` (pt/en/es)
-- Validação (retornam booleano, para usar com `require`/`assert`):
-  `text::require_text("termo")`, `text::forbid_text("termo")`,
+- Validation (return a boolean, for use with `require`/`assert`):
+  `text::require_text("term")`, `text::forbid_text("term")`,
   `text::require_match("regex")`, `text::forbid_match("regex")`,
-  `text::fuzzy_match(a, b)` (similaridade 0.0–1.0)
-- Dados pessoais: `text::detect_personal_data()` / `text::detect_pii()` —
-  lista ocorrências de CPF, CNPJ, e-mail e telefone
+  `text::fuzzy_match(a, b)` (similarity 0.0–1.0)
+- Personal data: `text::detect_personal_data()` / `text::detect_pii()` —
+  lists occurrences of CPF, CNPJ, e-mail and phone numbers
 
-Exemplo completo em [examples/texto.pdfl](examples/texto.pdfl).
+Full example in [examples/text.pdfl](examples/text.pdfl).
 
 ## Namespace `struct::`
 
-Estrutura e metadados do arquivo PDF:
+Structure and metadata of the PDF file:
 
-- Metadados: `struct::get_title()`, `struct::get_author()`, `struct::get_producer()`,
+- Metadata: `struct::get_title()`, `struct::get_author()`, `struct::get_producer()`,
   `struct::get_creator()`, `struct::get_subject()`, `struct::get_keywords()`,
-  `struct::get_creation_date()`, `struct::get_modification_date()` (datas no formato
-  `AAAA-MM-DD HH:MM:SS`), `struct::list_metadata_entries()`
-- Objetos e arquivo: `struct::count_objects()`, `struct::file_size()` (bytes),
-  `struct::calculate_sha256()`, `struct::detect_file_bloat(kb_por_pagina)` (padrão 1024)
+  `struct::get_creation_date()`, `struct::get_modification_date()` (dates in
+  `YYYY-MM-DD HH:MM:SS` format), `struct::list_metadata_entries()`
+- Objects and file: `struct::count_objects()`, `struct::file_size()` (bytes),
+  `struct::calculate_sha256()`, `struct::detect_file_bloat(kb_per_page)` (default 1024)
 
-Exemplo completo em [examples/estrutura.pdfl](examples/estrutura.pdfl).
+Full example in [examples/structure.pdfl](examples/structure.pdfl).
 
 ## Namespace `visual::`
 
-Imagens do documento:
+Images in the document:
 
 - `visual::detect_images()`, `visual::count_images()`
-- `visual::get_image_resolution(n)` (DPI efetivo), `visual::get_image_size(n)` (`[largura, altura]` px)
-- `visual::detect_image_color_space()` (lista dos espaços presentes) ou `(n)` (da n-ésima imagem)
-- `visual::detect_low_resolution(dpi_minimo)` — `true` se alguma imagem está abaixo (padrão 300)
+- `visual::get_image_resolution(n)` (effective DPI), `visual::get_image_size(n)` (`[width, height]` px)
+- `visual::detect_image_color_space()` (list of the color spaces present) or `(n)` (of the nth image)
+- `visual::detect_low_resolution(min_dpi)` — `true` if any image falls below it (default 300)
 
-As imagens também são valores: `doc.images` / `page.images`, com `width`, `height`,
-`dpi`, `dpi_x`, `dpi_y`, `color_space`, `page_number`, `bits_per_pixel`. O DPI é o
-efetivo (pixels ÷ tamanho impresso na página), não o dos metadados.
+Images are values too: `doc.images` / `page.images`, with `width`, `height`,
+`dpi`, `dpi_x`, `dpi_y`, `color_space`, `page_number`, `bits_per_pixel`. The DPI
+is the effective one (pixels ÷ printed size on the page), not the one in the
+metadata.
 
-Exemplo completo em [examples/imagens.pdfl](examples/imagens.pdfl).
+Full example in [examples/images.pdfl](examples/images.pdfl).
 
 ## Namespace `prepress::`
 
-Validações de pré-impressão:
+Prepress validations:
 
-- TAC/tinta: `prepress::calculate_tac([pagina])`, `prepress::calculate_ink_coverage([pagina])`,
-  `prepress::validate_tac_limits(limite)` (padrão 300). **Atenção**: o TAC é estimado por
-  renderização RGB e é um limite *inferior* do real — cores neutras (rich black) colapsam
-  em K puro. Para o número confiável use `prepress::calculate_exact_tac([pagina])`,
-  que lê as separações declaradas no content stream
-- Linhas: `prepress::detect_hairlines(pt)` (padrão 0.25), `prepress::detect_fine_lines(pt)`
-  (padrão 1.0), `prepress::validate_minimum_stroke_width(pt)`
-- Cores: `prepress::detect_color_mode()` (RGB/CMYK/Mixed/None), `prepress::validate_color_space("DeviceCMYK")`
-- Fontes: `prepress::list_fonts()`, `prepress::validate_font_embedding()`
-- Páginas: `prepress::get_page_size(n)`, `prepress::get_page_boxes(n)`,
+- TAC/ink: `prepress::calculate_tac([page])`, `prepress::calculate_ink_coverage([page])`,
+  `prepress::validate_tac_limits(limit)` (default 300). **Note**: this TAC is
+  estimated from an RGB render and is a *lower* bound on the real one — neutral
+  colors (rich black) collapse into pure K. For the trustworthy number use
+  `prepress::calculate_exact_tac([page])`, which reads the separations declared
+  in the content stream
+- Lines: `prepress::detect_hairlines(pt)` (default 0.25), `prepress::detect_fine_lines(pt)`
+  (default 1.0), `prepress::validate_minimum_stroke_width(pt)`
+- Colors: `prepress::detect_color_mode()` (RGB/CMYK/Mixed/None), `prepress::validate_color_space("DeviceCMYK")`
+- Fonts: `prepress::list_fonts()`, `prepress::validate_font_embedding()`
+- Pages: `prepress::get_page_size(n)`, `prepress::get_page_boxes(n)`,
   `prepress::validate_media_box()`/`validate_trim_box()`/`validate_bleed_box()`,
-  `prepress::check_page_geometry(mm)` (sangria mínima, padrão 3mm)
+  `prepress::check_page_geometry(mm)` (minimum bleed, default 3mm)
 
-Nas páginas: `page.tac`, `page.ink_coverage`, `page.min_stroke_width`,
+On pages: `page.tac`, `page.ink_coverage`, `page.min_stroke_width`,
 `page.has_trim_box`/`has_bleed_box`/`has_media_box`/`has_crop_box`/`has_art_box`.
 
-Exemplo completo em [examples/prepress.pdfl](examples/prepress.pdfl).
+Full example in [examples/prepress.pdfl](examples/prepress.pdfl).
 
 ## Namespace `codes::`
 
-Códigos de barras e QR (decodificados com [rxing](https://crates.io/crates/rxing); o
-escaneamento renderiza as páginas e roda só no primeiro uso de `codes::`):
+Barcodes and QR codes (decoded with [rxing](https://crates.io/crates/rxing); the
+scan renders the pages and runs only on the first use of `codes::`):
 
-- Detecção: `codes::detect_barcodes()`, `codes::detect_qrcodes()`, `codes::count_barcodes()`,
+- Detection: `codes::detect_barcodes()`, `codes::detect_qrcodes()`, `codes::count_barcodes()`,
   `codes::get_barcode_type(n)` (EAN_13, QR_CODE, CODE_128...), `codes::get_barcode_location(n)`
-  (`[página, x, y]` em pontos)
-- Decodificação: `codes::decode_barcode(n)`, `codes::validate_barcode_checksum(n)` /
-  `codes::validate_gtin(s)` / `codes::validate_ean(s)` (dígito verificador GTIN),
+  (`[page, x, y]` in points)
+- Decoding: `codes::decode_barcode(n)`, `codes::validate_barcode_checksum(n)` /
+  `codes::validate_gtin(s)` / `codes::validate_ean(s)` (GTIN check digit),
   `codes::validate_code128()`
-- Comparação: `codes::compare_barcode_with_text()` (conteúdo do código aparece no texto),
+- Comparison: `codes::compare_barcode_with_text()` (the code's content appears in the text),
   `codes::validate_barcode_format("regex")`, `codes::validate_barcode_position(x0, y0, x1, y1)`
 
-Exemplo completo em [examples/codigos.pdfl](examples/codigos.pdfl).
+Full example in [examples/barcodes.pdfl](examples/barcodes.pdfl).
 
 ## Namespace `data::`
 
-Glossários e datasets locais (offline-first — caminhos relativos ao diretório
-de execução; arquivos ficam em cache durante a execução):
+Local glossaries and datasets (offline-first — paths relative to the working
+directory; files are cached for the duration of the run):
 
-- `data::load_glossary("termos.txt")` — lista de termos (um por linha, `#` comenta)
-- `data::load_dataset("dados.csv")` — lista de linhas (cada linha é uma lista de
-  colunas; CSV com aspas padrão)
-- `data::lookup_value("dados.csv", chave)` — segunda coluna da linha cuja primeira
-  coluna é a chave; `null` se não achar (funciona direto em `assert`)
-- `data::validate_against_reference("termos.txt")` — termos do glossário que NÃO
-  aparecem no texto do documento (lista vazia = tudo presente)
+- `data::load_glossary("terms.txt")` — list of terms (one per line, `#` comments)
+- `data::load_dataset("data.csv")` — list of rows (each row is a list of columns;
+  CSV with standard quoting)
+- `data::lookup_value("data.csv", key)` — second column of the row whose first
+  column is the key; `null` if not found (works directly in `assert`)
+- `data::validate_against_reference("terms.txt")` — glossary terms that do NOT
+  appear in the document's text (empty list = all present)
 
-Listas ganham `get(n)` (1-based), `first()` e `last()` — úteis para as linhas de CSV.
-Consultas a bases de referência: `query_gtin`, `query_medicamento`,
-`query_postal_code` e `validate_address` — exigem os CSVs em `./dados/`,
-`./pdfl_profiles/*/dados/`, `./` ou `$PDFL_DATA_DIR`.
+Lists gain `get(n)` (1-based), `first()` and `last()` — handy for CSV rows.
+Reference-base lookups: `query_gtin`, `query_medicamento`, `query_postal_code`
+and `validate_address` — they need the CSVs in `./dados/`,
+`./pdfl_profiles/*/dados/`, `./` or `$PDFL_DATA_DIR`.
 
-Exemplo completo em [examples/dados.pdfl](examples/dados.pdfl) — inclui cruzamento
-do código de barras do PDF com uma tabela local de lotes.
+Full example in [examples/data.pdfl](examples/data.pdfl) — includes cross-checking
+the PDF's barcode against a local batch table.
 
-## Namespace `fix::` (comando `pdfl fix`)
+## Namespace `fix::` (command `pdfl fix`)
 
-Normalização — o único namespace que **escreve** um novo PDF, por isso roda em
-comando próprio:
+Normalization — the only namespace that **writes** a new PDF, which is why it
+runs under its own command:
 
 ```bash
-pdfl fix entrada.pdf script.pdfl --output corrigido.pdf [--dry-run]
+pdfl fix input.pdf script.pdfl --output fixed.pdf [--dry-run]
 ```
 
-- Caixas: `fix::set_page_size(w, h)`, `fix::set_crop_box(x0, y0, x1, y1)`,
-  `fix::set_trim_box(...)`, `fix::set_bleed_box(...)` (pontos)
-- Páginas: `fix::rotate_page([pagina,] graus)` (90/180/270; sem página = todas),
+- Boxes: `fix::set_page_size(w, h)`, `fix::set_crop_box(x0, y0, x1, y1)`,
+  `fix::set_trim_box(...)`, `fix::set_bleed_box(...)` (points)
+- Pages: `fix::rotate_page([page,] degrees)` (90/180/270; without a page = all),
   `fix::delete_page(n)`, `fix::duplicate_page(n)`, `fix::reorder_pages([2, 1, 3])`
-- Conteúdo: `fix::add_watermark("texto")`, `fix::add_page_numbers()`
+- Content: `fix::add_watermark("text")`, `fix::add_page_numbers()`
 
-As operações são validadas na hora da chamada (página inexistente, rotação
-inválida, ordem incompleta → erro amigável) e aplicadas em sequência no final.
-O relatório JSON ganha o campo `fixes` com o que foi aplicado. Em `pdfl run`,
-chamadas `fix::` dão erro — normalização só no comando `fix`.
+Operations are validated at call time (nonexistent page, invalid rotation,
+incomplete ordering → a friendly error) and applied in sequence at the end. The
+JSON report gains a `fixes` field with what was applied. Under `pdfl run`,
+`fix::` calls are an error — normalization only in the `fix` command.
 
-Exemplo completo em [examples/normalizar.pdfl](examples/normalizar.pdfl).
+Full example in [examples/normalize.pdfl](examples/normalize.pdfl).
 
-## Comando `pdfl compare`
+## Command `pdfl compare`
 
-Compara duas versões de um PDF (texto, estrutura e metadados):
+Compares two versions of a PDF (text, structure and metadata):
 
 ```bash
 pdfl compare v1.pdf v2.pdf [--output json|csv|html] [--normalize] \
   [--ignore-dates] [--similarity-threshold 95]
 ```
 
-- Páginas são alinhadas por similaridade de conteúdo (inserções e remoções são
-  detectadas mesmo quando a contagem muda)
-- Cada página alinhada ganha um score de similaridade (Levenshtein por palavra)
-  e uma amostra das linhas alteradas (`-removida | +adicionada`)
-- Metadados alterados viram avisos; mudanças de texto acima do
-  `--similarity-threshold` também (abaixo, erros)
-- `--ignore-dates` troca datas (dd/mm/aaaa, aaaa-mm-dd, "1 de março de 2026")
-  por um marcador antes de comparar; `--normalize` ignora caixa e espaçamento
-- O relatório traz `similarity` geral (0–100); exit codes: 0 idênticos,
-  1 só avisos, 2 diferenças acima do tolerado
+- Pages are aligned by content similarity (insertions and removals are detected
+  even when the count changes)
+- Each aligned page gets a similarity score (word-level Levenshtein) and a
+  sample of the changed lines (`-removed | +added`)
+- Changed metadata becomes warnings; text changes above the
+  `--similarity-threshold` do too (below it, errors)
+- `--ignore-dates` replaces dates (dd/mm/yyyy, yyyy-mm-dd, "1 de março de 2026")
+  with a marker before comparing; `--normalize` ignores case and spacing
+- The report carries an overall `similarity` (0–100); exit codes: 0 identical,
+  1 warnings only, 2 differences beyond what is tolerated
 
-## Comando `pdfl watch`
+## Command `pdfl watch`
 
-Monitora uma pasta e valida cada PDF novo ou alterado, gravando o relatório
-ao lado do arquivo (ou em `--output-dir`):
+Watches a folder and validates each new or changed PDF, writing the report next
+to the file (or into `--output-dir`):
 
 ```bash
-pdfl watch entrada/ --script perfil.pdfl [--pattern "*.pdf"] [--exclude "*_rascunho*"] \
-  [--output-dir relatorios/] [--depth 1] [--debounce 1000] [--report json|csv|html] \
+pdfl watch input/ --script profile.pdfl [--pattern "*.pdf"] [--exclude "*_draft*"] \
+  [--output-dir reports/] [--depth 1] [--debounce 1000] [--report json|csv|html] \
   [--fail-fast] [--once]
 ```
 
-- Polling com debounce: o arquivo só é processado quando para de ser escrito
-- `--once` processa o que já está na pasta e sai com o pior exit code
-  (0/1/2) — bom para lotes e CI; sem `--once` roda até Ctrl+C
-- Relatórios saem como `<nome>.report.json|csv|html`; o log de progresso vai
-  para o stderr
+- Polling with debounce: a file is only processed once it stops being written to
+- `--once` processes what is already in the folder and exits with the worst exit
+  code (0/1/2) — good for batches and CI; without `--once` it runs until Ctrl+C
+- Reports are written as `<name>.report.json|csv|html`; the progress log goes to
+  stderr
 
-## Comandos `pdfl pack` e `pdfl add`
+## Commands `pdfl pack` and `pdfl add`
 
-Perfis como código, distribuíveis (offline):
-
-```bash
-pdfl pack perfis/grafica --name perfil-grafica --version 1.0.0
-# cria perfil-grafica.pdflpkg (scripts .pdfl + datasets, manifest com SHA-256)
-
-pdfl add perfil-grafica.pdflpkg          # instala em ./pdfl_profiles/<nome>@<versão>/
-pdfl run pdfl_profiles/perfil-grafica@1.0.0/prepress.pdfl arquivo.pdf
-```
-
-O pacote é um tar.gz determinístico; o `add` confere o hash de cada arquivo
-contra o manifest (pacote adulterado é recusado). Repositório remoto e
-assinatura digital ainda não estão implementados.
-
-## Comandos `pdfl inspect` e `pdfl doc`
+Profiles as code, distributable (offline):
 
 ```bash
-pdfl inspect documento.pdf              # resumo rápido: páginas, caixas, metadados,
-                                        # fontes, imagens, TAC estimado e avisos gerais
-pdfl doc script.pdfl                    # documentação do script em Markdown
-pdfl doc script.pdfl --output html      # ou em HTML autocontido
+pdfl pack profiles/printshop --name printshop-profile --version 1.0.0
+# creates printshop-profile.pdflpkg (.pdfl scripts + datasets, manifest with SHA-256)
+
+pdfl add printshop-profile.pdflpkg       # installs into ./pdfl_profiles/<name>@<version>/
+pdfl run pdfl_profiles/printshop-profile@1.0.0/prepress.pdfl file.pdf
 ```
 
-O `doc` gera, a partir do próprio script: perfil, tabela de constantes e, para
-cada check, as tags e o que ele valida (mensagens dos `assert` e condições dos
-`require`). Scripts com `fix::` ganham o aviso de que rodam via `pdfl fix`.
+The package is a deterministic tar.gz; `add` checks each file's hash against the
+manifest (a tampered package is refused). A remote repository and digital
+signatures are not implemented yet.
 
-## Comandos `pdfl lint` e `pdfl fmt`
-
-Qualidade dos scripts `.pdfl`, sem executar:
+## Commands `pdfl inspect` and `pdfl doc`
 
 ```bash
-pdfl lint script.pdfl           # avisos (exit 1 se houver)
-pdfl fmt script.pdfl            # formata no lugar (2 espaços, espaçamento padrão)
-pdfl fmt script.pdfl --check    # exit 1 se não está formatado (CI)
+pdfl inspect document.pdf               # quick summary: pages, boxes, metadata,
+                                        # fonts, images, estimated TAC and general warnings
+pdfl doc script.pdfl                    # script documentation in Markdown
+pdfl doc script.pdfl --output html      # or as self-contained HTML
 ```
 
-O lint aponta: variáveis/parâmetros de bloco declarados e nunca usados
-(prefixo `_` silencia), checks duplicados ou vazios, namespace desconhecido,
-`assert` fora de check e uso de `fix::` fora do comando `pdfl fix`.
-O formatador preserva comentários e as quebras de linha do autor.
+From the script itself, `doc` generates: the profile, a table of constants and,
+for each check, its tags and what it validates (the `assert` messages and the
+`require` conditions). Scripts using `fix::` get a note that they run via
+`pdfl fix`.
 
-## Desenvolvimento
+## Commands `pdfl lint` and `pdfl fmt`
+
+Quality of `.pdfl` scripts, without running them:
 
 ```bash
-cargo test    # lexer, parser, interpretador e report (não precisa de pdfium)
+pdfl lint script.pdfl           # warnings (exit 1 if there are any)
+pdfl fmt script.pdfl            # formats in place (2 spaces, standard spacing)
+pdfl fmt script.pdfl --check    # exit 1 if it is not formatted (CI)
 ```
 
-## Licença
+`lint` reports: block variables/parameters declared and never used (an `_`
+prefix silences it), duplicate or empty checks, unknown namespace, `assert`
+outside a check, and use of `fix::` outside the `pdfl fix` command. The formatter
+preserves comments and the author's line breaks.
 
-[MIT](LICENSE). A biblioteca nativa pdfium, baixada pelo `setup_pdfium.sh` e
-embutida nos pacotes de release, vem com as licenças dela: PDFium é BSD de 3
-cláusulas, a distribuição binária é MIT, e as dependências transitivas estão em
-`pdfium/licenses/`.
+## Development
+
+```bash
+cargo test    # lexer, parser, interpreter and report (no pdfium needed)
+```
+
+## License
+
+[MIT](LICENSE). The native pdfium library, downloaded by `setup_pdfium.sh` and
+bundled into the release packages, comes with its own licenses: PDFium is
+3-clause BSD, the binary distribution is MIT, and the transitive dependencies
+are listed in `pdfium/licenses/`.

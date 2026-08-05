@@ -2,7 +2,7 @@
 name = "pdfl"
 version = "0.6.1"
 edition = "2021"
-description = "Interpretador da linguagem PDFLang (.pdfl) para validação de PDFs"
+description = "Interpreter for the PDFLang language (.pdfl), for validating PDFs"
 license = "MIT"
 repository = "https://github.com/kotarokikuchi/pdflang"
 

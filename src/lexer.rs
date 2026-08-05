@@ -1,12 +1,12 @@
-//! Lexer da linguagem PDFLang (.pdfl).
+//! Lexer for the PDFLang language (.pdfl).
 
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StrSeg {
-    /// Trecho literal da string.
+    /// Literal chunk of the string.
     Lit(String),
-    /// Código-fonte cru de uma interpolação `#{...}` (parseado depois).
+    /// Raw source of a `#{...}` interpolation (parsed later).
     Interp(String),
 }
 
@@ -15,8 +15,8 @@ pub enum Tok {
     // Literais
     Int(i64),
     Float(f64),
-    /// Número com unidade (3mm, 300%): valor já convertido para pontos
-    /// (comprimentos) + texto original preservado para o formatador.
+    /// Number with a unit (3mm, 300%): the value already converted to points
+    /// (for lengths) + the original text preserved for the formatter.
     UnitNum(f64, String),
     Str(Vec<StrSeg>),
     True,
@@ -32,7 +32,7 @@ pub enum Tok {
     Rule,
     On,
     Ident(String),
-    // Símbolos
+    // Symbols
     LBrace,
     RBrace,
     LParen,
@@ -59,7 +59,7 @@ pub enum Tok {
     AndAnd,
     OrOr,
     Newline,
-    /// Comentário `// ...` — só emitido por `tokenize_with_comments` (fmt).
+    /// A `// ...` comment — only emitted by `tokenize_with_comments` (fmt).
     Comment(String),
     Eof,
 }
@@ -102,7 +102,7 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, LexError> {
     tokenize_impl(source, false)
 }
 
-/// Variante para o formatador: preserva comentários como tokens.
+/// Variant for the formatter: keeps comments as tokens.
 pub fn tokenize_with_comments(source: &str) -> Result<Vec<Token>, LexError> {
     tokenize_impl(source, true)
 }
@@ -237,7 +237,7 @@ fn tokenize_impl(source: &str, keep_comments: bool) -> Result<Vec<Token>, LexErr
                 }
                 let text: String = chars[start..i].iter().collect();
                 col += i - start;
-                // Sufixos de unidade: 3mm/2cm/1in/10pt viram PONTOS; 300% mantém o valor.
+                // Unit suffixes: 3mm/2cm/1in/10pt become POINTS; 300% keeps its value.
                 if chars.get(i) == Some(&'%') {
                     i += 1;
                     col += 1;
@@ -337,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn basico() {
+    fn basics() {
         assert_eq!(
             toks("const X = 42"),
             vec![Tok::Const, Tok::Ident("X".into()), Tok::Eq, Tok::Int(42), Tok::Eof]
@@ -345,7 +345,7 @@ mod tests {
     }
 
     #[test]
-    fn operadores_e_float() {
+    fn operators_and_float() {
         assert_eq!(
             toks("1.5 >= 2 && !ok"),
             vec![
@@ -361,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    fn comentario_e_newline() {
+    fn comment_and_newline() {
         assert_eq!(
             toks("a // comentário\nb"),
             vec![Tok::Ident("a".into()), Tok::Newline, Tok::Ident("b".into()), Tok::Eof]
@@ -369,12 +369,12 @@ mod tests {
     }
 
     #[test]
-    fn string_simples() {
+    fn simple_string() {
         assert_eq!(toks(r#""oi""#), vec![Tok::Str(vec![StrSeg::Lit("oi".into())]), Tok::Eof]);
     }
 
     #[test]
-    fn string_interpolada() {
+    fn interpolated_string() {
         assert_eq!(
             toks(r#""Fonte #{font.name} ausente""#),
             vec![
@@ -389,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn keywords_e_bloco() {
+    fn keywords_and_block() {
         assert_eq!(
             toks("check \"x\" { |p| }"),
             vec![
@@ -406,7 +406,7 @@ mod tests {
     }
 
     #[test]
-    fn string_nao_terminada() {
+    fn unterminated_string() {
         assert!(tokenize("\"abc").is_err());
     }
 }

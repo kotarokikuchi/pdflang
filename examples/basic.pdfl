@@ -1,5 +1,5 @@
-// exemplo.pdfl — basic PDF validation
-// Usage: pdfl run examples/exemplo.pdfl document.pdf --output json
+// basic.pdfl — basic PDF validation
+// Usage: pdfl run examples/basic.pdfl document.pdf --output json
 
 profile "basic-validation" {
 

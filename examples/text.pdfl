@@ -1,5 +1,5 @@
-// texto.pdfl — text:: namespace demonstration
-// Usage: pdfl run examples/texto.pdfl document.pdf
+// text.pdfl — text:: namespace demonstration
+// Usage: pdfl run examples/text.pdfl document.pdf
 
 profile "text-validation" {
 

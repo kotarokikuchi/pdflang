@@ -1,8 +1,8 @@
-//! Comando `pdfl doc` — documentação de um script .pdfl.
-//! Gera Markdown (padrão) ou HTML a partir da AST: perfil, constantes,
-//! checks com tags e o que cada um valida.
-//! ponytail: sem docstrings ainda — a descrição vem das mensagens de assert
-//! e das expressões de require; docstrings via comentários ficam para depois.
+//! The `pdfl doc` command — documentation for a .pdfl script.
+//! Generates Markdown (default) or HTML from the AST: profile, constants,
+//! checks with their tags and what each one validates.
+//! ponytail: no docstrings yet — the description comes from the assert
+//! messages and require expressions; comment docstrings are left for later.
 
 use crate::ast::{Expr, Stmt, StrPart};
 
@@ -72,12 +72,12 @@ pub fn markdown(script_name: &str, program: &[Stmt]) -> String {
 }
 
 pub fn html(script_name: &str, program: &[Stmt]) -> String {
-    // ponytail: conversor mínimo do próprio Markdown gerado acima —
-    // cobre só o subconjunto que o gerador emite (títulos, tabela, listas).
+    // ponytail: a minimal converter for the Markdown generated above — it
+    // covers only the subset the generator emits (headings, table, lists).
     let md = markdown(script_name, program);
     let esc = |s: &str| s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
     let inline = |s: &str| {
-        // `código` -> <code>
+        // `code` -> <code>
         let mut out = String::new();
         for (i, part) in esc(s).split('`').enumerate() {
             out.push_str(if i % 2 == 1 { "<code>" } else { "" });
@@ -180,7 +180,7 @@ fn walk(stmts: &[Stmt], doc: &mut ScriptDoc) {
             }
             Stmt::Function { name, params, body } => {
                 doc.functions.push(format!("{name}({})", params.join(", ")));
-                collect_validations(body, &mut Vec::new(), doc); // só para uses_fix
+                collect_validations(body, &mut Vec::new(), doc); // only for uses_fix
             }
             Stmt::Import { path } => doc.imports.push(path.clone()),
             Stmt::Rule { name, pages, body } => {
@@ -199,7 +199,7 @@ fn walk(stmts: &[Stmt], doc: &mut ScriptDoc) {
     }
 }
 
-/// Descrição de cada assert/require do corpo (recursivo em blocos).
+/// Description of each assert/require in the body (recursive into blocks).
 fn collect_validations(stmts: &[Stmt], out: &mut Vec<String>, doc: &mut ScriptDoc) {
     for stmt in stmts {
         match stmt {
@@ -272,7 +272,7 @@ profile "teste" {
 "#;
 
     #[test]
-    fn markdown_estrutura() {
+    fn markdown_structure() {
         let md = markdown("teste.pdfl", &parse(SRC).unwrap());
         assert!(md.contains("# Documentation: teste.pdfl"));
         assert!(md.contains("**Profile:** teste"));
@@ -286,7 +286,7 @@ profile "teste" {
     }
 
     #[test]
-    fn html_estrutura() {
+    fn html_structure() {
         let h = html("teste.pdfl", &parse(SRC).unwrap());
         assert!(h.contains("<h1>Documentation: teste.pdfl</h1>"));
         assert!(h.contains("<h3>TAC — tags: <code>prepress</code></h3>"));
@@ -294,7 +294,7 @@ profile "teste" {
     }
 
     #[test]
-    fn aviso_de_fix() {
+    fn fix_warning() {
         let md = markdown("n.pdfl", &parse("fix::add_page_numbers()").unwrap());
         assert!(md.contains("pdfl fix"), "{md}");
     }

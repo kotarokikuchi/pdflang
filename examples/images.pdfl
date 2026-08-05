@@ -1,5 +1,5 @@
-// imagens.pdfl — visual:: namespace demonstration
-// Usage: pdfl run examples/imagens.pdfl document.pdf
+// images.pdfl — visual:: namespace demonstration
+// Usage: pdfl run examples/images.pdfl document.pdf
 
 profile "image-validation" {
 

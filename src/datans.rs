@@ -1,8 +1,8 @@
-//! Namespace `data::` — glossários e datasets locais.
-//! Offline-first: tudo vem de arquivos locais, caminhos relativos ao
-//! diretório de execução. As consultas a bases de referência
+//! Namespace `data::` — local glossaries and datasets.
+//! Offline-first: everything comes from local files, with paths relative to
+//! the working directory. The reference-base lookups
 //! (query_gtin/query_medicamento/query_postal_code/validate_address) exigem
-//! CSVs em ./dados/, ./pdfl_profiles/*/dados/, ./ ou $PDFL_DATA_DIR.
+//! CSVs in ./dados/, ./pdfl_profiles/*/dados/, ./ or $PDFL_DATA_DIR.
 
 use crate::interpreter::{DocData, RuntimeError, Value};
 use std::cell::RefCell;
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 thread_local! {
-    /// Cache por caminho: scripts consultam o mesmo arquivo em loop.
+    /// Cache keyed by path: scripts query the same file in a loop.
     static GLOSSARIES: RefCell<HashMap<String, Rc<Vec<String>>>> = RefCell::new(HashMap::new());
     static DATASETS: RefCell<HashMap<String, Rc<Vec<Vec<String>>>>> = RefCell::new(HashMap::new());
 }
@@ -30,8 +30,8 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             )))
         }
         "lookup_value" => {
-            // lookup_value(arquivo.csv, chave) -> segunda coluna da linha cuja
-            // primeira coluna é a chave; Null se não achar.
+            // lookup_value(file.csv, key) -> second column of the row whose
+            // first column is the key; Null if not found.
             let rows = dataset(&path_arg(args, name)?)?;
             let key = match args.get(1) {
                 Some(v) => v.to_string(),
@@ -45,8 +45,8 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
                 .unwrap_or(Value::Null))
         }
         "validate_against_reference" => {
-            // Termos do glossário que NÃO aparecem no texto do documento
-            // (lista vazia = tudo presente). Comparação sem caixa/espaços.
+            // Glossary terms that do NOT appear in the document's text
+            // (empty list = all present). Compared without case/spacing.
             let terms = glossary(&path_arg(args, name)?)?;
             let text = normalize(
                 &doc.pages.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n"),
@@ -58,9 +58,9 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
                 .collect();
             Ok(Value::List(Rc::new(missing)))
         }
-        // ---- consultas a bases de referência locais ----
-        // As bases são CSVs com cabeçalho, procurados em (nesta ordem):
-        // ./dados/, ./pdfl_profiles/*/dados/, ./ e $PDFL_DATA_DIR.
+        // ---- lookups against local reference bases ----
+        // The bases are CSVs with a header, looked up in (this order):
+        // ./dados/, ./pdfl_profiles/*/dados/, ./ and $PDFL_DATA_DIR.
         "query_gtin" => {
             let code: String =
                 arg_str(args, 0, name)?.chars().filter(|c| c.is_ascii_digit()).collect();
@@ -78,7 +78,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             query_base(doc, "ceps.csv", &cep, name)
         }
         "validate_address" => {
-            // validate_address(cep, "trecho do endereço") -> bool
+            // validate_address(postal_code, "part of the address") -> bool
             let cep: String = arg_str(args, 0, name)?.chars().filter(|c| c.is_ascii_digit()).collect();
             let esperado = arg_str(args, 1, name)?;
             let encontrado = match query_base(doc, "ceps.csv", &cep, name)? {
@@ -102,7 +102,7 @@ fn arg_str(args: &[Value], i: usize, name: &str) -> Result<String, RuntimeError>
     }
 }
 
-/// Procura o arquivo da base nos diretórios padrão.
+/// Looks for the base's file in the default directories.
 fn find_base(doc: &DocData, file: &str) -> Option<std::path::PathBuf> {
     let mut candidates: Vec<std::path::PathBuf> = vec![
         std::path::PathBuf::from("dados").join(file),
@@ -111,14 +111,14 @@ fn find_base(doc: &DocData, file: &str) -> Option<std::path::PathBuf> {
     if let Ok(dir) = std::env::var("PDFL_DATA_DIR") {
         candidates.insert(0, std::path::PathBuf::from(dir).join(file));
     }
-    // perfis instalados por `pdfl add`
+    // profiles installed by `pdfl add`
     if let Ok(entries) = std::fs::read_dir("pdfl_profiles") {
         for entry in entries.flatten() {
             candidates.push(entry.path().join("dados").join(file));
             candidates.push(entry.path().join(file));
         }
     }
-    // ao lado do PDF analisado
+    // next to the PDF being analyzed
     if let Some(parent) = doc.path.parent() {
         candidates.push(parent.join("dados").join(file));
         candidates.push(parent.join(file));
@@ -126,7 +126,7 @@ fn find_base(doc: &DocData, file: &str) -> Option<std::path::PathBuf> {
     candidates.into_iter().find(|p| p.is_file())
 }
 
-/// Busca a chave na 1ª coluna e devolve a linha inteira (lista), ou Null.
+/// Looks the key up in the 1st column and returns the whole row (a list), or Null.
 fn query_base(
     doc: &Rc<DocData>,
     file: &str,
@@ -143,7 +143,7 @@ fn query_base(
     let alvo = normalize(key);
     let achado = rows.iter().skip(1).find(|row| {
         row.first().is_some_and(|c| normalize(c) == alvo)
-            // busca por termo também na 2ª coluna (nome do medicamento etc.)
+            // also searches the term in the 2nd column (medication name, etc.)
             || (alvo.len() >= 3 && row.get(1).is_some_and(|c| normalize(c).contains(&alvo)))
     });
     Ok(match achado {
@@ -167,7 +167,7 @@ fn normalize(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase()
 }
 
-/// Glossário: um termo por linha; linhas vazias e começadas em # ignoradas.
+/// Glossary: one term per line; blank lines and those starting with # are ignored.
 fn glossary(path: &str) -> Result<Rc<Vec<String>>, RuntimeError> {
     GLOSSARIES.with(|cache| {
         if let Some(g) = cache.borrow().get(path) {
@@ -187,7 +187,7 @@ fn glossary(path: &str) -> Result<Rc<Vec<String>>, RuntimeError> {
     })
 }
 
-/// Dataset CSV com aspas padrão (campo entre aspas pode ter vírgula/quebra).
+/// CSV dataset with standard quoting (a quoted field may contain commas/newlines).
 fn dataset(path: &str) -> Result<Rc<Vec<Vec<String>>>, RuntimeError> {
     DATASETS.with(|cache| {
         if let Some(d) = cache.borrow().get(path) {
@@ -242,7 +242,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn csv_com_aspas() {
+    fn csv_with_quotes() {
         let rows = parse_csv("a,b\n\"x, y\",\"com \"\"aspas\"\"\"\n\nfim,1\n");
         assert_eq!(rows.len(), 3);
         assert_eq!(rows[1], vec!["x, y", "com \"aspas\""]);

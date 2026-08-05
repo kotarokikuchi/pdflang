@@ -1,29 +1,29 @@
-//! Análise de separações de cor a partir do content stream (lopdf).
-//! É o que permite TAC exato, detecção de spot colors, preto rico e
-//! overprint — coisas que a estimativa por render RGB não alcança.
+//! Color separation analysis from the content stream (lopdf).
+//! This is what makes exact TAC, spot color detection, rich black and
+//! overprint possible — things an RGB-render estimate cannot reach.
 
 use lopdf::{Document, Object};
 use std::collections::{HashMap, HashSet};
 
-/// Cor lida do content stream, já em separações.
+/// A color read from the content stream, already in separations.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Ink {
-    /// Ciano, magenta, amarelo, preto — cada um 0.0–1.0.
+    /// Cyan, magenta, yellow, black — each 0.0–1.0.
     Cmyk(f64, f64, f64, f64),
     Gray(f64),
     Rgb(f64, f64, f64),
-    /// Spot/Separation: nome da tinta e percentual aplicado.
+    /// Spot/Separation: ink name and the percentage applied.
     Spot(String, f64),
 }
 
 impl Ink {
-    /// Cobertura total de tinta (%) da cor.
+    /// Total ink coverage (%) of the color.
     pub fn tac(&self) -> f64 {
         match self {
             Ink::Cmyk(c, m, y, k) => (c + m + y + k) * 100.0,
             Ink::Gray(g) => (1.0 - g) * 100.0,
-            // RGB é convertido na RIP; a conversão com GCR máximo é o
-            // limite inferior honesto para essa cor.
+            // RGB is converted in the RIP; converting with maximum GCR is the
+            // honest lower bound for that color.
             Ink::Rgb(r, g, b) => {
                 let k = 1.0 - r.max(*g).max(*b);
                 if k >= 1.0 {
@@ -39,7 +39,7 @@ impl Ink {
         }
     }
 
-    /// Cor neutra escura composta por várias tintas (preto rico).
+    /// A dark neutral color built from several inks (rich black).
     pub fn is_rich_black(&self) -> bool {
         match self {
             Ink::Cmyk(c, m, y, k) => *k >= 0.6 && (c + m + y) >= 0.2,
@@ -47,7 +47,7 @@ impl Ink {
         }
     }
 
-    /// Lab aproximado para comparação Delta-E.
+    /// Approximate Lab for Delta-E comparison.
     fn to_lab(&self) -> (f64, f64, f64) {
         let (r, g, b) = match self {
             Ink::Rgb(r, g, b) => (*r, *g, *b),
@@ -61,7 +61,7 @@ impl Ink {
     }
 }
 
-/// sRGB (0–1) para CIE Lab (D65).
+/// sRGB (0–1) to CIE Lab (D65).
 fn rgb_to_lab(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     let lin = |c: f64| {
         if c <= 0.04045 {
@@ -85,35 +85,35 @@ fn rgb_to_lab(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     (116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
 }
 
-/// Delta-E CIE76 entre duas cores.
+/// CIE76 Delta-E between two colors.
 pub fn delta_e(a: &Ink, b: &Ink) -> f64 {
     let (l1, a1, b1) = a.to_lab();
     let (l2, a2, b2) = b.to_lab();
     ((l1 - l2).powi(2) + (a1 - a2).powi(2) + (b1 - b2).powi(2)).sqrt()
 }
 
-/// Resultado da análise de separações do documento.
+/// Result of the document's separation analysis.
 #[derive(Debug, Default)]
 pub struct ColorInfo {
-    /// TAC máximo real por página (%), a partir das cores declaradas.
+    /// Real maximum TAC per page (%), from the declared colors.
     pub tac_by_page: Vec<f64>,
-    /// Nomes de tintas spot encontradas (Separation/DeviceN).
+    /// Names of the spot inks found (Separation/DeviceN).
     pub spot_names: Vec<String>,
-    /// Todas as cores distintas usadas.
+    /// Every distinct color used.
     pub inks: Vec<Ink>,
     pub has_rich_black: bool,
-    /// Overprint ligado em algum estado gráfico.
+    /// Overprint enabled in some graphics state.
     pub overprint_on: bool,
-    /// Menor largura de traço declarada (pontos), ignorando 0 (hairline puro).
+    /// Smallest declared stroke width (points), ignoring 0 (pure hairline).
     pub min_stroke: Option<f64>,
-    /// Traço de largura 0 (hairline "mais fino possível" do PostScript).
+    /// A stroke of width 0 (PostScript's "thinnest possible" hairline).
     pub has_zero_width_stroke: bool,
     pub output_intent: Option<String>,
-    /// Rendering intents declarados (operador ri e /RI no ExtGState).
+    /// Declared rendering intents (the ri operator and /RI in ExtGState).
     pub rendering_intents: Vec<String>,
-    /// Fontes: nome -> (embutida, tem subset, tipo)
+    /// Fonts: name -> (embedded, subsetted, type)
     pub fonts: HashMap<String, FontDetail>,
-    /// Tamanhos de fonte usados (pontos).
+    /// Font sizes used (points).
     pub font_sizes: Vec<f64>,
 }
 
@@ -122,7 +122,7 @@ pub struct FontDetail {
     pub embedded: bool,
     pub subset: bool,
     pub font_type: String,
-    /// Diferença entre glifos referenciados e disponíveis (Widths ausentes).
+    /// Gap between referenced and available glyphs (missing Widths).
     pub missing_widths: bool,
 }
 
@@ -132,7 +132,7 @@ pub fn analyze(path: &std::path::Path) -> Result<ColorInfo, String> {
     let mut spots: HashSet<String> = HashSet::new();
     let mut seen_inks: Vec<Ink> = Vec::new();
 
-    // Output intent do catálogo
+    // Output intent from the catalog
     if let Ok(catalog) = pdf.catalog() {
         if let Ok(intents) = catalog.get(b"OutputIntents") {
             let resolved = resolve(&pdf, intents.clone());
@@ -157,7 +157,7 @@ pub fn analyze(path: &std::path::Path) -> Result<ColorInfo, String> {
             continue;
         };
 
-        // Recursos da página: espaços de cor nomeados e estados gráficos
+        // Page resources: named color spaces and graphics states
         let resources = pdf
             .get_page_resources(page_id)
             .ok()
@@ -167,7 +167,7 @@ pub fn analyze(path: &std::path::Path) -> Result<ColorInfo, String> {
         let extgstates = dict_of(&pdf, &resources, b"ExtGState");
         register_fonts(&pdf, &resources, &mut info);
 
-        // Nome do espaço atual (para interpretar scn) — fill e stroke
+        // Name of the current space (to interpret scn) — fill and stroke
         let mut cs_fill = String::new();
         let mut cs_stroke = String::new();
         let mut page_tac = 0.0f64;
@@ -201,7 +201,7 @@ pub fn analyze(path: &std::path::Path) -> Result<ColorInfo, String> {
                         .and_then(|o| o.as_name().ok())
                         .map(|n| String::from_utf8_lossy(n).into_owned())
                         .unwrap_or_default();
-                    // registra spot declarada no espaço de cor
+                    // records a spot declared in the color space
                     if let Some(spot) = spot_name(&pdf, &colorspaces, &name) {
                         spots.insert(spot);
                     }
@@ -256,7 +256,7 @@ pub fn analyze(path: &std::path::Path) -> Result<ColorInfo, String> {
                     }
                 }
                 "gs" => {
-                    // estado gráfico nomeado: overprint e rendering intent
+                    // named graphics state: overprint and rendering intent
                     if let Some(name) = op.operands.first().and_then(|o| o.as_name().ok()) {
                         if let Some(gs) = extgstates.as_ref().and_then(|d| d.get(name).ok()) {
                             if let Object::Dictionary(d) = resolve(&pdf, gs.clone()) {
@@ -281,8 +281,8 @@ pub fn analyze(path: &std::path::Path) -> Result<ColorInfo, String> {
         info.tac_by_page.push(page_tac);
     }
 
-    // "All" e "None" são separações reservadas do PDF (registro e nada),
-    // não tintas spot de verdade — reportá-las seria alarme falso.
+    // "All" and "None" are PDF's reserved separations (registration and none),
+    // not real spot inks — reporting them would be a false alarm.
     info.spot_names = spots.into_iter().filter(|s| s != "All" && s != "None").collect();
     info.spot_names.sort();
     info.inks = seen_inks;
@@ -317,7 +317,7 @@ fn dict_of(pdf: &Document, resources: &lopdf::Dictionary, key: &[u8]) -> Option<
     })
 }
 
-/// Se o espaço de cor nomeado for Separation/DeviceN, devolve o nome da tinta.
+/// If the named color space is Separation/DeviceN, returns the ink's name.
 fn spot_name(pdf: &Document, colorspaces: &Option<lopdf::Dictionary>, name: &str) -> Option<String> {
     let cs = colorspaces.as_ref()?.get(name.as_bytes()).ok()?;
     let Object::Array(items) = resolve(pdf, cs.clone()) else { return None };
@@ -340,7 +340,7 @@ fn spot_name(pdf: &Document, colorspaces: &Option<lopdf::Dictionary>, name: &str
     }
 }
 
-/// Coleta detalhes das fontes dos recursos da página.
+/// Collects font details from the page's resources.
 fn register_fonts(pdf: &Document, resources: &lopdf::Dictionary, info: &mut ColorInfo) {
     let Some(fonts) = dict_of(pdf, resources, b"Font") else { return };
     for (_, font_ref) in fonts.iter() {
@@ -360,13 +360,13 @@ fn register_fonts(pdf: &Document, resources: &lopdf::Dictionary, info: &mut Colo
             .and_then(|v| v.as_name().ok())
             .map(|n| String::from_utf8_lossy(n).into_owned())
             .unwrap_or_default();
-        // Subset: prefixo de 6 letras maiúsculas + "+" (ex: ABCDEF+Arial)
+        // Subset: a 6-uppercase-letter prefix + "+" (e.g. ABCDEF+Arial)
         let subset = base.len() > 7
             && base.as_bytes()[6] == b'+'
             && base[..6].chars().all(|c| c.is_ascii_uppercase());
 
-        // Embutida: FontFile/FontFile2/FontFile3 no descritor (direto ou
-        // no descendente, para fontes CID)
+        // Embedded: FontFile/FontFile2/FontFile3 in the descriptor (directly or
+        // in the descendant, for CID fonts)
         let mut descriptors = Vec::new();
         if let Ok(fd) = font.get(b"FontDescriptor") {
             descriptors.push(resolve(pdf, fd.clone()));
@@ -400,7 +400,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tac_por_tipo_de_cor() {
+    fn tac_by_color_type() {
         assert_eq!(Ink::Cmyk(1.0, 1.0, 0.0, 0.5).tac(), 250.0);
         assert_eq!(Ink::Gray(0.0).tac(), 100.0); // preto puro em cinza
         assert_eq!(Ink::Spot("PANTONE 485".into(), 1.0).tac(), 100.0);
@@ -408,25 +408,25 @@ mod tests {
     }
 
     #[test]
-    fn preto_rico() {
+    fn rich_black() {
         assert!(Ink::Cmyk(0.6, 0.4, 0.4, 1.0).is_rich_black());
         assert!(!Ink::Cmyk(0.0, 0.0, 0.0, 1.0).is_rich_black()); // preto chapado
         assert!(!Ink::Cmyk(0.1, 0.1, 0.1, 0.2).is_rich_black()); // claro demais
     }
 
     #[test]
-    fn delta_e_entre_cores() {
+    fn delta_e_between_colors() {
         let preto = Ink::Cmyk(0.0, 0.0, 0.0, 1.0);
         assert!(delta_e(&preto, &preto) < 0.01);
-        // preto vs branco: diferença máxima
+        // black vs white: maximum difference
         assert!(delta_e(&preto, &Ink::Cmyk(0.0, 0.0, 0.0, 0.0)) > 90.0);
-        // dois cinzas próximos: diferença pequena
+        // two nearby greys: small difference
         assert!(delta_e(&Ink::Gray(0.5), &Ink::Gray(0.52)) < 3.0);
     }
 
     #[test]
-    fn analise_de_fixture_com_cmyk() {
-        // fixture prepress.pdf: "1 1 0 0.5 k" = TAC 250%, traço 0.1
+    fn analysis_of_cmyk_fixture() {
+        // fixture prepress.pdf: "1 1 0 0.5 k" = TAC 250%, stroke 0.1
         let info = analyze(std::path::Path::new("tests/fixtures/prepress.pdf")).unwrap();
         assert_eq!(info.tac_by_page.len(), 1);
         assert!((info.tac_by_page[0] - 250.0).abs() < 0.01, "TAC exato: {:?}", info.tac_by_page);

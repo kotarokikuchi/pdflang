@@ -1,6 +1,6 @@
-//! Namespace `text::` — extração, normalização e validação de texto.
-//! Funções operam sobre o texto do documento por padrão; a maioria aceita
-//! uma string como argumento opcional.
+//! Namespace `text::` — text extraction, normalization and validation.
+//! The functions work on the document's text by default; most of them take
+//! a string as an optional argument.
 
 use crate::interpreter::{DocData, RuntimeError, Value};
 use regex::Regex;
@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, RuntimeError> {
     match name {
-        // ---- básicas ----
+        // ---- basics ----
         "extract_all" => Ok(Value::Str(full_text(doc))),
         "extract_from_page" => {
             let n = int_arg(args, 0, name)?;
@@ -44,7 +44,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
         "count_words" => Ok(Value::Int(words(&text_arg(doc, args)).len() as i64)),
         "count_characters" => Ok(Value::Int(text_arg(doc, args).chars().count() as i64)),
         "detect_language" => Ok(Value::Str(detect_language(&text_arg(doc, args)).into())),
-        // ---- glossário e validação (retornam booleano para require/assert) ----
+        // ---- glossary and validation (return a boolean for require/assert) ----
         "require_text" => {
             let needle = str_arg(args, 0, name)?;
             Ok(Value::Bool(normalize(&full_text(doc)).contains(&normalize(&needle))))
@@ -63,8 +63,8 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
         "detect_personal_data" | "detect_pii" => {
             let text = text_arg(doc, args);
             let mut found = Vec::new();
-            // CPF/CNPJ só entram com dígito verificador válido — número que
-            // "parece" mas não é (ex: 111.111.111-12) não gera alarme falso.
+            // CPF/CNPJ only count with a valid check digit — a number that
+            // "looks like" one but is not (e.g. 111.111.111-12) raises no false alarm.
             for m in Regex::new(r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b").unwrap().find_iter(&text) {
                 if cpf_valid(m.as_str()) {
                     found.push(format!("CPF: {}", m.as_str()));
@@ -85,7 +85,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             }
             Ok(str_list(found))
         }
-        // ---- validações de formato ----
+        // ---- format validations ----
         "validate_cpf" => Ok(Value::Bool(cpf_valid(&str_arg(args, 0, name)?))),
         "validate_cnpj" => Ok(Value::Bool(cnpj_valid(&str_arg(args, 0, name)?))),
         "validate_date_format" => {
@@ -98,24 +98,24 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Bool(date_valid(&s, format.as_deref())?))
         }
         "validate_phone_format" => {
-            // Telefone brasileiro: (DD) 9XXXX-XXXX ou (DD) XXXX-XXXX,
-            // com pontuação opcional.
+            // Brazilian phone number: (DD) 9XXXX-XXXX or (DD) XXXX-XXXX,
+            // with optional punctuation.
             let s = str_arg(args, 0, name)?;
             let digits: String = s.chars().filter(|c| c.is_ascii_digit()).collect();
             let re = Regex::new(r"^\(?\d{2}\)?\s?9?\d{4}-?\d{4}$").unwrap();
             Ok(Value::Bool(re.is_match(s.trim()) && matches!(digits.len(), 10 | 11)))
         }
         "validate_format" => {
-            // validate_format(s, regex) — a string INTEIRA deve casar
+            // validate_format(s, regex) — the WHOLE string must match
             let s = str_arg(args, 0, name)?;
             let pattern = str_arg(args, 1, name)?;
             let re = Regex::new(&format!("^(?:{pattern})$"))
                 .map_err(|e| err(format!("text::{name}: invalid pattern: {e}")))?;
             Ok(Value::Bool(re.is_match(&s)))
         }
-        // ---- operações avançadas ----
+        // ---- advanced operations ----
         "diff" => {
-            // diff(a, b) -> linhas que mudaram: "-só em a", "+só em b"
+            // diff(a, b) -> lines that changed: "-only in a", "+only in b"
             let a = str_arg(args, 0, name)?;
             let b = str_arg(args, 1, name)?;
             let la: Vec<&str> = a.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
@@ -135,7 +135,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
         }
         "extract_with_normalization" => Ok(Value::Str(normalize(&full_text(doc)))),
         "extract_from_region" => {
-            // extract_from_region(pagina, regiao)
+            // extract_from_region(page, region)
             let page = match args.first() {
                 Some(Value::Int(n)) => *n,
                 Some(Value::Page(p)) => p.index + 1,
@@ -157,9 +157,9 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             .map_err(|e| err(format!("text::{name}: {e:#}")))
         }
         "detect_rasterized_text" => {
-            // Heurística: página sem texto extraível mas com imagem grande
-            // (>= 50% da área) = texto provavelmente rasterizado.
-            // OCR de verdade fica para quando houver Tesseract.
+            // Heuristic: a page with no extractable text but with a large image
+            // (>= 50% of the area) = the text is probably rasterized.
+            // Real OCR waits until Tesseract is available.
             let suspect = doc.pages.iter().any(|p| {
                 let page_area = p.width * p.height;
                 p.text.trim().is_empty()
@@ -186,7 +186,7 @@ fn full_text(doc: &DocData) -> String {
     doc.pages.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n")
 }
 
-/// Primeiro argumento string, se dado; senão o texto completo do documento.
+/// The first string argument, if given; otherwise the document's full text.
 fn text_arg(doc: &DocData, args: &[Value]) -> String {
     match args.first() {
         Some(Value::Str(s)) => s.clone(),
@@ -219,12 +219,12 @@ fn str_list(items: Vec<String>) -> Value {
     Value::List(Rc::new(items.into_iter().map(Value::Str).collect()))
 }
 
-/// Normalização: minúsculas + espaços colapsados.
+/// Normalization: lowercase + collapsed whitespace.
 fn normalize(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase()
 }
 
-/// Palavras: separadas por espaço, pontuação das bordas removida.
+/// Words: split on whitespace, with edge punctuation removed.
 fn words(text: &str) -> Vec<String> {
     text.split_whitespace()
         .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_string())
@@ -232,7 +232,7 @@ fn words(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// CPF com dígito verificador (mod 11). Aceita com ou sem pontuação.
+/// CPF with its check digit (mod 11). Accepted with or without punctuation.
 fn cpf_valid(s: &str) -> bool {
     let d: Vec<u32> = s.chars().filter_map(|c| c.to_digit(10)).collect();
     if d.len() != 11 || d.iter().all(|&x| x == d[0]) {
@@ -246,7 +246,7 @@ fn cpf_valid(s: &str) -> bool {
     dv(9) == d[9] && dv(10) == d[10]
 }
 
-/// CNPJ com dígito verificador (mod 11). Aceita com ou sem pontuação.
+/// CNPJ with its check digit (mod 11). Accepted with or without punctuation.
 fn cnpj_valid(s: &str) -> bool {
     let d: Vec<u32> = s.chars().filter_map(|c| c.to_digit(10)).collect();
     if d.len() != 14 || d.iter().all(|&x| x == d[0]) {
@@ -261,7 +261,7 @@ fn cnpj_valid(s: &str) -> bool {
     dv(12) == d[12] && dv(13) == d[13]
 }
 
-/// Data válida no calendário. Sem formato: aceita dd/mm/aaaa ou aaaa-mm-dd.
+/// A calendar-valid date. Without a format: accepts dd/mm/yyyy or yyyy-mm-dd.
 fn date_valid(s: &str, format: Option<&str>) -> Result<bool, RuntimeError> {
     let s = s.trim();
     let (d, m, y) = match format {
@@ -292,7 +292,7 @@ fn date_valid(s: &str, format: Option<&str>) -> Result<bool, RuntimeError> {
     Ok((1..=max_day).contains(&d))
 }
 
-/// Similaridade Levenshtein normalizada (1.0 = idênticas).
+/// Normalized Levenshtein similarity (1.0 = identical).
 fn similarity(a: &str, b: &str) -> f64 {
     let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
     if a.is_empty() && b.is_empty() {
@@ -311,8 +311,8 @@ fn similarity(a: &str, b: &str) -> f64 {
     1.0 - prev[b.len()] as f64 / a.len().max(b.len()) as f64
 }
 
-/// Detecção ingênua por stopwords (pt/en/es).
-/// ponytail: heurística de contagem simples; trocar por lib de detecção se precisar de precisão
+/// Naive detection by stopwords (pt/en/es).
+/// ponytail: a simple counting heuristic; swap for a detection library if accuracy matters
 fn detect_language(text: &str) -> &'static str {
     const PT: &[&str] = &["de", "que", "não", "uma", "para", "com", "os", "das", "dos", "isso", "são", "é"];
     const EN: &[&str] = &["the", "of", "and", "to", "in", "is", "that", "it", "was", "for", "with", "are"];
@@ -338,7 +338,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn similaridade() {
+    fn levenshtein_similarity() {
         assert_eq!(similarity("abc", "abc"), 1.0);
         assert_eq!(similarity("", ""), 1.0);
         assert!(similarity("paracetamol", "paracetamoI") > 0.9);
@@ -346,30 +346,30 @@ mod tests {
     }
 
     #[test]
-    fn normalizacao_e_palavras() {
+    fn normalization_and_words() {
         assert_eq!(normalize("  Olá   MUNDO \n novo "), "olá mundo novo");
         assert_eq!(words("Olá, mundo! (teste)"), vec!["Olá", "mundo", "teste"]);
     }
 
     #[test]
     fn cpf() {
-        assert!(cpf_valid("529.982.247-25")); // válido clássico
+        assert!(cpf_valid("529.982.247-25")); // classic valid one
         assert!(cpf_valid("52998224725"));
-        assert!(!cpf_valid("529.982.247-26")); // dígito errado
+        assert!(!cpf_valid("529.982.247-26")); // wrong check digit
         assert!(!cpf_valid("111.111.111-11")); // todos iguais
         assert!(!cpf_valid("123"));
     }
 
     #[test]
     fn cnpj() {
-        assert!(cnpj_valid("11.222.333/0001-81")); // válido clássico
+        assert!(cnpj_valid("11.222.333/0001-81")); // classic valid one
         assert!(cnpj_valid("11222333000181"));
         assert!(!cnpj_valid("11.222.333/0001-82"));
         assert!(!cnpj_valid("00.000.000/0000-00"));
     }
 
     #[test]
-    fn datas() {
+    fn dates() {
         assert!(date_valid("29/02/2024", None).unwrap()); // bissexto
         assert!(!date_valid("29/02/2023", None).unwrap());
         assert!(!date_valid("31/04/2026", None).unwrap()); // abril tem 30
@@ -381,7 +381,7 @@ mod tests {
     }
 
     #[test]
-    fn idiomas() {
+    fn languages() {
         assert_eq!(detect_language("o contrato é válido e não pode ser alterado para os fins"), "pt");
         assert_eq!(detect_language("the quick brown fox is in the yard with the dog"), "en");
         assert_eq!(detect_language("xyzzy 123"), "unknown");

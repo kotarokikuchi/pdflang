@@ -1,4 +1,4 @@
-//! CLI `pdfl` — interpretador da linguagem PDFLang (.pdfl).
+//! The `pdfl` CLI — interpreter for the PDFLang language (.pdfl).
 
 mod ast;
 mod codesns;
@@ -59,7 +59,7 @@ enum Command {
     Fix {
         /// Input PDF
         input: PathBuf,
-        /// The .pdfl script com chamadas fix::
+        /// The .pdfl script with fix:: calls
         script: PathBuf,
         /// Output PDF
         #[arg(long)]
@@ -100,7 +100,7 @@ enum Command {
     Watch {
         /// Folder to watch
         folder: PathBuf,
-        /// The .pdfl script de validação
+        /// The validation .pdfl script
         #[arg(long)]
         script: PathBuf,
         /// File pattern (wildcard *)
@@ -186,8 +186,8 @@ pub enum OutputFormat {
     Pdf,
 }
 
-/// Escreve o relatório: stdout para formatos de texto (ou --output-file);
-/// PDF sempre vai para arquivo (--output-file ou <entrada>.report.pdf).
+/// Writes the report: stdout for text formats (or --output-file); PDF always
+/// goes to a file (--output-file or <input>.report.pdf).
 fn emit_report(report: &Report, format: OutputFormat, file: Option<&PathBuf>, input: &Path) {
     let bytes: Vec<u8> = match format {
         OutputFormat::Json => report.to_json().into_bytes(),
@@ -225,7 +225,7 @@ enum DocFormat {
     Html,
 }
 
-/// Carrega e parseia o script; erro = exit 3.
+/// Loads and parses the script; an error means exit 3.
 fn load_program(script: &Path) -> Result<Vec<ast::Stmt>, ExitCode> {
     let source = std::fs::read_to_string(script).map_err(|e| {
         eprintln!("error: could not read script {}: {e}", script.display());
@@ -237,7 +237,7 @@ fn load_program(script: &Path) -> Result<Vec<ast::Stmt>, ExitCode> {
     })
 }
 
-/// Carrega o PDF; falha vira relatório FAIL com exit 2.
+/// Loads the PDF; a failure becomes a FAIL report with exit 2.
 fn load_doc(
     input: &Path,
     script_name: &str,

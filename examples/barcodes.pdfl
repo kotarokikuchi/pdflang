@@ -1,5 +1,5 @@
-// codigos.pdfl — codes:: namespace demonstration
-// Usage: pdfl run examples/codigos.pdfl document.pdf
+// barcodes.pdfl — codes:: namespace demonstration
+// Usage: pdfl run examples/barcodes.pdfl document.pdf
 
 profile "barcode-validation" {
 

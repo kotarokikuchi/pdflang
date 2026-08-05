@@ -1,20 +1,20 @@
-//! AST da linguagem PDFLang.
+//! PDFLang's AST.
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     Profile { name: String, body: Vec<Stmt> },
     Check { name: String, tags: Vec<String>, body: Vec<Stmt> },
-    /// `function nome(a, b) { ... }` — o valor é o da última expressão.
+    /// `function name(a, b) { ... }` — the value is that of the last expression.
     Function { name: String, params: Vec<String>, body: Vec<Stmt> },
-    /// `import "outro.pdfl"` — caminho relativo ao script que importa.
+    /// `import "other.pdfl"` — path relative to the importing script.
     Import { path: String },
-    /// `rule "nome" on <expr de páginas> { corpo }` — aplica o corpo a cada
-    /// página selecionada, com `page` disponível dentro do bloco.
+    /// `rule "name" on <page expr> { body }` — applies the body to each
+    /// selected page, with `page` available inside the block.
     Rule { name: String, pages: Option<Expr>, body: Vec<Stmt> },
     Const { name: String, value: Expr },
     Assign { name: String, value: Expr },
-    /// `assert expr [, "mensagem"]` — `require` vira Assert com mensagem None
-    /// e `source` guardando o texto da expressão para a mensagem automática.
+    /// `assert expr [, "message"]` — `require` becomes an Assert with message None
+    /// and `source` holding the expression text for the automatic message.
     Assert { cond: Expr, message: Option<Expr>, source: String, line: usize },
     Expr(Expr),
 }
@@ -27,7 +27,7 @@ pub enum Expr {
     Bool(bool),
     List(Vec<Expr>),
     Ident(String),
-    /// `recv.name` (sem parênteses)
+    /// `recv.name` (without parentheses)
     Member { recv: Box<Expr>, name: String },
     /// `name(args)`, `recv.name(args)`, `recv.name { |x| ... }`
     Call { recv: Option<Box<Expr>>, name: String, args: Vec<Arg>, block: Option<Block> },

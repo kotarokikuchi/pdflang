@@ -1,7 +1,7 @@
-//! Comando `pdfl fmt` — formatador de scripts .pdfl (seção 8.7).
-//! Formata a partir dos tokens (preserva comentários e as quebras de linha
-//! do autor): indentação de 2 espaços por nível de chaves, um espaço em
-//! volta de operadores, linhas em branco colapsadas para uma.
+//! `pdfl fmt` command — formatter for .pdfl scripts.
+//! Formats from the tokens (preserving comments and the author's line
+//! breaks): 2-space indentation per brace level, one space around
+//! operators, blank lines collapsed to a single one.
 
 use crate::lexer::{tokenize_with_comments, LexError, StrSeg, Tok};
 
@@ -19,11 +19,11 @@ pub fn format_source(source: &str) -> Result<String, LexError> {
             continue;
         }
         if line.is_empty() {
-            // linha em branco: colapsa sequências e nunca abre o arquivo
+            // blank line: collapses runs and never opens the file
             blank_pending = !out.is_empty();
             continue;
         }
-        // dedenta antes se a linha começa fechando blocos
+        // dedent first if the line starts by closing blocks
         let leading_closers = line.iter().take_while(|t| matches!(t, Tok::RBrace)).count();
         let indent = depth.saturating_sub(leading_closers);
         if blank_pending {
@@ -60,27 +60,27 @@ fn render_line(tokens: &[&Tok]) -> String {
     out
 }
 
-/// Deve haver espaço entre `prev` e `next`?
-/// `in_params` = estamos dentro de `|...|` de um bloco (antes de `next`).
+/// Should there be a space between `prev` and `next`?
+/// `in_params` = we are inside a block's `|...|` (before `next`).
 fn needs_space(prev: &Tok, next: &Tok, in_params: bool) -> bool {
     use Tok::*;
-    // aderências à esquerda: nada depois destes
+    // left-hugging: nothing comes after these
     if matches!(prev, LParen | LBracket | Dot | ColonColon | Bang) {
         return false;
     }
-    // pipe de abertura cola no primeiro parâmetro: "{ |page"
+    // the opening pipe hugs the first parameter: "{ |page"
     if matches!(prev, Pipe) && in_params {
         return false;
     }
-    // aderências à direita: nada antes destes
+    // right-hugging: nothing comes before these
     if matches!(next, RParen | RBracket | Comma | Dot | ColonColon | Colon) {
         return false;
     }
     if matches!(next, Pipe) {
-        // dentro de params é o pipe de fechamento ("page|"); fora, abertura (" |")
+        // inside params it is the closing pipe ("page|"); outside, the opening one (" |")
         return !in_params;
     }
-    // chamada: ident( colado; agrupamento após operador ganha espaço
+    // call: ident( hugs; grouping after an operator gets a space
     if matches!(next, LParen) {
         return !matches!(prev, Ident(_) | RParen | RBracket);
     }
@@ -167,14 +167,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn indenta_e_espaca() {
+    fn indents_and_spaces() {
         let src = "profile \"x\"{\ncheck \"a\"   {\nrequire doc.page_count>0\n}\n}\n";
         let want = "profile \"x\" {\n  check \"a\" {\n    require doc.page_count > 0\n  }\n}\n";
         assert_eq!(format_source(src).unwrap(), want);
     }
 
     #[test]
-    fn preserva_comentarios() {
+    fn preserves_comments() {
         let src = "// cabeçalho\ncheck \"a\" {\n  require doc.title != \"\" // trailing\n}\n";
         let got = format_source(src).unwrap();
         assert!(got.starts_with("// cabeçalho\n"), "{got}");
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn blocos_e_interpolacao() {
+    fn blocks_and_interpolation() {
         let src = "doc.fonts.each{|font|\nassert font.is_embedded,\"Fonte #{ font.name } ruim\"\n}\n";
         let got = format_source(src).unwrap();
         assert_eq!(
@@ -192,19 +192,19 @@ mod tests {
     }
 
     #[test]
-    fn colapsa_linhas_em_branco() {
+    fn collapses_blank_lines() {
         let src = "const A = 1\n\n\n\nconst B = A\n";
         assert_eq!(format_source(src).unwrap(), "const A = 1\n\nconst B = A\n");
     }
 
     #[test]
-    fn preserva_unidades() {
+    fn preserves_units() {
         let src = "const SANGRIA = 3mm\nconst TAC = 300%\nrequire x > 2.5cm\n";
         assert_eq!(format_source(src).unwrap(), src);
     }
 
     #[test]
-    fn idempotente() {
+    fn idempotent() {
         let src = r#"
 // exemplo
 profile "p" {

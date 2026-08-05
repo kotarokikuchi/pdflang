@@ -1,5 +1,5 @@
-// regioes.pdfl — region type and rule block demonstration
-// Usage: pdfl run examples/regioes.pdfl document.pdf
+// regions.pdfl — region type and rule block demonstration
+// Usage: pdfl run examples/regions.pdfl document.pdf
 
 profile "regions" {
   check "Text by Region" {

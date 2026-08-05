@@ -25,6 +25,10 @@ installer per platform, with pdfium bundled. Each asset has a matching
 | macOS Intel / Apple Silicon | `pdfl-<version>-macos-amd64.dmg` · `-arm64.dmg` |
 | Windows amd64 | `pdfl-<version>-windows-amd64-setup.exe` · `.msi` |
 
+Linux amd64 also gets a portable `pdfl-<version>-linux-amd64.tar.gz`, for when
+installing is not an option — a container without `dpkg`, a distribution that is
+not Debian-based, a machine where you are not root.
+
 ```bash
 # Debian, Ubuntu and derivatives
 sudo dpkg -i pdfl_*_amd64.deb
@@ -47,8 +51,15 @@ msiexec /i pdfl-<version>-windows-amd64.msi /qn
 > will warn on first run. On macOS, right-click → Open; on Windows, "More info"
 > → "Run anyway".
 
+The portable tarball needs no privileges at all:
+
+```bash
+tar -xzf pdfl-*-linux-amd64.tar.gz && cd pdfl-*/
+./pdfl inspect document.pdf
+```
+
 In CI, install from the `.deb` — that is what the recipes in the documentation
-do. On any other platform, or to avoid installing at all, build from source.
+do. On any other platform, build from source.
 
 ## Quick start (building from source)
 

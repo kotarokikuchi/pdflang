@@ -91,6 +91,14 @@ jobs:
           cp README.md LICENSE "dist/$NAME/"
           cp -r examples "dist/$NAME/examples"
 
+          # One exception to installers-only: a portable tarball for Linux
+          # amd64. It is the way to run pdfl without privileges — a container
+          # with no dpkg, a distro that is not Debian-based, a shared host.
+          if [ "${{ matrix.target }}" = "linux-amd64" ]; then
+            tar -C dist -czf "$NAME.tar.gz" "$NAME"
+            sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
+          fi
+
       # The only published artifacts. CI installs from the .deb (see
       # docs/*/12-*.md), which is why the Linux job matters beyond desktops.
       - name: Installer (.deb / .dmg / .exe)
@@ -177,6 +185,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
+            *.tar.gz
+            *.tar.gz.sha256
             *.deb
             *.deb.sha256
             *.dmg

@@ -18,6 +18,11 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      # Cheap and first: a version bump that forgets the docs fails here rather
+      # than shipping. The docs had drifted three releases behind before this.
+      - name: Docs version matches Cargo.toml
+        run: ./scripts/sync-version.sh --check
+
       - name: Unit tests (no pdfium)
         run: cargo test --workspace --verbose
 

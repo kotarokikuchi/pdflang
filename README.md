@@ -13,18 +13,45 @@ ready-made recipes:
 
 CLI messages, diagnostics and reports are in **English**.
 
-## Installation (prebuilt binary)
+## Installation
 
-Download the package for your platform from
-[Releases](https://github.com/kotarokikuchi/pdflang/releases) — Linux x64/arm64,
-macOS arm64 and Windows x64, with pdfium bundled. Extract it and run:
+Every [release](https://github.com/kotarokikuchi/pdflang/releases) ships two
+forms of the same build for each platform: an **installer**, which puts `pdfl`
+on your `PATH`, and a **portable archive**, which needs no privileges and is
+what CI should use. pdfium is bundled in both.
+
+| Platform | Installer | Portable archive |
+|---|---|---|
+| Linux x64 / arm64 | `pdfl_<version>_amd64.deb` · `_arm64.deb` | `pdfl-<version>-linux-{x64,arm64}.tar.gz` |
+| macOS x64 / arm64 | `pdfl-<version>-macos-{x64,arm64}.dmg` | `pdfl-<version>-macos-{x64,arm64}.tar.gz` |
+| Windows x64 | `pdfl-<version>-windows-x64-setup.exe` | `pdfl-<version>-windows-x64.zip` |
+
+Every asset has a matching `.sha256`.
+
+### Installers
+
+```bash
+# Debian, Ubuntu and derivatives
+sudo dpkg -i pdfl_*_amd64.deb
+pdfl inspect document.pdf
+```
+
+On macOS, open the `.dmg` and copy `pdfl` wherever you keep local binaries. On
+Windows, run the `-setup.exe` and keep the "add to PATH" box ticked; then use
+`pdfl` from any terminal.
+
+> The macOS and Windows installers are unsigned, so Gatekeeper and SmartScreen
+> will warn on first run. On macOS, right-click → Open; on Windows, "More info"
+> → "Run anyway".
+
+### Portable archives
 
 ```bash
 tar -xzf pdfl-*.tar.gz && cd pdfl-*/
 ./pdfl inspect document.pdf
 ```
 
-On Windows the package is a `.zip` (extract it in Explorer, or with
+On Windows the archive is a `.zip` (extract it in Explorer, or with
 `tar -xf pdfl-*.zip`) and the binary is `pdfl.exe`:
 
 ```powershell

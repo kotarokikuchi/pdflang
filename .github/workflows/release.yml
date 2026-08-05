@@ -24,6 +24,8 @@ jobs:
             os: ubuntu-24.04-arm
           - target: macos-arm64
             os: macos-latest
+          - target: macos-x64
+            os: macos-13     # the last Intel image GitHub hosts
           - target: windows-x64
             os: windows-latest
     runs-on: ${{ matrix.os }}
@@ -82,6 +84,72 @@ jobs:
             shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" || sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
           fi
 
+      # The archives above stay: the CI recipes in docs/*/12-*.md install from
+      # them, and they need no privileges. What follows is the installable form
+      # of the same build, one per platform.
+      - name: Installer (.deb / .dmg / .exe)
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          NAME="pdfl-${VERSION}-${{ matrix.target }}"
+
+          case "$RUNNER_OS" in
+          Linux)
+            # /usr/bin/pdfl cannot find <exe dir>/pdfium, so libpdfium.so goes
+            # to the multiarch directory and the loader resolves it — the path
+            # bind_pdfium() falls back to. postinst refreshes the ld cache.
+            case "$(uname -m)" in
+              x86_64)  DEB_ARCH=amd64; TRIPLET=x86_64-linux-gnu ;;
+              aarch64) DEB_ARCH=arm64; TRIPLET=aarch64-linux-gnu ;;
+              *) echo "::error::unmapped architecture $(uname -m)"; exit 1 ;;
+            esac
+            ROOT="debroot"
+            mkdir -p "$ROOT/DEBIAN" "$ROOT/usr/bin" "$ROOT/usr/lib/$TRIPLET" \
+                     "$ROOT/usr/share/doc/pdfl" "$ROOT/usr/share/pdfl"
+            cp target/release/pdfl "$ROOT/usr/bin/"
+            cp pdfium/lib/libpdfium.so "$ROOT/usr/lib/$TRIPLET/"
+            cp README.md "$ROOT/usr/share/doc/pdfl/"
+            cp LICENSE "$ROOT/usr/share/doc/pdfl/copyright"
+            cp -r examples "$ROOT/usr/share/pdfl/examples"
+            cat > "$ROOT/DEBIAN/control" <<CONTROL
+          Package: pdfl
+          Version: $VERSION
+          Section: utils
+          Priority: optional
+          Architecture: $DEB_ARCH
+          Depends: libc6, libgcc-s1
+          Maintainer: Kotaro Kikuchi <kotaro@pdflang.com>
+          Homepage: https://github.com/kotarokikuchi/pdflang
+          Description: Scripting language for validating PDFs
+           pdfl runs .pdfl scripts that validate, compare and normalize PDF
+           files, producing deterministic reports in JSON, CSV, HTML or PDF.
+           Built for print shops, legal publishers and CI pipelines.
+          CONTROL
+            printf '#!/bin/sh\nset -e\nldconfig\n' > "$ROOT/DEBIAN/postinst"
+            printf '#!/bin/sh\nset -e\nldconfig\n' > "$ROOT/DEBIAN/postrm"
+            chmod 755 "$ROOT/DEBIAN/postinst" "$ROOT/DEBIAN/postrm"
+            OUT="pdfl_${VERSION}_${DEB_ARCH}.deb"
+            dpkg-deb --build --root-owner-group "$ROOT" "$OUT"
+            sha256sum "$OUT" > "$OUT.sha256"
+            ;;
+          macOS)
+            # The .dmg carries the same layout as the tarball, so the binary
+            # finds <exe dir>/pdfium/lib without anything being installed.
+            OUT="$NAME.dmg"
+            hdiutil create -volname "pdfl $VERSION" -srcfolder "dist/$NAME" \
+                    -ov -format UDZO "$OUT"
+            shasum -a 256 "$OUT" > "$OUT.sha256"
+            ;;
+          Windows)
+            ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+            [ -f "$ISCC" ] || { choco install innosetup -y --no-progress >/dev/null; }
+            [ -f "$ISCC" ] || ISCC="$(command -v iscc)"
+            OUT="$NAME-setup"
+            "$ISCC" //DAppVersion="$VERSION" //DSourceDir="dist\\$NAME" \
+                    //DOutputName="$OUT" packaging/pdfl.iss > /dev/null
+            sha256sum "$OUT.exe" > "$OUT.exe.sha256"
+            ;;
+          esac
+
       - name: Publish to the release
         uses: softprops/action-gh-release@v3
         with:
@@ -90,4 +158,10 @@ jobs:
             *.tar.gz.sha256
             *.zip
             *.zip.sha256
+            *.deb
+            *.deb.sha256
+            *.dmg
+            *.dmg.sha256
+            *-setup.exe
+            *-setup.exe.sha256
           generate_release_notes: true

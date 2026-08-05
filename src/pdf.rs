@@ -8,12 +8,21 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::rc::Rc;
 
-/// Locates libpdfium: ./pdfium/lib/ (from setup_pdfium.sh), next to the
-/// executable (release package) and finally the system's one.
+/// Locates libpdfium: ./pdfium/ (from setup_pdfium.sh), next to the executable
+/// (release package) and finally the system's one.
+///
+/// `bin` is checked because the Windows build of pdfium-binaries ships
+/// pdfium.dll there — `lib/` holds only the import library, which cannot be
+/// loaded at runtime.
 fn bind_pdfium() -> Result<Pdfium> {
-    let mut candidates = vec![std::path::PathBuf::from("./pdfium/lib/"), std::path::PathBuf::from("./pdfium/")];
+    let mut candidates = vec![
+        std::path::PathBuf::from("./pdfium/lib/"),
+        std::path::PathBuf::from("./pdfium/bin/"),
+        std::path::PathBuf::from("./pdfium/"),
+    ];
     if let Some(exe_dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) {
         candidates.push(exe_dir.join("pdfium/lib"));
+        candidates.push(exe_dir.join("pdfium/bin"));
         candidates.push(exe_dir.join("pdfium"));
     }
     for dir in &candidates {

@@ -24,7 +24,14 @@ jobs:
             os: ubuntu-24.04-arm
           - target: macos-arm64
             os: macos-latest
+          - target: windows-x64
+            os: windows-latest
     runs-on: ${{ matrix.os }}
+    # bash on every runner: the Windows one defaults to PowerShell, and both
+    # setup_pdfium.sh and the packaging step below are shell scripts.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -44,16 +51,26 @@ jobs:
           # it, so a downloaded package stays identifiable after extraction.
           # In exchange, .../releases/latest/download/<name> no longer works: it
           # needs the exact name. CI installs use `gh release download
-          # --pattern 'pdfl-*-<target>.tar.gz'` (see docs/*/12-*.md).
-          VERSION="${GITHUB_REF_NAME#v}"   # tags 0.6.2 and v0.6.2 give the same name
+          # --pattern 'pdfl-*-<target>.*'` (see docs/*/12-*.md).
+          VERSION="${GITHUB_REF_NAME#v}"   # tags 0.7.0 and v0.7.0 give the same name
           NAME="pdfl-${VERSION}-${{ matrix.target }}"
+          EXE=""
+          [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
           mkdir -p "dist/$NAME"
-          cp target/release/pdfl "dist/$NAME/"
+          cp "target/release/pdfl$EXE" "dist/$NAME/"
           cp -r pdfium "dist/$NAME/pdfium"
           cp README.md LICENSE "dist/$NAME/"
           cp -r examples "dist/$NAME/examples"
-          tar -C dist -czf "$NAME.tar.gz" "$NAME"
-          shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" || sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # zip, not tar.gz: Explorer opens it without extra tools. 7z ships
+            # on the runner; Git Bash has no zip(1). Run it from inside dist/ so
+            # the archive root is $NAME, matching the tar branch.
+            (cd dist && 7z a -tzip "../$NAME.zip" "$NAME") > /dev/null
+            sha256sum "$NAME.zip" > "$NAME.zip.sha256"
+          else
+            tar -C dist -czf "$NAME.tar.gz" "$NAME"
+            shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" || sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
+          fi
 
       - name: Publish to the release
         uses: softprops/action-gh-release@v2
@@ -61,4 +78,6 @@ jobs:
           files: |
             *.tar.gz
             *.tar.gz.sha256
+            *.zip
+            *.zip.sha256
           generate_release_notes: true

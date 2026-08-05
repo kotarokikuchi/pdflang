@@ -109,6 +109,14 @@ coordination, queue status, metrics, routing, digests — is unwritten.
 `rayon` is not a dependency: there is no parallelism at all, so a `--jobs N` flag
 is not one flag away.
 
+One design question is worth settling before any of this is built, because it
+decides the shape of the rest. A batch that survives a crash needs to remember
+what it already did, and this project holds that it keeps no writable state. The
+resolution: a journal written *because the user asked for it* — an explicit
+`--journal batch.jsonl`, append-only — is an artifact, exactly like the report,
+not hidden state the tool maintains behind the user's back. State as an artifact
+is in; state as a private database is out.
+
 ### Watch mode
 
 | Feature | State |

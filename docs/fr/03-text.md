@@ -115,7 +115,7 @@ profile "contract" {
 
 ## 3.4 Données personnelles
 
-`text::detect_personal_data()` et `text::detect_pii()` sont synonymes. Elles
+`text::detect_personal_data([text])` et `text::detect_pii([text])` sont synonymes. Elles
 retournent la **liste** des données personnelles trouvées : CPF, CNPJ
 (identifiants fiscaux brésiliens), adresse e-mail et téléphone.
 

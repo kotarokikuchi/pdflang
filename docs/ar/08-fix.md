@@ -89,7 +89,7 @@ fix::set_bleed_box(0, 0, 595, 842)
 | `fix::rotate_page([page,] degrees)` | تدوير 90/180/270 درجة (بلا رقم: كل الصفحات) |
 | `fix::delete_page(n)` | يحذف صفحة |
 | `fix::duplicate_page(n)` | ينسخ صفحة (والنسخة تليها مباشرة) |
-| `fix::reorder_pages([...])` | يعيد الترتيب (كل صفحة مرة واحدة بالضبط) |
+| `fix::reorder_pages([الترتيب, الجديد])` | يعيد الترتيب (كل صفحة مرة واحدة بالضبط) |
 | `fix::split_document(from, to, "out.pdf")` | يحفظ مدى صفحات في ملف |
 | `fix::merge_documents("other.pdf")` | يُلحق صفحات ملف PDF آخر في النهاية |
 

@@ -112,7 +112,7 @@ profile "contract" {
 
 ## 3.4 个人信息
 
-`text::detect_personal_data()` 与 `text::detect_pii()` 是同义函数，返回找到的
+`text::detect_personal_data([text])` 与 `text::detect_pii([text])` 是同义函数，返回找到的
 个人信息列表：CPF、CNPJ（巴西纳税人号码）、电子邮件和电话号码。
 
 > CPF 与 CNPJ **仅在校验位正确时**才会列出。只是长得像的号码

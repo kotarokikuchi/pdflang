@@ -115,7 +115,7 @@ profile "contract" {
 
 ## 3.4 Personenbezogene Daten
 
-`text::detect_personal_data()` und `text::detect_pii()` sind gleichbedeutend.
+`text::detect_personal_data([text])` und `text::detect_pii([text])` sind gleichbedeutend.
 Sie geben die **Liste** der gefundenen personenbezogenen Daten zurück: CPF, CNPJ
 (brasilianische Steuernummern), E-Mail-Adresse und Telefonnummer.
 

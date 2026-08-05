@@ -88,7 +88,7 @@ fix::set_bleed_box(0, 0, 595, 842)
 | `fix::rotate_page([page,] degrees)` | 旋转 90/180/270 度（省略页码则全部） |
 | `fix::delete_page(n)` | 删除页面 |
 | `fix::duplicate_page(n)` | 复制页面（副本插在其后） |
-| `fix::reorder_pages([...])` | 重新排序（每页恰好使用一次） |
+| `fix::reorder_pages([新, 顺序])` | 重新排序（每页恰好使用一次） |
 | `fix::split_document(from, to, "out.pdf")` | 把页面区间另存为文件 |
 | `fix::merge_documents("other.pdf")` | 把另一个 PDF 的页面追加到末尾 |
 

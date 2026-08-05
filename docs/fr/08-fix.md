@@ -93,7 +93,7 @@ fix::set_bleed_box(0, 0, 595, 842)
 | `fix::rotate_page([page,] degrés)` | Rotation de 90/180/270° (toutes les pages sans numéro) |
 | `fix::delete_page(n)` | Supprime une page |
 | `fix::duplicate_page(n)` | Duplique une page (la copie se place juste après) |
-| `fix::reorder_pages([...])` | Réordonne (chaque page exactement une fois) |
+| `fix::reorder_pages([nouvel, ordre])` | Réordonne (chaque page exactement une fois) |
 | `fix::split_document(de, à, "sortie.pdf")` | Enregistre un intervalle de pages dans un fichier |
 | `fix::merge_documents("autre.pdf")` | Ajoute les pages d'un autre PDF à la fin |
 

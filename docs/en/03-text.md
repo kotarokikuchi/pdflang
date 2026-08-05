@@ -212,7 +212,7 @@ check "Product name with tolerance" {
 
 ## 3.4 Personal data (privacy)
 
-### `text::detect_personal_data()` and `text::detect_pii()`
+### `text::detect_personal_data([text])` and `text::detect_pii([text])`
 
 Synonyms. They return the **list** of personal data found: CPF, CNPJ (Brazilian
 tax IDs), e-mail and phone number.

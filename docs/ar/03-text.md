@@ -113,7 +113,7 @@ profile "contract" {
 
 ## 3.4 البيانات الشخصية
 
-`text::detect_personal_data()` و`text::detect_pii()` مترادفتان، وتُرجعان
+`text::detect_personal_data([text])` و`text::detect_pii([text])` مترادفتان، وتُرجعان
 **قائمة** البيانات الشخصية الموجودة: CPF وCNPJ (رقما الضريبة البرازيليان)
 والبريد الإلكتروني والهاتف.
 

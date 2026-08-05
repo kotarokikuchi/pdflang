@@ -118,8 +118,8 @@ profile "contract" {
 
 | 関数 | 動作 |
 |---|---|
-| `text::detect_personal_data()` | 見つかった個人情報のリスト |
-| `text::detect_pii()` | 同上（別名） |
+| `text::detect_personal_data([text])` | 見つかった個人情報のリスト |
+| `text::detect_pii([text])` | 同上（別名） |
 
 CPF・CNPJ（ブラジルの納税者番号）、メールアドレス、電話番号を検出します。
 

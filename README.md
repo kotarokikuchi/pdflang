@@ -20,7 +20,7 @@ Baixe o pacote da sua plataforma em
 macOS arm64 — a libpdfium já vem dentro), extraia e rode:
 
 ```bash
-tar -xzf pdfl-v*.tar.gz && cd pdfl-*/
+tar -xzf pdfl-*.tar.gz && cd pdfl-*/
 ./pdfl inspect documento.pdf
 ```
 

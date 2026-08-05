@@ -279,10 +279,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install pdfl
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # automatic Actions token, no setup
         run: |
-          curl -sSL -o pdfl-linux-x64.tar.gz \
-            https://github.com/kotarokikuchi/pdflang/releases/latest/download/pdfl-linux-x64.tar.gz
-          tar xzf pdfl-linux-x64.tar.gz
+          gh release download --repo kotarokikuchi/pdflang \
+            --pattern 'pdfl-*-linux-x64.tar.gz'
+          mkdir pdfl && tar xzf pdfl-*-linux-x64.tar.gz --strip-components=1 -C pdfl
           echo "$PWD/pdfl" >> $GITHUB_PATH
 
       - name: Check the scripts themselves

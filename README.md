@@ -327,6 +327,15 @@ preserves comments and the author's line breaks.
 cargo test    # lexer, parser, interpreter and report (no pdfium needed)
 ```
 
+Releasing means bumping `version` in `Cargo.toml`, then:
+
+```bash
+./scripts/sync-version.sh    # rewrites the version line in docs/*/README.md
+```
+
+CI runs the same script with `--check` and fails if the two disagree, so a bump
+that forgets the documentation cannot merge.
+
 ## License
 
 [MIT](LICENSE). The native pdfium library, downloaded by `setup_pdfium.sh` and

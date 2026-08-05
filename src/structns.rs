@@ -349,6 +349,6 @@ mod tests {
         assert_eq!(format_pdf_date("D:20260802173622-03'00'"), "2026-08-02 17:36:22");
         assert_eq!(format_pdf_date("D:20260802"), "2026-08-02 00:00:00");
         assert_eq!(format_pdf_date(""), "");
-        assert_eq!(format_pdf_date("texto qualquer"), "texto qualquer");
+        assert_eq!(format_pdf_date("any text"), "any text");
     }
 }

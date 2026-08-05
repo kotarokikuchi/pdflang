@@ -192,8 +192,8 @@ mod tests {
 
     #[test]
     fn wildcards() {
-        assert!(wildcard_match("*.pdf", "arquivo.pdf"));
-        assert!(!wildcard_match("*.pdf", "arquivo.txt"));
+        assert!(wildcard_match("*.pdf", "file.pdf"));
+        assert!(!wildcard_match("*.pdf", "file.txt"));
         assert!(wildcard_match("prova_*.pdf", "prova_01.pdf"));
         assert!(!wildcard_match("prova_*.pdf", "final_01.pdf"));
         assert!(wildcard_match("*relatorio*", "meu_relatorio_final.txt"));

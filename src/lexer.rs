@@ -12,7 +12,7 @@ pub enum StrSeg {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tok {
-    // Literais
+    // Literals
     Int(i64),
     Float(f64),
     /// Number with a unit (3mm, 300%): the value already converted to points
@@ -21,7 +21,7 @@ pub enum Tok {
     Str(Vec<StrSeg>),
     True,
     False,
-    // Palavras-chave
+    // Keywords
     Profile,
     Check,
     Const,
@@ -169,8 +169,8 @@ fn tokenize_impl(source: &str, keep_comments: bool) -> Result<Vec<Token>, LexErr
                                 Some('\\') => lit.push('\\'),
                                 Some('#') => lit.push('#'),
                                 None => err!("unterminated string"),
-                                // Escapes desconhecidos (\w, \d, ...) passam
-                                // literalmente — strings carregam regex.
+                                // Unknown escapes (\w, \d, ...) pass through
+                                // literally — strings carry regexes.
                                 Some(&other) => {
                                     lit.push('\\');
                                     lit.push(other);
@@ -363,7 +363,7 @@ mod tests {
     #[test]
     fn comment_and_newline() {
         assert_eq!(
-            toks("a // comentário\nb"),
+            toks("a // comment\nb"),
             vec![Tok::Ident("a".into()), Tok::Newline, Tok::Ident("b".into()), Tok::Eof]
         );
     }
@@ -376,12 +376,12 @@ mod tests {
     #[test]
     fn interpolated_string() {
         assert_eq!(
-            toks(r#""Fonte #{font.name} ausente""#),
+            toks(r#""Font #{font.name} is missing""#),
             vec![
                 Tok::Str(vec![
-                    StrSeg::Lit("Fonte ".into()),
+                    StrSeg::Lit("Font ".into()),
                     StrSeg::Interp("font.name".into()),
-                    StrSeg::Lit(" ausente".into()),
+                    StrSeg::Lit(" is missing".into()),
                 ]),
                 Tok::Eof
             ]

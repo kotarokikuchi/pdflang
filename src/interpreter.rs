@@ -157,8 +157,8 @@ impl fmt::Display for Value {
             Value::Font(x) => write!(f, "<font {}>", x.name),
             Value::Image(img) => write!(f, "<image {}x{} on page {}>", img.width, img.height, img.page_number),
             Value::Region(r) => {
-                let nome = if r.name.is_empty() { String::new() } else { format!("{} ", r.name) };
-                write!(f, "<region {nome}{}x{} at ({}, {})>", r.width, r.height, r.x, r.y)
+                let label = if r.name.is_empty() { String::new() } else { format!("{} ", r.name) };
+                write!(f, "<region {label}{}x{} at ({}, {})>", r.width, r.height, r.x, r.y)
             }
         }
     }
@@ -948,15 +948,15 @@ mod tests {
 
     fn mock_doc() -> Rc<DocData> {
         Rc::new(DocData {
-            filename: "teste.pdf".into(),
-            title: "Título".into(),
+            filename: "test.pdf".into(),
+            title: "Document Title".into(),
             author: "".into(),
             pages: vec![
                 Rc::new(PageData {
                     index: 0,
                     width: 595.0,
                     height: 842.0,
-                    text: "Olá mundo".into(),
+                    text: "Hello world".into(),
                     images: vec![
                         Rc::new(ImageData {
                             page_number: 1,
@@ -1008,9 +1008,9 @@ mod tests {
                 Rc::new(FontData { name: "Arial".into(), is_embedded: false }),
             ],
             metadata: vec![
-                ("Title".into(), "Título".into()),
+                ("Title".into(), "Document Title".into()),
                 ("Author".into(), "".into()),
-                ("Producer".into(), "TestePDF 1.0".into()),
+                ("Producer".into(), "TestPDF 1.0".into()),
                 ("CreationDate".into(), "D:20260802173622-03'00'".into()),
             ],
             file_size: 4096,
@@ -1053,14 +1053,14 @@ mod tests {
     #[test]
     fn assert_passes_and_fails() {
         let i = run(r#"
-check "Páginas" {
+check "Pages" {
   require doc.page_count > 0
-  assert doc.page_count > 10, "esperava mais de 10 páginas"
+  assert doc.page_count > 10, "expected more than 10 pages"
 }
 "#);
         assert_eq!(i.diagnostics.len(), 1);
-        assert_eq!(i.diagnostics[0].message, "esperava mais de 10 páginas");
-        assert_eq!(i.diagnostics[0].check_name, "Páginas");
+        assert_eq!(i.diagnostics[0].message, "expected more than 10 pages");
+        assert_eq!(i.diagnostics[0].check_name, "Pages");
         assert_eq!(i.diagnostics[0].id, "PDFL-001");
     }
 
@@ -1076,12 +1076,12 @@ check "Páginas" {
         let i = run(r#"
 check "Fontes" {
   doc.fonts.each { |font|
-    assert font.is_embedded, "Fonte #{font.name} não embutida"
+    assert font.is_embedded, "Font #{font.name} is not embedded"
   }
 }
 "#);
         assert_eq!(i.diagnostics.len(), 1);
-        assert_eq!(i.diagnostics[0].message, "Fonte Arial não embutida");
+        assert_eq!(i.diagnostics[0].message, "Font Arial is not embedded");
     }
 
     #[test]
@@ -1089,7 +1089,7 @@ check "Fontes" {
         let i = run(r#"
 profile "teste" {
   const MIN = 2 * 300
-  check "Dimensões" {
+  check "Dimensions" {
     doc.pages.each { |p|
       require p.width * 2 > MIN
     }
@@ -1118,8 +1118,8 @@ check "Listas" {
         let i = run(r#"
 check "Texto" {
   page1 = doc.pages.filter { |p| p.index == 0 }
-  require doc.extract_text().contains("Olá")
-  assert doc.title.length > 0, "sem título"
+  require doc.extract_text().contains("Hello")
+  assert doc.title.length > 0, "no title"
 }
 "#);
         assert!(i.diagnostics.is_empty());
@@ -1140,13 +1140,13 @@ check "OK" { require doc.page_count == 2 }
     fn namespace_text_basics() {
         let i = run(r#"
 check "Texto" {
-  require text::require_text("olá MUNDO")
-  require text::forbid_text("palavrão proibido")
+  require text::require_text("hello WORLD")
+  require text::forbid_text("forbidden word")
   require text::count_words() == 2
   require text::count_characters("abc") == 3
-  require text::extract_from_page(1).contains("Olá")
+  require text::extract_from_page(1).contains("Hello")
   require text::split_words().length == 2
-  require text::normalize("  OLÁ   Mundo ") == "olá mundo"
+  require text::normalize("  HELLO   World ") == "hello world"
 }
 "#);
         assert_eq!(i.diagnostics.len(), 0, "{:?}", i.diagnostics);
@@ -1155,8 +1155,8 @@ check "Texto" {
     #[test]
     fn namespace_text_regex_and_fuzzy() {
         let i = run(r#"
-check "Padrões" {
-  require text::require_match("Olá \w+")
+check "Patterns" {
+  require text::require_match("Hello \w+")
   require text::forbid_match("\d{3}-\d{2}")
   require text::fuzzy_match("paracetamol", "paracetamol") == 1.0
   require text::fuzzy_match("dipirona", "dip1rona") > 0.8
@@ -1190,9 +1190,9 @@ check "PII" {
     #[test]
     fn namespace_struct_metadata() {
         let i = run(r#"
-check "Metadados" {
-  require struct::get_title() == "Título"
-  require struct::get_producer() == "TestePDF 1.0"
+check "Metadata" {
+  require struct::get_title() == "Document Title"
+  require struct::get_producer() == "TestPDF 1.0"
   require struct::get_creation_date() == "2026-08-02 17:36:22"
   require struct::get_author() == ""
   require struct::list_metadata_entries().length == 3
@@ -1233,18 +1233,18 @@ check "Imagens" {
     #[test]
     fn namespace_visual_low_resolution() {
         let i = run(r#"
-check "Resolução" {
+check "Resolution" {
   require visual::detect_low_resolution()
   require visual::detect_low_resolution(300)
   require !visual::detect_low_resolution(50)
   ruins = doc.images.filter { |img| img.dpi < 300 }
   ruins.each { |img|
-    assert false, "Imagem #{img.width}x#{img.height} na página #{img.page_number}: #{img.dpi} DPI"
+    assert false, "Image #{img.width}x#{img.height} on page #{img.page_number}: #{img.dpi} DPI"
   }
 }
 "#);
         assert_eq!(i.diagnostics.len(), 1);
-        assert_eq!(i.diagnostics[0].message, "Imagem 100x100 na página 1: 72 DPI");
+        assert_eq!(i.diagnostics[0].message, "Image 100x100 on page 1: 72 DPI");
     }
 
     #[test]
@@ -1274,7 +1274,7 @@ check "TAC" {
   require !prepress::validate_tac_limits(300)
   require prepress::validate_tac_limits(350)
   doc.pages.each { |page|
-    assert prepress::calculate_tac(page) <= 320.0, "TAC alto na página #{page.number}"
+    assert prepress::calculate_tac(page) <= 320.0, "high TAC on page #{page.number}"
   }
 }
 "#);
@@ -1346,7 +1346,7 @@ check "Geometria" {
     #[test]
     fn namespace_codes_detection() {
         let i = run(r#"
-check "Códigos" {
+check "Codes" {
   require codes::detect_barcodes()
   require codes::detect_qrcodes()
   require codes::count_barcodes() == 2
@@ -1451,18 +1451,18 @@ fix::remove_unused_resources()
     #[test]
     fn namespace_data_glossary_and_dataset() {
         let i = run(r#"
-check "Dados" {
-  termos = data::load_glossary("tests/fixtures/glossario.txt")
-  require termos.length == 3
-  require termos.first() == "Olá"
+check "Data" {
+  terms = data::load_glossary("tests/fixtures/glossary.txt")
+  require terms.length == 3
+  require terms.first() == "Hello"
 
-  linhas = data::load_dataset("tests/fixtures/dados.csv")
-  require linhas.length == 4
-  require linhas.get(2).get(2) == "Dipirona 500mg"
-  require linhas.last().first() == "com, vírgula"
+  rows = data::load_dataset("tests/fixtures/data.csv")
+  require rows.length == 4
+  require rows.get(2).get(2) == "Dipirona 500mg"
+  require rows.last().first() == "with, comma"
 
-  require data::lookup_value("tests/fixtures/dados.csv", "L2026-08") == "Lote de agosto"
-  require !data::lookup_value("tests/fixtures/dados.csv", "nao-existe")
+  require data::lookup_value("tests/fixtures/data.csv", "L2026-08") == "August batch"
+  require !data::lookup_value("tests/fixtures/data.csv", "does-not-exist")
 }
 "#);
         assert_eq!(i.diagnostics.len(), 0, "{:?}", i.diagnostics);
@@ -1470,12 +1470,12 @@ check "Dados" {
 
     #[test]
     fn namespace_data_reference() {
-        // mock: the doc's text is "Olá mundo" — "Garantia Total" is missing
+        // mock: the doc's text is "Hello world" — "Total Warranty" is missing
         let i = run(r#"
-check "Glossário" {
-  faltando = data::validate_against_reference("tests/fixtures/glossario.txt")
-  require faltando.length == 1
-  require faltando.first() == "Garantia Total"
+check "Glossary" {
+  missing = data::validate_against_reference("tests/fixtures/glossary.txt")
+  require missing.length == 1
+  require missing.first() == "Total Warranty"
 }
 "#);
         assert_eq!(i.diagnostics.len(), 0, "{:?}", i.diagnostics);
@@ -1592,8 +1592,8 @@ check "Functions" {
     #[test]
     fn function_recursion_is_limited() {
         let i = run(r#"
-function loop_infinito(x) { loop_infinito(x) }
-check "Recursão" { loop_infinito(1) }
+function infinite_loop(x) { infinite_loop(x) }
+check "Recursion" { infinite_loop(1) }
 "#);
         assert_eq!(i.diagnostics.len(), 1);
         assert!(i.diagnostics[0].message.contains("recursion"), "{:?}", i.diagnostics);
@@ -1622,7 +1622,7 @@ check "Import" {
     #[test]
     fn namespace_text_validations() {
         let i = run(r#"
-check "Validações BR" {
+check "Brazilian validations" {
   require text::validate_cpf("529.982.247-25")
   require !text::validate_cpf("111.111.111-11")
   require text::validate_cnpj("11.222.333/0001-81")
@@ -1642,17 +1642,17 @@ check "Validações BR" {
     #[test]
     fn namespace_text_diff_and_pii() {
         let i = run(r#"
-check "Diff e PII" {
-  mudancas = text::diff("linha um\nlinha dois", "linha um\nlinha DOIS")
-  require mudancas.length == 2
-  require mudancas.first() == "-linha dois"
-  require mudancas.last() == "+linha DOIS"
+check "Diff and PII" {
+  changes = text::diff("line one\nline two", "line one\nline TWO")
+  require changes.length == 2
+  require changes.first() == "-line two"
+  require changes.last() == "+line TWO"
 
   // An invalid CPF (wrong check digit) is NO LONGER reported as personal data
   require text::detect_personal_data("CPF falso: 529.982.247-26").length == 0
   require text::detect_personal_data("CPF real: 529.982.247-25").length == 1
   require !text::detect_rasterized_text()
-  require text::extract_with_normalization() == "olá mundo"
+  require text::extract_with_normalization() == "hello world"
 }
 "#);
         assert_eq!(i.diagnostics.len(), 0, "{:?}", i.diagnostics);
@@ -1661,21 +1661,21 @@ check "Diff e PII" {
     #[test]
     fn region_type() {
         let i = run(r#"
-check "Regiões" {
-  cabecalho = region(0, 742, 595, 100, "cabeçalho")
-  require cabecalho.name == "cabeçalho"
-  require cabecalho.width == 595.0
-  require cabecalho.top == 842.0
-  require cabecalho.right == 595.0
-  require cabecalho.area == 59500.0
-  require cabecalho.contains_point(300, 800)
-  require !cabecalho.contains_point(300, 100)
-  require cabecalho.export_coordinates().length == 4
+check "Regions" {
+  header = region(0, 742, 595, 100, "header")
+  require header.name == "header"
+  require header.width == 595.0
+  require header.top == 842.0
+  require header.right == 595.0
+  require header.area == 59500.0
+  require header.contains_point(300, 800)
+  require !header.contains_point(300, 100)
+  require header.export_coordinates().length == 4
 
-  rodape = region(0, 0, 595, 60)
-  require !cabecalho.intersects(rodape)
-  require cabecalho.expand(10).height == 120.0
-  require cabecalho.inset(10).height == 80.0
+  footer = region(0, 0, 595, 60)
+  require !header.intersects(footer)
+  require header.expand(10).height == 120.0
+  require header.inset(10).height == 80.0
   require region(0, 0, 100, 100).intersects(region(50, 50, 100, 100))
 }
 "#);
@@ -1695,15 +1695,15 @@ check "Regiões" {
         // the mock has 2 pages of 595x842; the rule runs on each one
         let i = run(r#"
 rule "Formato A4" {
-  assert page.width == 595.0, "página #{page.number} fora do A4"
-  assert page.height == 100.0, "altura errada na página #{page.number}"
+  assert page.width == 595.0, "page #{page.number} is not A4"
+  assert page.height == 100.0, "wrong height on page #{page.number}"
 }
 "#);
         // the second assertion fails on both pages
         assert_eq!(i.diagnostics.len(), 2);
         assert_eq!(i.diagnostics[0].check_name, "Formato A4");
-        assert!(i.diagnostics[0].message.contains("página 1"));
-        assert!(i.diagnostics[1].message.contains("página 2"));
+        assert!(i.diagnostics[0].message.contains("page 1"));
+        assert!(i.diagnostics[1].message.contains("page 2"));
     }
 
     #[test]
@@ -1711,18 +1711,18 @@ rule "Formato A4" {
         // a filter with a block works directly: the first `{` belongs to filter,
         // the second is the rule's body
         let i = run(r#"
-rule "Só com texto" on doc.pages.filter { |p| p.extract_text() != "" } {
-  assert page.number == 99, "rodou na página #{page.number}"
+rule "Only with text" on doc.pages.filter { |p| p.extract_text() != "" } {
+  assert page.number == 99, "ran on page #{page.number}"
 }
 "#);
         // only page 1 of the mock has text
         assert_eq!(i.diagnostics.len(), 1);
-        assert!(i.diagnostics[0].message.contains("rodou na página 1"));
+        assert!(i.diagnostics[0].message.contains("ran on page 1"));
 
         // parentheses are accepted too (the explicit form)
         let i = run(r#"
 rule "Idem" on (doc.pages.filter { |p| p.extract_text() != "" }) {
-  assert false, "página #{page.number}"
+  assert false, "page #{page.number}"
 }
 "#);
         assert_eq!(i.diagnostics.len(), 1);

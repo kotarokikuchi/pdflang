@@ -1,0 +1,4 @@
+# Terms that must appear in the document
+Hello
+world
+Total Warranty

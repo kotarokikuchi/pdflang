@@ -1,27 +1,27 @@
-//! Namespace `struct::` — estrutura e metadados do PDF.
-//! As funções de baixo nível (objetos, XMP, segurança) usam lopdf e são
-//! analisadas uma única vez, sob demanda.
+//! Namespace `struct::` — the PDF's structure and metadata.
+//! The low-level functions (objects, XMP, security) use lopdf and are
+//! analyzed exactly once, on demand.
 
 use crate::interpreter::{DocData, RuntimeError, Value};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-/// Resultado da análise de baixo nível do arquivo (via lopdf).
+/// Result of the file's low-level analysis (via lopdf).
 #[derive(Debug)]
 pub struct StructInfo {
-    /// (número do objeto, descrição do tipo), ordenado por número.
+    /// (object number, type description), ordered by number.
     pub objects: Vec<(u32, String)>,
-    /// Objetos inalcançáveis a partir do trailer.
+    /// Objects unreachable from the trailer.
     pub unreferenced: Vec<String>,
-    /// Inalcançáveis que são recursos (fontes, imagens, XObjects).
+    /// Unreachable objects that are resources (fonts, images, XObjects).
     pub orphaned: Vec<String>,
-    /// Tamanho aproximado por número de objeto (streams: bytes do conteúdo).
+    /// Approximate size per object number (for streams: the content's bytes).
     pub sizes: HashMap<u32, i64>,
     pub xmp: String,
     pub has_javascript: bool,
     pub encrypted: bool,
     pub suspicious_actions: Vec<String>,
-    /// Presença de campos de assinatura (validação criptográfica: fase futura).
+    /// Presence of signature fields (cryptographic validation: a future phase).
     pub has_signature_fields: bool,
 }
 
@@ -43,12 +43,12 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
                 .map(|(k, v)| Value::Str(format!("{k}: {v}")))
                 .collect(),
         ))),
-        // ---- objetos e recursos ----
+        // ---- objects and resources ----
         "count_objects" => Ok(Value::Int(doc.object_count)),
         "file_size" => Ok(Value::Int(doc.file_size)),
         "calculate_sha256" => Ok(Value::Str(doc.sha256.clone())),
         "detect_file_bloat" => {
-            // true = inchado. Limite em KB por página (padrão 1024).
+            // true = bloated. Limit in KB per page (default 1024).
             let limit_kb = match args.first() {
                 Some(Value::Int(n)) => *n,
                 Some(Value::Float(n)) => *n as i64,
@@ -62,7 +62,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             let pages = doc.pages.len().max(1) as i64;
             Ok(Value::Bool(doc.file_size / 1024 / pages > limit_kb))
         }
-        // ---- baixo nível (lopdf, análise sob demanda) ----
+        // ---- low level (lopdf, analyzed on demand) ----
         "list_objects" => {
             let info = lowlevel(doc)?;
             Ok(Value::List(Rc::new(
@@ -92,7 +92,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
         "detect_javascript" => Ok(Value::Bool(lowlevel(doc)?.has_javascript)),
         "check_encryption" => Ok(Value::Bool(lowlevel(doc)?.encrypted)),
         "validate_permissions" => {
-            // true = sem restrições (documento não criptografado)
+            // true = no restrictions (the document is not encrypted)
             Ok(Value::Bool(!lowlevel(doc)?.encrypted))
         }
         "detect_suspicious_actions" => {
@@ -102,8 +102,8 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             )))
         }
         "validate_signatures" => {
-            // Presença de campos de assinatura digital.
-            // ponytail: validação criptográfica da cadeia fica para fase futura
+            // Presence of digital signature fields.
+            // ponytail: cryptographic chain validation is left for a future phase
             Ok(Value::Bool(lowlevel(doc)?.has_signature_fields))
         }
         _ => Err(RuntimeError { message: format!("unknown function: struct::{name}") }),
@@ -114,7 +114,7 @@ fn err_msg(m: &str) -> RuntimeError {
     RuntimeError { message: m.into() }
 }
 
-/// Analisa o arquivo com lopdf uma única vez e guarda no documento.
+/// Analyzes the file with lopdf exactly once and caches it on the document.
 fn lowlevel(doc: &Rc<DocData>) -> Result<&StructInfo, RuntimeError> {
     if doc.lowlevel.get().is_none() {
         let info = analyze(&doc.path)
@@ -129,7 +129,7 @@ fn analyze(path: &std::path::Path) -> Result<StructInfo, String> {
 
     let pdf = Document::load(path).map_err(|e| e.to_string())?;
 
-    // Alcançabilidade a partir do trailer (Root, Info, ...)
+    // Reachability from the trailer (Root, Info, ...)
     let mut reachable: HashSet<ObjectId> = HashSet::new();
     let mut stack: Vec<Object> = pdf.trailer.iter().map(|(_, v)| v.clone()).collect();
     while let Some(obj) = stack.pop() {
@@ -200,8 +200,8 @@ fn analyze(path: &std::path::Path) -> Result<StructInfo, String> {
             other => format!("{other:?}").len() as i64,
         };
         sizes.insert(id.0, size);
-        // ObjStm/XRef são infraestrutura do arquivo: nunca são referenciados
-        // pelo trailer, então reportá-los seria alarme falso.
+        // ObjStm/XRef are file infrastructure: they are never referenced by the
+        // trailer, so reporting them would be a false alarm.
         let infra = desc == "ObjStm" || desc == "XRef";
         if !reachable.contains(&id) && !infra {
             let entry = format!("{}: {desc}", id.0);
@@ -210,7 +210,7 @@ fn analyze(path: &std::path::Path) -> Result<StructInfo, String> {
                 orphaned.push(entry);
             }
         }
-        // Ações: dicionários com /S ou chave /JS
+        // Actions: dictionaries with /S or a /JS key
         let dict = match obj {
             Object::Dictionary(d) => Some(d),
             Object::Stream(s) => Some(&s.dict),
@@ -286,8 +286,8 @@ fn meta(doc: &DocData, key: &str) -> String {
         .unwrap_or_default()
 }
 
-/// Converte data PDF `D:20260802173622-03'00'` em `2026-08-02 17:36:22`.
-/// Se o formato for inesperado, devolve o valor original.
+/// Converts the PDF date `D:20260802173622-03'00'` into `2026-08-02 17:36:22`.
+/// If the format is unexpected, returns the original value.
 fn format_pdf_date(raw: &str) -> String {
     let digits = raw.strip_prefix("D:").unwrap_or(raw);
     if digits.len() < 8 || !digits[..8].chars().all(|c| c.is_ascii_digit()) {
@@ -316,36 +316,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn analise_de_fixture_real() {
+    fn analysis_of_real_fixture() {
         let info = analyze(std::path::Path::new("tests/fixtures/minimal.pdf")).unwrap();
         assert!(!info.objects.is_empty());
-        // fixture limpo: nada suspeito, sem criptografia, sem assinatura
+        // clean fixture: nothing suspicious, no encryption, no signature
         assert!(!info.has_javascript);
         assert!(!info.encrypted);
         assert!(!info.has_signature_fields);
         assert!(info.suspicious_actions.is_empty());
-        // objeto 5 do fixture é o content stream ("BT ... ET")
+        // object 5 of the fixture is the content stream ("BT ... ET")
         assert!(info.sizes.get(&5).is_some_and(|s| *s > 10));
-        // todos os objetos do fixture são alcançáveis... exceto o Info? Info
-        // está no trailer, então tudo alcançável:
+        // every object in the fixture is reachable — Info is in the trailer,
+        // so everything is reachable:
         assert!(info.unreferenced.is_empty(), "{:?}", info.unreferenced);
     }
 
     #[test]
-    fn analise_detecta_orfaos_e_javascript() {
-        // fixture com imagem órfã (nunca referenciada), ação Launch solta
-        // e OpenAction com JavaScript
+    fn analysis_detects_orphans_and_javascript() {
+        // fixture with an orphan image (never referenced), a loose Launch action
+        // and an OpenAction with JavaScript
         let info = analyze(std::path::Path::new("tests/fixtures/suspeito.pdf")).unwrap();
         assert!(info.has_javascript);
         assert!(info.suspicious_actions.iter().any(|s| s.starts_with("JavaScript")), "{:?}", info.suspicious_actions);
-        // objeto 4 (imagem) é órfão; objeto 5 (Launch) é inalcançável também
+        // object 4 (the image) is an orphan; object 5 (Launch) is unreachable too
         assert!(info.orphaned.iter().any(|s| s.contains("/Image")), "{:?}", info.orphaned);
         assert!(info.unreferenced.len() >= 2, "{:?}", info.unreferenced);
         assert!(!info.encrypted);
     }
 
     #[test]
-    fn datas_pdf() {
+    fn pdf_dates() {
         assert_eq!(format_pdf_date("D:20260802173622-03'00'"), "2026-08-02 17:36:22");
         assert_eq!(format_pdf_date("D:20260802"), "2026-08-02 00:00:00");
         assert_eq!(format_pdf_date(""), "");

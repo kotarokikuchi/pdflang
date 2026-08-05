@@ -1,4 +1,4 @@
-//! Comando `pdfl inspect` — resumo rápido de um PDF.
+//! `pdfl inspect` command — quick summary of a PDF.
 
 use crate::interpreter::DocData;
 
@@ -14,7 +14,7 @@ pub fn inspect(doc: &DocData) -> String {
     w(format!("SHA-256:  {}", doc.sha256));
     w(String::new());
 
-    // Páginas
+    // Pages
     w(format!("Pages:    {}", doc.pages.len()));
     if let Some(first) = doc.pages.first() {
         let uniform = doc.pages.iter().all(|p| p.width == first.width && p.height == first.height);
@@ -33,13 +33,13 @@ pub fn inspect(doc: &DocData) -> String {
     }
     w(String::new());
 
-    // Metadados não vazios
+    // Non-empty metadata
     let meta: Vec<String> =
         doc.metadata.iter().filter(|(_, v)| !v.is_empty()).map(|(k, v)| format!("  {k}: {v}")).collect();
     w(format!("Metadata: {}", if meta.is_empty() { "(none)".into() } else { format!("\n{}", meta.join("\n")) }));
     w(String::new());
 
-    // Fontes
+    // Fonts
     if doc.fonts.is_empty() {
         w("Fonts:    (none)".into());
     } else {
@@ -49,7 +49,7 @@ pub fn inspect(doc: &DocData) -> String {
         }
     }
 
-    // Imagens
+    // Images
     let images: Vec<_> = doc.pages.iter().flat_map(|p| p.images.iter()).collect();
     if images.is_empty() {
         w("Images:   (none)".into());
@@ -61,12 +61,12 @@ pub fn inspect(doc: &DocData) -> String {
         w(format!("Images:   {} (minimum DPI {:.0}, spaces: {})", images.len(), min_dpi, spaces.join(", ")));
     }
 
-    // TAC estimado
+    // Estimated TAC
     let tac = doc.pages.iter().map(|p| p.tac_max).fold(0.0, f64::max);
     w(format!("Max. estimated TAC: {tac:.0}% (RGB render approximation)"));
     w(String::new());
 
-    // Avisos gerais
+    // General warnings
     let mut warnings = Vec::new();
     if doc.fonts.iter().any(|f| !f.is_embedded) {
         warnings.push("there are non-embedded fonts".to_string());

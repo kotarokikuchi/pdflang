@@ -1,8 +1,8 @@
-//! Comando `pdfl watch` — monitora uma pasta e valida cada PDF novo ou
+//! The `pdfl watch` command — watches a folder and validates each new or
 //! alterado.
-//! ponytail: polling com debounce em vez de inotify — portável, sem
-//! dependência nova; trocar pela crate `notify` se a latência importar.
-//! Fora desta fatia: --paired (aguardar par v1+v2) — ainda não implementado.
+//! ponytail: polling with debounce instead of inotify — portable, no new
+//! dependency; swap for the `notify` crate if latency starts to matter.
+//! Out of scope here: --paired (waiting for a v1+v2 pair) — not implemented yet.
 
 use crate::report::{Diagnostic, Report, Severity};
 use crate::{ast, interpreter, pdf};
@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 pub struct WatchOptions {
-    /// Diretório do script (base para imports).
+    /// The script's directory (the base for imports).
     pub script_dir: PathBuf,
     pub pattern: String,
     pub exclude: Option<String>,
@@ -19,7 +19,7 @@ pub struct WatchOptions {
     pub depth: usize,
     pub debounce_ms: u64,
     pub fail_fast: bool,
-    /// Processa os arquivos já presentes e sai (útil para lotes e CI).
+    /// Processes the files already present and exits (useful for batches and CI).
     pub once: bool,
     pub format: crate::OutputFormat,
 }
@@ -53,7 +53,7 @@ pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wat
             if processed.get(&file) == Some(&mtime) {
                 continue;
             }
-            // Debounce: só processa quando o arquivo parou de ser escrito.
+            // Debounce: only processes once the file has stopped being written.
             if !opts.once {
                 let age = SystemTime::now().duration_since(mtime).unwrap_or_default();
                 if age < Duration::from_millis(opts.debounce_ms) {
@@ -77,8 +77,8 @@ pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wat
     }
 }
 
-/// Valida um arquivo e grava o relatório ao lado (ou em --output-dir).
-/// Retorna o exit code equivalente do `pdfl run`.
+/// Validates a file and writes the report next to it (or into --output-dir).
+/// Returns the exit code `pdfl run` would have given.
 fn process_file(file: &Path, program: &[ast::Stmt], script_name: &str, opts: &WatchOptions) -> u8 {
     let report = match pdf::load_document(file) {
         Ok(doc) => {
@@ -141,14 +141,14 @@ fn error_report(script_name: &str, file: &Path, message: String) -> Report {
     )
 }
 
-/// Lista arquivos até `depth` níveis (1 = só a pasta).
+/// Lists files up to `depth` levels (1 = the folder only).
 fn collect_files(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
     if depth == 0 {
         return;
     }
     let Ok(entries) = std::fs::read_dir(dir) else { return };
     let mut entries: Vec<_> = entries.flatten().map(|e| e.path()).collect();
-    entries.sort(); // ordem determinística
+    entries.sort(); // deterministic order
     for path in entries {
         if path.is_dir() {
             collect_files(&path, depth - 1, out);
@@ -158,7 +158,7 @@ fn collect_files(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// Casamento simples com curingas `*` (suficiente para *.pdf, prova_*.pdf).
+/// Simple `*` wildcard matching (enough for *.pdf, draft_*.pdf).
 fn wildcard_match(pattern: &str, name: &str) -> bool {
     let parts: Vec<&str> = pattern.split('*').collect();
     if parts.len() == 1 {
@@ -191,7 +191,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn curingas() {
+    fn wildcards() {
         assert!(wildcard_match("*.pdf", "arquivo.pdf"));
         assert!(!wildcard_match("*.pdf", "arquivo.txt"));
         assert!(wildcard_match("prova_*.pdf", "prova_01.pdf"));

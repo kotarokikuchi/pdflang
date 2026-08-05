@@ -1,15 +1,15 @@
-//! Namespace `prepress::` — validações de pré-impressão.
-//! Inclui separações reais de cor lidas do content stream (TAC exato,
-//! spot colors, preto rico, overprint) via o módulo colors.
+//! Namespace `prepress::` — prepress validations.
+//! Includes real color separations read from the content stream (exact TAC,
+//! spot colors, rich black, overprint) through the colors module.
 
 use crate::interpreter::{DocData, PageData, RuntimeError, Value};
 use std::rc::Rc;
 
 pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, RuntimeError> {
     match name {
-        // ---- TAC e cobertura ----
+        // ---- TAC and coverage ----
         "calculate_tac" => {
-            // Sem argumento: maior TAC do documento. Com n: da página n.
+            // Without an argument: the document's highest TAC. With n: page n's.
             match opt_page(doc, args, name)? {
                 Some(p) => Ok(Value::Float(round1(p.tac_max))),
                 None => Ok(Value::Float(round1(
@@ -25,7 +25,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             }
         },
         "calculate_tac_by_region" => {
-            // calculate_tac_by_region(pagina, regiao) -> [tac_max, cobertura]
+            // calculate_tac_by_region(page, region) -> [tac_max, coverage]
             let page = match args.first() {
                 Some(Value::Int(n)) => *n,
                 Some(Value::Page(p)) => p.index + 1,
@@ -52,7 +52,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
         }
         // ---- linhas finas ----
         "detect_hairlines" => {
-            // true = existe traço abaixo do limite (padrão 0.25 pt)
+            // true = there is a stroke below the limit (default 0.25 pt)
             let limit = num_arg(args, 0, name).unwrap_or(0.25);
             Ok(Value::Bool(min_stroke(doc).is_some_and(|w| w < limit)))
         }
@@ -61,7 +61,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Bool(min_stroke(doc).is_some_and(|w| w < limit)))
         }
         "validate_minimum_stroke_width" => {
-            // true = nenhum traço abaixo do mínimo exigido
+            // true = no stroke below the required minimum
             let min = num_arg(args, 0, name)
                 .ok_or_else(|| err(format!("prepress::{name} expects the minimum width in points")))?;
             Ok(Value::Bool(min_stroke(doc).is_none_or(|w| w >= min)))
@@ -84,7 +84,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             ))
         }
         "validate_color_space" => {
-            // true = todas as imagens no espaço exigido (ex: "DeviceCMYK")
+            // true = every image is in the required space (e.g. "DeviceCMYK")
             let wanted = match args.first() {
                 Some(Value::Str(s)) => s.clone(),
                 _ => return Err(err(format!("prepress::{name} expects the required color space (string)"))),
@@ -98,7 +98,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             doc.fonts.iter().map(|f| Value::Str(f.name.clone())).collect(),
         ))),
         "validate_font_embedding" => Ok(Value::Bool(doc.fonts.iter().all(|f| f.is_embedded))),
-        // ---- páginas e caixas ----
+        // ---- pages and boxes ----
         "get_page_size" => {
             let p = page_arg(doc, args, name)?;
             Ok(Value::List(Rc::new(vec![Value::Float(p.width), Value::Float(p.height)])))
@@ -123,9 +123,9 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
         "validate_trim_box" => Ok(Value::Bool(doc.pages.iter().all(|p| p.boxes.trim.is_some()))),
         "validate_bleed_box" => Ok(Value::Bool(doc.pages.iter().all(|p| p.boxes.bleed.is_some()))),
         "check_page_geometry" => {
-            // true = em todas as páginas a BleedBox excede a TrimBox em pelo
-            // menos N pontos de cada lado (use literais de unidade: 3mm).
-            // Padrão: 3mm. Página sem as duas caixas reprova.
+            // true = on every page the BleedBox exceeds the TrimBox by at least
+            // N points on each side (use unit literals: 3mm).
+            // Default: 3mm. A page missing either box fails.
             let min_pt = num_arg(args, 0, name).unwrap_or(3.0 * 72.0 / 25.4);
             let ok = doc.pages.iter().all(|p| match (&p.boxes.trim, &p.boxes.bleed) {
                 (Some(t), Some(b)) => {
@@ -138,9 +138,9 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             });
             Ok(Value::Bool(ok))
         }
-        // ---- separações reais ----
+        // ---- real separations ----
         "calculate_exact_tac" => {
-            // TAC das cores declaradas no content stream (exato, não estimado)
+            // TAC of the colors declared in the content stream (exact, not estimated)
             let info = colors(doc)?;
             match opt_page(doc, args, name)? {
                 Some(p) => Ok(Value::Float(round1(
@@ -158,7 +158,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             )))
         }
         "compare_colors_delta_e" => {
-            // compare_colors_delta_e([c,m,y,k], [c,m,y,k]) -> Delta-E CIE76
+            // compare_colors_delta_e([c,m,y,k], [c,m,y,k]) -> CIE76 Delta-E
             let ink = |i: usize| -> Result<crate::colors::Ink, RuntimeError> {
                 match args.get(i) {
                     Some(Value::List(items)) => {
@@ -186,7 +186,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
         }
         "detect_rich_black" => Ok(Value::Bool(colors(doc)?.has_rich_black)),
         "validate_overprint_settings" => {
-            // true = nenhum overprint ligado (o padrão seguro para offset)
+            // true = no overprint enabled (the safe default for offset)
             Ok(Value::Bool(!colors(doc)?.overprint_on))
         }
         "validate_output_intent" => {
@@ -210,9 +210,9 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
                 ))),
             }
         }
-        // ---- fontes (detalhes do arquivo) ----
+        // ---- fonts (file-level details) ----
         "detect_missing_glyphs" => {
-            // Fontes sem tabela de larguras: o leitor precisa adivinhar métricas
+            // Fonts without a widths table: the reader has to guess the metrics
             let info = colors(doc)?;
             Ok(Value::List(Rc::new(
                 info.fonts
@@ -223,7 +223,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             )))
         }
         "detect_text_substitution" => {
-            // Fonte não embutida = o leitor substitui por outra parecida
+            // A non-embedded font = the reader substitutes a similar one
             let info = colors(doc)?;
             Ok(Value::List(Rc::new(
                 info.fonts
@@ -234,12 +234,12 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             )))
         }
         "subset_fonts" => {
-            // true = todas as fontes embutidas estão em subset (arquivo enxuto)
+            // true = every embedded font is subsetted (a lean file)
             let info = colors(doc)?;
             Ok(Value::Bool(info.fonts.values().filter(|f| f.embedded).all(|f| f.subset)))
         }
         "check_font_licensing" => {
-            // Type3 e fontes não embutidas são os casos de risco de licença
+            // Type3 and non-embedded fonts are the licensing-risk cases
             let info = colors(doc)?;
             Ok(Value::List(Rc::new(
                 info.fonts
@@ -255,21 +255,21 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             )))
         }
         "validate_font_size" => {
-            // true = nenhum texto abaixo do tamanho mínimo (padrão 6pt)
+            // true = no text below the minimum size (default 6pt)
             let min = num_arg(args, 0, name).unwrap_or(6.0);
             let info = colors(doc)?;
             Ok(Value::Bool(info.font_sizes.iter().all(|s| *s >= min)))
         }
-        // ---- geometria de página ----
+        // ---- page geometry ----
         "detect_hairlines_exact" => {
-            // Traço de largura 0 é o hairline clássico do PostScript
+            // A stroke of width 0 is PostScript's classic hairline
             Ok(Value::Bool(colors(doc)?.has_zero_width_stroke))
         }
         _ => Err(err(format!("unknown function: prepress::{name}"))),
     }
 }
 
-/// Analisa as separações do arquivo uma única vez.
+/// Analyzes the file's separations exactly once.
 fn colors(doc: &Rc<DocData>) -> Result<&crate::colors::ColorInfo, RuntimeError> {
     if doc.colors.get().is_none() {
         let info = crate::colors::analyze(&doc.path)
@@ -304,7 +304,7 @@ fn num_arg(args: &[Value], i: usize, _name: &str) -> Option<f64> {
     }
 }
 
-/// Página opcional (1-based): Some(página) se veio argumento, None = documento.
+/// Optional page (1-based): Some(page) if an argument was given, None = the document.
 fn opt_page<'a>(
     doc: &'a DocData,
     args: &[Value],

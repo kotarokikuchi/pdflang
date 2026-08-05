@@ -1,5 +1,5 @@
-// normalizar.pdfl — fix:: namespace demonstration
-// Usage: pdfl fix document.pdf examples/normalizar.pdfl --output fixed.pdf
+// normalize.pdfl — fix:: namespace demonstration
+// Usage: pdfl fix document.pdf examples/normalize.pdfl --output fixed.pdf
 
 profile "basic-normalization" {
 

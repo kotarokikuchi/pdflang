@@ -1,14 +1,14 @@
-//! Comandos `pdfl pack` e `pdfl add`.
-//! Pacote .pdflpkg = tar.gz determinístico com manifest.json (nome, versão
-//! e SHA-256 de cada arquivo). `add` instala de um arquivo local, conferindo
-//! os hashes. Fora desta fatia: repositório remoto e assinatura digital.
+//! The `pdfl pack` and `pdfl add` commands.
+//! A .pdflpkg package is a deterministic tar.gz with a manifest.json (name,
+//! version and SHA-256 of each file). `add` installs from a local file,
+//! checking the hashes. Out of scope here: remote repository and signing.
 
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
-/// Extensões empacotadas: scripts e datasets.
+/// Packaged extensions: scripts and datasets.
 const EXTENSIONS: &[&str] = &["pdfl", "csv", "txt", "json", "xlsx"];
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,7 +27,7 @@ pub struct ManifestFile {
 pub fn pack(folder: &Path, output: &Path, name: &str, version: &str) -> Result<Manifest> {
     let mut paths = Vec::new();
     collect(folder, folder, &mut paths)?;
-    paths.sort(); // ordem determinística
+    paths.sort(); // deterministic order
     if paths.is_empty() {
         bail!("no packable file in {} (extensions: {})", folder.display(), EXTENSIONS.join(", "));
     }
@@ -66,13 +66,13 @@ pub fn pack(folder: &Path, output: &Path, name: &str, version: &str) -> Result<M
     Ok(manifest)
 }
 
-/// Instala um pacote local em `dir/<nome>@<versão>/`, conferindo os hashes.
+/// Installs a local package into `dir/<name>@<version>/`, checking the hashes.
 pub fn add(package: &Path, dir: &Path) -> Result<(Manifest, PathBuf)> {
     let file = std::fs::File::open(package)
         .with_context(|| format!("could not open {}", package.display()))?;
     let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(file));
 
-    // Lê tudo em memória (pacotes são pequenos: scripts + tabelas)
+    // Reads everything into memory (packages are small: scripts + tables)
     let mut entries: Vec<(String, Vec<u8>)> = Vec::new();
     for entry in archive.entries()? {
         let mut entry = entry?;
@@ -142,18 +142,18 @@ mod tests {
     }
 
     #[test]
-    fn roundtrip_com_verificacao() {
+    fn roundtrip_with_verification() {
         let src = tempdir("src");
         std::fs::write(src.join("perfil.pdfl"), "check \"a\" { require doc.page_count > 0 }").unwrap();
         std::fs::create_dir_all(src.join("dados")).unwrap();
         std::fs::write(src.join("dados/lotes.csv"), "a,b\n1,2\n").unwrap();
-        std::fs::write(src.join("ignorado.exe"), "binário").unwrap();
+        std::fs::write(src.join("ignored.exe"), "binary").unwrap();
 
         let pkg = tempdir("pkg").join("perfil.pdflpkg");
         let manifest = pack(&src, &pkg, "perfil-teste", "1.2.0").unwrap();
         assert_eq!(manifest.files.len(), 2); // .exe fora
 
-        // determinismo: empacotar de novo dá o mesmo byte a byte
+        // determinism: packing again gives the same bytes
         let pkg2 = tempdir("pkg2").join("p2.pdflpkg");
         pack(&src, &pkg2, "perfil-teste", "1.2.0").unwrap();
         assert_eq!(std::fs::read(&pkg).unwrap(), std::fs::read(&pkg2).unwrap());
@@ -167,14 +167,14 @@ mod tests {
     }
 
     #[test]
-    fn detecta_adulteracao() {
+    fn detects_tampering() {
         let src = tempdir("tamper-src");
         std::fs::write(src.join("perfil.pdfl"), "check \"a\" { }").unwrap();
         let pkg = tempdir("tamper-pkg").join("p.pdflpkg");
         pack(&src, &pkg, "p", "1.0").unwrap();
 
-        // reconstrói o pacote mantendo o manifest original, mas trocando o
-        // conteúdo do arquivo — o hash deixa de conferir
+        // rebuilds the package keeping the original manifest but swapping the
+        // file's content — the hash stops matching
         let file = std::fs::File::open(&pkg).unwrap();
         let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(file));
         let mut entries: Vec<(String, Vec<u8>)> = Vec::new();

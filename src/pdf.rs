@@ -1,4 +1,4 @@
-//! Carregamento de PDF via pdfium-render → estruturas do interpretador.
+//! PDF loading via pdfium-render → the interpreter's structures.
 
 use crate::interpreter::{BarcodeData, DocData, FontData, ImageData, PageBoxes, PageData};
 use anyhow::{Context, Result};
@@ -8,8 +8,8 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::rc::Rc;
 
-/// Localiza a libpdfium: ./pdfium/lib/ (do setup_pdfium.sh), ao lado do
-/// executável (pacote de release) e por fim a do sistema.
+/// Locates libpdfium: ./pdfium/lib/ (from setup_pdfium.sh), next to the
+/// executable (release package) and finally the system's one.
 fn bind_pdfium() -> Result<Pdfium> {
     let mut candidates = vec![std::path::PathBuf::from("./pdfium/lib/"), std::path::PathBuf::from("./pdfium/")];
     if let Some(exe_dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) {
@@ -27,8 +27,8 @@ fn bind_pdfium() -> Result<Pdfium> {
     Ok(Pdfium::new(bindings))
 }
 
-/// Aplica as operações fix:: em sequência e salva o resultado.
-/// Retorna a descrição de cada operação aplicada.
+/// Applies the fix:: operations in sequence and saves the result.
+/// Returns the description of each applied operation.
 pub fn apply_fixes(
     input: &Path,
     ops: &[crate::fixns::FixOp],
@@ -42,7 +42,7 @@ pub fn apply_fixes(
         .with_context(|| format!("could not reopen PDF: {}", input.display()))?;
     let mut applied = Vec::new();
 
-    // Área temporária para duplicar/reordenar (importa páginas de um snapshot).
+    // Scratch area for duplicating/reordering (imports pages from a snapshot).
     let temp = std::env::temp_dir().join(format!("pdfl-fix-{}.pdf", std::process::id()));
 
     for op in ops {
@@ -89,7 +89,7 @@ pub fn apply_fixes(
                 document.pages_mut().copy_pages_from_document(
                     &snapshot,
                     &page.to_string(),
-                    *page as PdfPageIndex, // insere logo após a original
+                    *page as PdfPageIndex, // inserts right after the original
                 )?;
             }
             FixOp::ReorderPages { order } => {
@@ -175,7 +175,7 @@ pub fn apply_fixes(
             }
             FixOp::RemoveAnnotations => {
                 for mut page in document.pages_mut().iter() {
-                    // remove sempre a primeira até esvaziar (o índice desloca)
+                    // always removes the first one until empty (the index shifts)
                     while page.annotations().len() > 0 {
                         let annotation = page.annotations().get(0)?;
                         page.annotations_mut().delete_annotation(annotation)?;
@@ -187,7 +187,7 @@ pub fn apply_fixes(
                     document.attachments_mut().delete_at_index(0)?;
                 }
             }
-            // Passes de baixo nível: aplicados depois do save (ver abaixo)
+            // Low-level passes: applied after the save (see below)
             FixOp::FlattenLayers
             | FixOp::RemoveUnusedResources
             | FixOp::DownsampleImages { .. }
@@ -202,7 +202,7 @@ pub fn apply_fixes(
         .with_context(|| format!("could not save {}", output.display()))?;
     drop(document);
 
-    // Passes de baixo nível (lopdf) sobre o arquivo já salvo.
+    // Low-level passes (lopdf) over the already-saved file.
     let needs_lowlevel = ops.iter().any(|op| {
         matches!(
             op,
@@ -218,7 +218,7 @@ pub fn apply_fixes(
     Ok(applied)
 }
 
-/// Otimizações e achatamento que exigem edição da estrutura do arquivo.
+/// Optimizations and flattening that require editing the file's structure.
 fn lowlevel_pass(path: &Path, ops: &[crate::fixns::FixOp]) -> Result<()> {
     use crate::fixns::FixOp;
     use lopdf::{Document, Object};
@@ -229,8 +229,8 @@ fn lowlevel_pass(path: &Path, ops: &[crate::fixns::FixOp]) -> Result<()> {
     for op in ops {
         match op {
             FixOp::FlattenLayers => {
-                // Achatar = remover a estrutura de camadas opcionais, deixando
-                // todo o conteúdo permanentemente visível.
+                // Flattening = removing the optional-content layer structure,
+                // leaving all content permanently visible.
                 if let Ok(catalog) = pdf.catalog_mut() {
                     catalog.remove(b"OCProperties");
                 }
@@ -269,8 +269,8 @@ fn lowlevel_pass(path: &Path, ops: &[crate::fixns::FixOp]) -> Result<()> {
     }
 
     if changed {
-        // Otimizações só valem se o arquivo encolher: grava num temporário,
-        // compara e mantém o original quando a regravação sai maior.
+        // Optimizations only count if the file shrinks: write to a temporary,
+        // compare, and keep the original when the rewrite comes out larger.
         let so_otimiza = ops.iter().all(|op| {
             matches!(
                 op,
@@ -296,7 +296,7 @@ fn lowlevel_pass(path: &Path, ops: &[crate::fixns::FixOp]) -> Result<()> {
     Ok(())
 }
 
-/// [x0, y0, x1, y1] em pontos → PdfRect.
+/// [x0, y0, x1, y1] in points → PdfRect.
 fn points_rect(r: [f64; 4]) -> PdfRect {
     PdfRect::new(
         PdfPoints::new(r[1] as f32), // bottom
@@ -306,10 +306,10 @@ fn points_rect(r: [f64; 4]) -> PdfRect {
     )
 }
 
-/// Reamostra e/ou recodifica as imagens do PDF, substituindo o stream de
-/// cada XObject. `max_dpi` limita a resolução (usando o tamanho impresso
-/// declarado no XObject); `jpeg_quality` recodifica em JPEG.
-/// Retorna true se algo mudou.
+/// Resamples and/or re-encodes the PDF's images, replacing each XObject's
+/// stream. `max_dpi` caps the resolution (using the printed size declared in
+/// the XObject); `jpeg_quality` re-encodes as JPEG.
+/// Returns true if anything changed.
 fn resample_images(
     pdf: &mut lopdf::Document,
     max_dpi: Option<f64>,
@@ -318,8 +318,8 @@ fn resample_images(
     use image::{DynamicImage, ImageEncoder};
     use lopdf::{Object, ObjectId};
 
-    // Tamanho impresso de cada imagem (para calcular o DPI real): varre os
-    // content streams procurando `cm ... /Nome Do`.
+    // Printed size of each image (to compute the real DPI): scans the content
+    // streams looking for `cm ... /Name Do`.
     let mut printed_width: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
     for (_, page_id) in pdf.get_pages() {
         let content_bytes = pdf.get_page_content(page_id);
@@ -338,8 +338,8 @@ fn resample_images(
                 }
                 "Do" => {
                     if let Some(name) = op.operands.first().and_then(|o| o.as_name().ok()) {
-                        // Maior uso manda: a imagem precisa de resolução para
-                        // a maior área em que é desenhada.
+                        // The largest use wins: the image needs resolution for
+                        // the biggest area it is drawn into.
                         let key = String::from_utf8_lossy(name).into_owned();
                         let entry = printed_width.entry(key).or_insert(0.0);
                         if ctm_width > *entry {
@@ -351,7 +351,7 @@ fn resample_images(
             }
         }
     }
-    // nome do XObject -> id do objeto
+    // XObject name -> object id
     let mut name_of: std::collections::HashMap<ObjectId, String> = std::collections::HashMap::new();
     for (_, page_id) in pdf.get_pages() {
         if let Ok((Some(res), _)) = pdf.get_page_resources(page_id) {
@@ -382,7 +382,7 @@ fn resample_images(
         if w < 2 || h < 2 {
             continue;
         }
-        // decodifica: JPEG (DCTDecode) ou dados crus após Flate
+        // decode: JPEG (DCTDecode) or raw data after Flate
         let filter = stream
             .dict
             .get(b"Filter")
@@ -398,12 +398,12 @@ fn resample_images(
             match comps {
                 3 => image::RgbImage::from_raw(w as u32, h as u32, raw.clone()).map(DynamicImage::ImageRgb8),
                 1 => image::GrayImage::from_raw(w as u32, h as u32, raw.clone()).map(DynamicImage::ImageLuma8),
-                _ => None, // CMYK e outros: fora do alcance desta versão
+                _ => None, // CMYK and others: out of scope for this version
             }
         };
         let Some(image) = decoded else { continue };
 
-        // alvo de redimensionamento
+        // resize target
         let printed_pt = name_of.get(&id).and_then(|n| printed_width.get(n)).copied().unwrap_or(0.0);
         let mut target = image.clone();
         let mut resized = false;
@@ -423,7 +423,7 @@ fn resample_images(
             continue;
         }
 
-        // recodifica sempre como JPEG (aceito por qualquer leitor de PDF)
+        // always re-encodes as JPEG (accepted by any PDF reader)
         let mut jpeg = Vec::new();
         let rgb = target.to_rgb8();
         let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(
@@ -436,7 +436,7 @@ fn resample_images(
         {
             continue;
         }
-        // só troca se ficou menor (nunca inflar o arquivo)
+        // only swaps if it got smaller (never inflate the file)
         if jpeg.len() >= stream.content.len() {
             continue;
         }
@@ -455,8 +455,8 @@ fn resample_images(
     Ok(changed)
 }
 
-/// Texto contido em uma região da página (coordenadas em pontos, origem no
-/// canto inferior esquerdo). `page` é 1-based.
+/// Text contained in a region of the page (coordinates in points, origin at
+/// the bottom-left corner). `page` is 1-based.
 pub fn extract_text_in_region(
     path: &Path,
     page: i64,
@@ -477,7 +477,7 @@ pub fn extract_text_in_region(
         PdfPoints::new((rect[1] + rect[3]) as f32),
         PdfPoints::new((rect[0] + rect[2]) as f32),
     );
-    // Região sem caracteres é resultado legítimo (string vazia), não erro.
+    // A region with no characters is a legitimate result (empty string), not an error.
     match text.chars_inside_rect(bounds) {
         Ok(chars) => Ok(chars.iter().filter_map(|c| c.unicode_char()).collect()),
         Err(PdfiumError::NoCharsInRect) => Ok(String::new()),
@@ -485,7 +485,7 @@ pub fn extract_text_in_region(
     }
 }
 
-/// TAC máximo aproximado dentro de uma região da página.
+/// Approximate maximum TAC inside a region of the page.
 pub fn tac_in_region(path: &Path, page: i64, rect: [f64; 4]) -> Result<(f64, f64)> {
     let pdfium = bind_pdfium()?;
     let document = pdfium.load_pdf_from_file(path, None)?;
@@ -498,7 +498,7 @@ pub fn tac_in_region(path: &Path, page: i64, rect: [f64; 4]) -> Result<(f64, f64
     let (bw, bh) = (bitmap.width() as usize, bitmap.height() as usize);
     let bytes = bitmap.as_rgba_bytes();
 
-    // região (origem embaixo) -> pixels do bitmap (origem em cima)
+    // region (origin at the bottom) -> bitmap pixels (origin at the top)
     let px_x0 = ((rect[0] / pw) * bw as f64).max(0.0) as usize;
     let px_x1 = (((rect[0] + rect[2]) / pw) * bw as f64).min(bw as f64) as usize;
     let px_y0 = ((1.0 - (rect[1] + rect[3]) / ph) * bh as f64).max(0.0) as usize;
@@ -532,8 +532,8 @@ pub fn tac_in_region(path: &Path, page: i64, rect: [f64; 4]) -> Result<(f64, f64
     Ok(if count == 0 { (0.0, 0.0) } else { (max_tac, sum / count as f64) })
 }
 
-/// Renderiza páginas em escala de cinza para análise visual.
-/// `pages` vazio = todas. Retorna (número da página, largura, altura, pixels).
+/// Renders pages in greyscale for visual analysis.
+/// An empty `pages` means all of them. Returns (page number, width, height, pixels).
 pub fn render_pages_gray(
     path: &Path,
     pages: &[i64],
@@ -563,8 +563,8 @@ pub fn render_pages_gray(
     Ok(out)
 }
 
-/// Escaneia códigos de barras/QR renderizando cada página em alta resolução.
-/// Chamado sob demanda pelo namespace `codes::`.
+/// Scans barcodes/QR codes by rendering each page at high resolution.
+/// Called on demand by the `codes::` namespace.
 pub fn scan_barcodes(path: &Path) -> Result<Vec<Rc<BarcodeData>>> {
     let pdfium = bind_pdfium()?;
     let document = pdfium
@@ -602,7 +602,7 @@ pub fn scan_barcodes(path: &Path) -> Result<Vec<Rc<BarcodeData>>> {
                     format: format!("{:?}", r.getBarcodeFormat()),
                     text: r.getText().to_string(),
                     x: px * scale,
-                    // eixo Y do PDF cresce para cima; o do bitmap, para baixo
+                    // the PDF's Y axis grows upward; the bitmap's grows downward
                     y: page_height - py * scale,
                 }));
             }
@@ -611,12 +611,12 @@ pub fn scan_barcodes(path: &Path) -> Result<Vec<Rc<BarcodeData>>> {
     Ok(out)
 }
 
-/// TAC aproximado (% máximo e cobertura média) via render em baixa resolução
-/// e conversão RGB→CMYK com GCR máximo.
-/// ponytail: é um LIMITE INFERIOR do TAC real — cores neutras colapsam em K
-/// puro (rich black 90/90/90/90 estima ~100%), então nunca gera alarme falso,
-/// mas valores acima de ~300% só são detectáveis com separações reais —
-/// para isso existe `prepress::calculate_exact_tac`.
+/// Approximate TAC (max % and average coverage) via a low-resolution render
+/// and an RGB→CMYK conversion with maximum GCR.
+/// ponytail: this is a LOWER BOUND on the real TAC — neutral colors collapse
+/// into pure K (a rich black 90/90/90/90 estimates ~100%), so it never raises
+/// a false alarm, but values above ~300% are only detectable with real
+/// separations — that is what `prepress::calculate_exact_tac` is for.
 fn approximate_tac(page: &PdfPage) -> (f64, f64) {
     let Ok(bitmap) = page.render_with_config(&PdfRenderConfig::new().set_target_width(300)) else {
         return (0.0, 0.0);
@@ -707,8 +707,8 @@ pub fn load_document(path: &Path) -> Result<Rc<DocData>> {
             if let Some(image_object) = object.as_image_object() {
                 let px_w = image_object.width().map(|p| p as i64).unwrap_or(0);
                 let px_h = image_object.height().map(|p| p as i64).unwrap_or(0);
-                // DPI efetivo = pixels / tamanho na página em polegadas.
-                // Cai no DPI dos metadados se os bounds não estiverem disponíveis.
+                // Effective DPI = pixels / size on the page in inches.
+                // Falls back to the metadata DPI if the bounds are unavailable.
                 let meta_dpi = (
                     image_object.horizontal_dpi().unwrap_or(0.0) as f64,
                     image_object.vertical_dpi().unwrap_or(0.0) as f64,

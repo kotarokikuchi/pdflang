@@ -1,5 +1,5 @@
-// estrutura.pdfl — struct:: namespace demonstration
-// Usage: pdfl run examples/estrutura.pdfl document.pdf
+// structure.pdfl — struct:: namespace demonstration
+// Usage: pdfl run examples/structure.pdfl document.pdf
 
 profile "structure-validation" {
 

@@ -1,4 +1,4 @@
-//! Parser recursive-descent da linguagem PDFLang.
+//! Recursive-descent parser for the PDFLang language.
 
 use crate::ast::*;
 use crate::lexer::{tokenize, StrSeg, Tok, Token};
@@ -25,7 +25,7 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>, ParseError> {
     p.parse_program()
 }
 
-/// Parseia uma expressão isolada (usado nas interpolações `#{...}`).
+/// Parses a standalone expression (used by `#{...}` interpolations).
 fn parse_expr_source(source: &str, line: usize, col: usize) -> Result<Expr, ParseError> {
     let toks = tokenize(source).map_err(|e| ParseError {
         message: format!("in interpolation: {}", e.message),
@@ -88,7 +88,7 @@ impl Parser {
         Ok(body)
     }
 
-    /// Sequência de statements até `end` (não consome `end`... consome se for RBrace? Não: caller consome).
+    /// A sequence of statements up to `end` (the caller consumes `end`).
     fn stmts_until(&mut self, end: Tok) -> Result<Vec<Stmt>, ParseError> {
         let mut out = Vec::new();
         loop {
@@ -201,7 +201,7 @@ impl Parser {
                 Ok(Stmt::Import { path })
             }
             Tok::Rule => {
-                // rule "nome" [on <lista de páginas>] { corpo }
+                // rule "name" [on <page list>] { body }
                 self.advance();
                 let name = self.string_literal("rule name")?;
                 let pages = if matches!(self.peek(), Tok::On) {
@@ -210,9 +210,9 @@ impl Parser {
                 } else {
                     None
                 };
-                // Se a seleção terminar em acesso a membro, o `{` do corpo é
-                // absorvido como bloco de método (como em Ruby) — avisa como
-                // resolver em vez de dar um erro genérico.
+                // If the selection ends in member access, the body's `{` is
+                // absorbed as a method block (as in Ruby) — explain how to fix
+                // it instead of giving a generic error.
                 self.skip_newlines();
                 if pages.is_some() && !matches!(self.peek(), Tok::LBrace) {
                     return Err(self.error(
@@ -259,7 +259,7 @@ impl Parser {
         }
     }
 
-    // ---- expressões (precedência crescente) ----
+    // ---- expressions (increasing precedence) ----
 
     fn expr(&mut self) -> Result<Expr, ParseError> {
         self.or_expr()
@@ -385,7 +385,7 @@ impl Parser {
         Ok(args)
     }
 
-    /// Bloco `{ |a, b| corpo }` — o `|params|` é opcional.
+    /// A `{ |a, b| body }` block — the `|params|` part is optional.
     fn maybe_block(&mut self) -> Result<Option<Block>, ParseError> {
         if !matches!(self.peek(), Tok::LBrace) {
             return Ok(None);
@@ -457,7 +457,7 @@ impl Parser {
             }
             Tok::Ident(name) => {
                 if matches!(self.peek(), Tok::ColonColon) {
-                    // Chamada de namespace: text::count_words(...)
+                    // Namespace call: text::count_words(...)
                     self.advance();
                     let func = match self.advance() {
                         Tok::Ident(n) => n,
@@ -489,7 +489,7 @@ impl Parser {
     }
 }
 
-// ---- reconstrução de fonte (mensagens automáticas do `require`) ----
+// ---- source reconstruction (automatic `require` messages) ----
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -569,7 +569,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn const_e_assign() {
+    fn const_and_assign() {
         let prog = parse("const X = 1 + 2\ny = X * 3").unwrap();
         assert_eq!(prog.len(), 2);
         assert!(matches!(&prog[0], Stmt::Const { name, .. } if name == "X"));
@@ -577,7 +577,7 @@ mod tests {
     }
 
     #[test]
-    fn check_com_tags_e_require() {
+    fn check_with_tags_and_require() {
         let src = r#"
 check "Fontes" tags: ["fonts", "basico"] {
   require doc.page_count > 0
@@ -593,7 +593,7 @@ check "Fontes" tags: ["fonts", "basico"] {
     }
 
     #[test]
-    fn assert_com_mensagem_interpolada() {
+    fn assert_with_interpolated_message() {
         let src = r#"assert font.is_embedded, "Fonte #{font.name} não embutida""#;
         let prog = parse(src).unwrap();
         let Stmt::Assert { message: Some(Expr::Str(parts)), .. } = &prog[0] else {
@@ -604,7 +604,7 @@ check "Fontes" tags: ["fonts", "basico"] {
     }
 
     #[test]
-    fn bloco_com_parametros() {
+    fn block_with_parameters() {
         let src = "doc.pages.each { |page|\n  require page.width > 0\n}";
         let prog = parse(src).unwrap();
         let Stmt::Expr(Expr::Call { name, block: Some(b), .. }) = &prog[0] else {
@@ -616,14 +616,14 @@ check "Fontes" tags: ["fonts", "basico"] {
     }
 
     #[test]
-    fn args_nomeados() {
+    fn named_args() {
         let prog = parse("visual.detect_low_resolution(dpi: 300)").unwrap();
         let Stmt::Expr(Expr::Call { args, .. }) = &prog[0] else { panic!() };
         assert_eq!(args[0].name.as_deref(), Some("dpi"));
     }
 
     #[test]
-    fn profile_completo() {
+    fn full_profile() {
         let src = r#"
 profile "offset" {
   const MIN = 1
@@ -640,24 +640,24 @@ profile "offset" {
     }
 
     #[test]
-    fn assert_mensagem_em_nova_linha() {
+    fn assert_message_on_new_line() {
         let src = "assert x >= 1,\n  \"mensagem\"";
         assert!(parse(src).is_ok());
     }
 
     #[test]
-    fn erro_sintaxe_tem_linha() {
+    fn syntax_error_has_line() {
         let err = parse("check {\n}").unwrap_err();
         assert_eq!(err.line, 1);
     }
 
     #[test]
-    fn chamada_de_namespace() {
+    fn namespace_call() {
         let prog = parse("require text::count_words() > 10").unwrap();
         let Stmt::Assert { source, .. } = &prog[0] else { panic!() };
         assert_eq!(source, "text::count_words() > 10");
 
-        // sem parênteses também funciona
+        // it works without parentheses too
         let prog = parse("text::extract_all").unwrap();
         let Stmt::Expr(Expr::Call { name, args, .. }) = &prog[0] else { panic!() };
         assert_eq!(name, "text::extract_all");
@@ -665,7 +665,7 @@ profile "offset" {
     }
 
     #[test]
-    fn precedencia() {
+    fn precedence() {
         let prog = parse("assert 1 + 2 * 3 == 7").unwrap();
         let Stmt::Assert { source, .. } = &prog[0] else { panic!() };
         assert_eq!(source, "1 + 2 * 3 == 7");

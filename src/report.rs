@@ -1,4 +1,4 @@
-//! Diagnósticos, relatório JSON e exit codes.
+//! Diagnostics, the JSON report and exit codes.
 
 use serde::Serialize;
 
@@ -32,7 +32,7 @@ pub struct Report {
     pub warning_count: usize,
     pub info_count: usize,
     pub diagnostics: Vec<Diagnostic>,
-    /// Operações fix:: aplicadas (comando `pdfl fix`).
+    /// Applied fix:: operations (the `pdfl fix` command).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub fixes: Vec<String>,
     /// Similaridade geral 0–100 (comando `pdfl compare`).
@@ -68,7 +68,7 @@ impl Report {
     }
 
     /// Exit codes: 0 = OK, 1 = warnings, 2 = errors.
-    /// Com --fail-on warning, warnings também derrubam para 2.
+    /// With --fail-on warning, warnings also drop it to 2.
     pub fn exit_code(&self, fail_on_warning: bool) -> i32 {
         if self.error_count > 0 || (fail_on_warning && self.warning_count > 0) {
             2
@@ -83,7 +83,7 @@ impl Report {
         serde_json::to_string_pretty(self).expect("report is always serializable")
     }
 
-    /// CSV: uma linha por diagnóstico (cabeçalho sempre presente).
+    /// CSV: one line per diagnostic (the header is always present).
     pub fn to_csv(&self) -> String {
         let mut out = String::from("id,severity,check,message,line,script,file,status\n");
         for d in &self.diagnostics {
@@ -116,7 +116,7 @@ impl Report {
         out
     }
 
-    /// HTML autocontido (CSS inline), em inglês.
+    /// Self-contained HTML (inline CSS), in English.
     pub fn to_html(&self) -> String {
         let e = html_escape;
         let status_color = if self.status == "PASS" { "#1a7f37" } else { "#c0392b" };
@@ -207,7 +207,7 @@ th {{ background: #f5f5f5; }}
 // ---- PDF ----
 
 impl Report {
-    /// Relatório em PDF (A4, Helvetica embutida, determinístico).
+    /// PDF report (A4, embedded Helvetica, deterministic).
     pub fn to_pdf(&self) -> Vec<u8> {
         use printpdf::*;
 
@@ -277,8 +277,8 @@ impl Report {
             }
         }
 
-        // Paginação: um cursor no topo por página; cada linha desce via
-        // SetLineHeight + AddLineBreak (SetTextCursor do printpdf é relativo).
+        // Pagination: one cursor at the top per page; each line moves down via
+        // SetLineHeight + AddLineBreak (printpdf's SetTextCursor is relative).
         let start_page = || vec![Op::StartTextSection, Op::SetTextCursor { pos: Point::new(Mm(LEFT), Mm(TOP)) }];
         let mut pages: Vec<PdfPage> = Vec::new();
         let mut ops: Vec<Op> = start_page();
@@ -314,7 +314,7 @@ impl Report {
     }
 }
 
-/// Fontes embutidas usam WinAnsi (Latin-1): troca o que não cabe.
+/// Embedded fonts use WinAnsi (Latin-1): replaces whatever does not fit.
 fn pdf_sanitize(s: &str) -> String {
     s.chars()
         .flat_map(|c| match c {
@@ -329,7 +329,7 @@ fn pdf_sanitize(s: &str) -> String {
         .collect()
 }
 
-/// Quebra por palavras em linhas de até `width` caracteres.
+/// Wraps on word boundaries into lines of at most `width` characters.
 fn wrap_text(text: &str, width: usize) -> Vec<String> {
     let mut out = Vec::new();
     let mut line = String::new();
@@ -348,7 +348,7 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {
     out
 }
 
-/// Escapa um campo CSV (aspas duplicadas; envolve se tiver , " ou quebra).
+/// Escapes a CSV field (doubled quotes; wraps it if it has , " or a newline).
 fn csv_field(field: &str) -> String {
     if field.contains([',', '"', '\n', '\r']) {
         format!("\"{}\"", field.replace('"', "\"\""))
@@ -376,7 +376,7 @@ mod tests {
     }
 
     #[test]
-    fn csv_escapa_campos() {
+    fn csv_escapes_fields() {
         let mut d = diag(Severity::Error);
         d.message = "mensagem com \"aspas\", vírgula\ne quebra".into();
         let r = Report::new("s.pdfl".into(), "f.pdf".into(), None, 1, vec![d]);
@@ -386,14 +386,14 @@ mod tests {
     }
 
     #[test]
-    fn html_escapa_e_resume() {
+    fn html_escapes_and_summarizes() {
         let mut d = diag(Severity::Warning);
         d.message = "tamanho <6pt> & cia".into();
         let r = Report::new("s.pdfl".into(), "f.pdf".into(), Some("perfil-x".into()), 3, vec![d]);
         let html = r.to_html();
         assert!(html.contains("tamanho &lt;6pt&gt; &amp; cia"));
         assert!(html.contains("perfil-x"));
-        assert!(html.contains("PASS")); // warning não derruba o status
+        assert!(html.contains("PASS")); // a warning does not drop the status
         assert!(html.contains("<strong>1</strong> warning(s)"));
     }
 

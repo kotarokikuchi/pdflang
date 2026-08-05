@@ -1,10 +1,10 @@
-//! Namespace `fix::` — normalização do PDF.
-//! As chamadas apenas ENFILEIRAM operações (validadas contra o documento);
-//! quem aplica e salva é `pdf::apply_fixes`, no comando `pdfl fix`.
-//! Fora desta fatia: downsample/compressão de imagens e subset de fontes
-//! (o pdfium-render não expõe objetos de página de forma mutável, então
-//! não é possível substituir imagens/fontes existentes) e linearização
-//! (nenhuma das bibliotecas atuais gera PDF linearizado).
+//! Namespace `fix::` — PDF normalization.
+//! The calls only QUEUE operations (validated against the document); applying
+//! and saving is done by `pdf::apply_fixes`, in the `pdfl fix` command.
+//! Out of scope here: image downsampling/compression and font subsetting
+//! (pdfium-render does not expose page objects mutably, so existing
+//! images/fonts cannot be replaced) and linearization (none of the current
+//! libraries produces a linearized PDF).
 
 use crate::interpreter::{DocData, RuntimeError, Value};
 use std::fmt;
@@ -15,26 +15,26 @@ pub enum FixOp {
     SetCropBox { rect: [f64; 4] },
     SetTrimBox { rect: [f64; 4] },
     SetBleedBox { rect: [f64; 4] },
-    /// `page` 0 = todas as páginas.
+    /// `page` 0 = every page.
     RotatePage { page: i64, degrees: i64 },
     DeletePage { page: i64 },
     DuplicatePage { page: i64 },
     ReorderPages { order: Vec<i64> },
     AddWatermark { text: String },
     AddPageNumbers,
-    /// Salva as páginas do intervalo em outro arquivo (o original segue intacto).
+    /// Saves the pages in the range to another file (the original is untouched).
     SplitDocument { from: i64, to: i64, output: String },
-    /// Anexa as páginas de outro PDF ao final.
+    /// Appends another PDF's pages at the end.
     MergeDocuments { path: String },
-    /// Texto no canto superior direito de cada página.
+    /// Text in the top-right corner of every page.
     AddStamp { text: String },
     FlattenLayers,
     RemoveAnnotations,
     RemoveAttachments,
     RemoveUnusedResources,
-    /// Reamostra imagens acima do DPI alvo (substitui o stream via lopdf).
+    /// Resamples images above the target DPI (replaces the stream via lopdf).
     DownsampleImages { dpi: f64 },
-    /// Recodifica imagens como JPEG na qualidade dada.
+    /// Re-encodes images as JPEG at the given quality.
     CompressImages { quality: u8 },
 }
 
@@ -83,7 +83,7 @@ pub fn queue(doc: &DocData, name: &str, args: &[Value]) -> Result<FixOp, Runtime
         "set_trim_box" => Ok(FixOp::SetTrimBox { rect: rect4(args, name)? }),
         "set_bleed_box" => Ok(FixOp::SetBleedBox { rect: rect4(args, name)? }),
         "rotate_page" => {
-            // rotate_page(graus) = todas; rotate_page(pagina, graus) = uma
+            // rotate_page(degrees) = all; rotate_page(page, degrees) = one
             let (page, degrees) = if args.len() >= 2 {
                 (num(args, 0, name)? as i64, num(args, 1, name)? as i64)
             } else {
@@ -137,7 +137,7 @@ pub fn queue(doc: &DocData, name: &str, args: &[Value]) -> Result<FixOp, Runtime
         "add_page_numbers" => Ok(FixOp::AddPageNumbers),
         // ---- documento ----
         "split_document" => {
-            // split_document(de, ate, "saida.pdf")
+            // split_document(from, to, "output.pdf")
             let from = num(args, 0, name)? as i64;
             let to = num(args, 1, name)? as i64;
             let output = match args.get(2) {

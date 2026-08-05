@@ -18,18 +18,18 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Testes unitários (sem pdfium)
+      - name: Unit tests (no pdfium)
         run: cargo test --workspace --verbose
 
-      - name: Build sem warnings
+      - name: Build without warnings
         run: cargo build
         env:
           RUSTFLAGS: -Dwarnings
 
-      - name: Baixar pdfium
+      - name: Download pdfium
         run: ./setup_pdfium.sh
 
-      - name: Formatação dos exemplos
+      - name: Formatting of the examples
         run: |
           for f in examples/*.pdfl; do
             ./target/debug/pdfl fmt "$f" --check
@@ -37,15 +37,15 @@ jobs:
 
       - name: Smoke e2e
         run: |
-          # script de barcode passa (exit 0)
-          ./target/debug/pdfl run examples/codigos.pdfl tests/fixtures/barcode.pdf --output json > /dev/null
-          # inspect roda
+          # the barcode script passes (exit 0)
+          ./target/debug/pdfl run examples/barcodes.pdfl tests/fixtures/barcode.pdf --output json > /dev/null
+          # inspect runs
           ./target/debug/pdfl inspect tests/fixtures/prepress.pdf
-          # validação com falha esperada (exit 2)
+          # validation with an expected failure (exit 2)
           ec=0
-          ./target/debug/pdfl run examples/exemplo.pdfl tests/fixtures/minimal.pdf --output json > /dev/null || ec=$?
+          ./target/debug/pdfl run examples/basic.pdfl tests/fixtures/minimal.pdf --output json > /dev/null || ec=$?
           test "$ec" -eq 2
-          # determinismo do relatório
-          ./target/debug/pdfl run examples/imagens.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r1.json || true
-          ./target/debug/pdfl run examples/imagens.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r2.json || true
+          # report determinism
+          ./target/debug/pdfl run examples/images.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r1.json || true
+          ./target/debug/pdfl run examples/images.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r2.json || true
           cmp /tmp/r1.json /tmp/r2.json

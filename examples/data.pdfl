@@ -1,11 +1,11 @@
-// dados.pdfl — data:: namespace demonstration
-// Usage: pdfl run examples/dados.pdfl document.pdf
+// data.pdfl — data:: namespace demonstration
+// Usage: pdfl run examples/data.pdfl document.pdf
 // (run from the project root: the paths are relative)
 
 profile "validation-with-references" {
 
   check "Required Terms" tags: ["glossary"] {
-    missing = data::validate_against_reference("examples/glossario.txt")
+    missing = data::validate_against_reference("examples/glossary.txt")
     assert missing.length == 0,
     "glossary terms missing from the document: #{missing.join(", ")}"
   }
@@ -13,7 +13,7 @@ profile "validation-with-references" {
   check "Approved Batch" tags: ["data"] {
     // cross-checks the barcode in the PDF against the local batch table
     code = codes::decode_barcode(1)
-    description = data::lookup_value("examples/lotes.csv", code)
+    description = data::lookup_value("examples/batches.csv", code)
     assert description, "code #{code} is not in the batch table"
     print("Batch found:", description)
   }

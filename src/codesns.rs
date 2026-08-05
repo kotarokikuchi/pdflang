@@ -1,6 +1,6 @@
-//! Namespace `codes::` — códigos de barras e QR.
-//! O escaneamento roda sob demanda no primeiro uso (renderiza as páginas
-//! em alta resolução e decodifica com rxing).
+//! Namespace `codes::` — barcodes and QR codes.
+//! The scan runs on demand on first use (renders the pages at high
+//! resolution and decodes them with rxing).
 
 use crate::interpreter::{BarcodeData, DocData, RuntimeError, Value};
 use std::rc::Rc;
@@ -8,7 +8,7 @@ use std::rc::Rc;
 pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, RuntimeError> {
     let codes = barcodes(doc)?;
     match name {
-        // ---- detecção ----
+        // ---- detection ----
         "detect_barcodes" => Ok(Value::Bool(!codes.is_empty())),
         "detect_qrcodes" => Ok(Value::Bool(codes.iter().any(|c| c.format == "QR_CODE"))),
         "count_barcodes" => Ok(Value::Int(codes.len() as i64)),
@@ -21,11 +21,11 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
                 Value::Float((c.y * 10.0).round() / 10.0),
             ])))
         }
-        // ---- decodificação ----
+        // ---- decoding ----
         "decode_barcode" => Ok(Value::Str(code_arg(codes, args, name)?.text.clone())),
         "validate_barcode_checksum" | "validate_gtin" | "validate_ean" => {
-            // Dígito verificador GTIN (EAN-8/13, UPC-A, GTIN-14).
-            // Aceita uma string ou o número do código detectado (padrão 1).
+            // GTIN check digit (EAN-8/13, UPC-A, GTIN-14).
+            // Takes a string or the index of a detected code (default 1).
             let digits = match args.first() {
                 Some(Value::Str(s)) => s.clone(),
                 _ => code_arg(codes, args, name)?.text.clone(),
@@ -33,18 +33,18 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Bool(gtin_valid(&digits)))
         }
         "validate_code128" => {
-            // O checksum do Code128 é validado na própria decodificação:
-            // true = existe Code128 decodificado com sucesso.
+            // Code128's checksum is validated by the decoding itself:
+            // true = a Code128 was decoded successfully.
             Ok(Value::Bool(codes.iter().any(|c| c.format == "CODE_128")))
         }
-        // ---- comparação ----
+        // ---- comparison ----
         "compare_barcode_with_text" => {
-            // true = o conteúdo de todos os códigos aparece no texto do documento.
+            // true = every code's content appears in the document's text.
             let text: String = doc.pages.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n");
             Ok(Value::Bool(!codes.is_empty() && codes.iter().all(|c| text.contains(&c.text))))
         }
         "validate_barcode_format" => {
-            // true = o conteúdo de todos os códigos casa com o padrão (regex).
+            // true = every code's content matches the pattern (regex).
             let pattern = match args.first() {
                 Some(Value::Str(s)) => s.clone(),
                 _ => return Err(err(format!("codes::{name} expects a pattern (string)"))),
@@ -54,7 +54,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Bool(!codes.is_empty() && codes.iter().all(|c| re.is_match(&c.text))))
         }
         "validate_barcode_position" => {
-            // Aceita uma região ou 4 números [x0, y0, x1, y1] em pontos.
+            // Takes a region or 4 numbers [x0, y0, x1, y1] in points.
             if let Some(Value::Region(r)) = args.first() {
                 return Ok(Value::Bool(
                     !codes.is_empty() && codes.iter().all(|c| r.contains_point(c.x, c.y)),
@@ -79,7 +79,7 @@ fn err(message: String) -> RuntimeError {
     RuntimeError { message }
 }
 
-/// Escaneia sob demanda e guarda no cache do documento.
+/// Scans on demand and stores the result in the document's cache.
 fn barcodes(doc: &Rc<DocData>) -> Result<&Vec<Rc<BarcodeData>>, RuntimeError> {
     if doc.barcodes.get().is_none() {
         let scanned = crate::pdf::scan_barcodes(&doc.path)
@@ -89,7 +89,7 @@ fn barcodes(doc: &Rc<DocData>) -> Result<&Vec<Rc<BarcodeData>>, RuntimeError> {
     Ok(doc.barcodes.get().expect("cache preenchido acima"))
 }
 
-/// Código opcional (1-based): sem argumento numérico, o primeiro.
+/// Optional code index (1-based): without a numeric argument, the first one.
 fn code_arg<'a>(
     codes: &'a [Rc<BarcodeData>],
     args: &[Value],
@@ -105,7 +105,7 @@ fn code_arg<'a>(
     Ok(&codes[(n - 1) as usize])
 }
 
-/// Dígito verificador GTIN (mod 10, pesos 3/1 da direita para a esquerda).
+/// GTIN check digit (mod 10, weights 3/1 from right to left).
 fn gtin_valid(code: &str) -> bool {
     let digits: Vec<u32> = code.chars().filter_map(|c| c.to_digit(10)).collect();
     if digits.len() != code.len() || !matches!(digits.len(), 8 | 12 | 13 | 14) {
@@ -126,10 +126,10 @@ mod tests {
 
     #[test]
     fn gtin() {
-        assert!(gtin_valid("7891234567895")); // EAN-13 válido
-        assert!(gtin_valid("96385074")); // EAN-8 válido
-        assert!(!gtin_valid("7891234567890")); // dígito errado
-        assert!(!gtin_valid("789123")); // tamanho inválido
-        assert!(!gtin_valid("78912345678AB")); // não numérico
+        assert!(gtin_valid("7891234567895")); // valid EAN-13
+        assert!(gtin_valid("96385074")); // valid EAN-8
+        assert!(!gtin_valid("7891234567890")); // wrong check digit
+        assert!(!gtin_valid("789123")); // invalid length
+        assert!(!gtin_valid("78912345678AB")); // not numeric
     }
 }

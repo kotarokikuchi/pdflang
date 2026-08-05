@@ -1,21 +1,21 @@
-//! Namespace `visual::` — imagens e comparação visual.
-//! A análise visual renderiza as páginas em escala de cinza sob demanda;
-//! o resultado fica em cache por (documento, largura).
+//! Namespace `visual::` — images and visual comparison.
+//! Visual analysis renders the pages in greyscale on demand; the result is
+//! cached per (document, width).
 
 use crate::interpreter::{DocData, ImageData, RuntimeError, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-/// Página renderizada: (largura, altura, pixels em cinza).
+/// A rendered page: (width, height, greyscale pixels).
 type GrayPage = (u32, u32, Vec<u8>);
 
 thread_local! {
-    /// cache: caminho -> (número da página -> render)
+    /// cache: path -> (page number -> render)
     static RENDERS: RefCell<HashMap<String, HashMap<i64, GrayPage>>> = RefCell::new(HashMap::new());
 }
 
-/// Largura padrão dos renders de análise (equilíbrio custo/precisão).
+/// Default width for analysis renders (a cost/accuracy balance).
 const ANALYSIS_WIDTH: u16 = 600;
 
 fn render_page(path: &std::path::Path, page: i64) -> Result<GrayPage, RuntimeError> {
@@ -50,8 +50,8 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::List(Rc::new(vec![Value::Int(img.width), Value::Int(img.height)])))
         }
         "detect_image_color_space" => {
-            // Sem argumento: lista dos espaços de cor distintos presentes.
-            // Com argumento n: espaço de cor da n-ésima imagem.
+            // Without an argument: the list of distinct color spaces present.
+            // With argument n: the color space of the nth image.
             if args.is_empty() {
                 let mut spaces: Vec<String> = Vec::new();
                 for img in &images {
@@ -65,7 +65,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             }
         }
         "detect_low_resolution" => {
-            // true = existe imagem abaixo do DPI mínimo (padrão 300).
+            // true = there is an image below the minimum DPI (default 300).
             let min_dpi = match args.first() {
                 Some(Value::Int(n)) => *n as f64,
                 Some(Value::Float(n)) => *n,
@@ -79,9 +79,9 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             };
             Ok(Value::Bool(images.iter().any(|i| i.dpi_x.min(i.dpi_y) < min_dpi)))
         }
-        // ---- comparação visual ----
+        // ---- visual comparison ----
         "calculate_perceptual_hash" => {
-            // pHash 64 bits (DCT 8x8 sobre render 32x32), em hexadecimal
+            // 64-bit pHash (8x8 DCT over a 32x32 render), in hexadecimal
             let page = page_arg(doc, args, name)?;
             let (w, h, px) = render_page(&doc.path, page)?;
             Ok(Value::Str(phash_hex(&px, w, h)))
@@ -92,7 +92,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Float(round3(ssim(&a, &b))))
         }
         "pixel_diff" => {
-            // % de pixels que diferem além do limiar (padrão 10/255)
+            // % of pixels differing beyond the threshold (default 10/255)
             let (a, b) = two_pages(doc, args, name)?;
             let tolerance = match args.get(3) {
                 Some(Value::Int(n)) => *n as u8,
@@ -102,13 +102,13 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Float(round3(pixel_diff_ratio(&a, &b, tolerance) * 100.0)))
         }
         "compare_images" | "diff_pages" => {
-            // Similaridade visual 0–100 entre a página deste doc e a de outro
+            // Visual similarity 0–100 between this doc's page and another's
             let (a, b) = two_pages(doc, args, name)?;
             Ok(Value::Float(round3(ssim(&a, &b) * 100.0)))
         }
         "detect_image_replacement" => {
-            // true = pHash das páginas difere além da distância de Hamming
-            // tolerada (padrão 10 de 64 bits)
+            // true = the pages' pHashes differ beyond the tolerated Hamming
+            // distance (default 10 of 64 bits)
             let (a, b) = two_pages(doc, args, name)?;
             let max_dist = match args.get(3) {
                 Some(Value::Int(n)) => *n as u32,
@@ -118,16 +118,16 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             let hb = phash_bits(&b.2, b.0, b.1);
             Ok(Value::Bool((ha ^ hb).count_ones() > max_dist))
         }
-        // ---- análise de qualidade ----
+        // ---- quality analysis ----
         "detect_image_artifacts" => {
-            // Blocagem estilo JPEG: energia das bordas em múltiplos de 8 px
-            // acima do resto. > 1.6 indica artefato visível.
+            // JPEG-style blocking: edge energy at multiples of 8 px above the
+            // rest. > 1.6 indicates a visible artifact.
             let page = page_arg(doc, args, name)?;
             let (w, h, px) = render_page(&doc.path, page)?;
             Ok(Value::Bool(blockiness(&px, w, h) > 1.6))
         }
         "estimate_image_quality" => {
-            // 0–100: penaliza blocagem e falta de detalhe
+            // 0–100: penalizes blocking and lack of detail
             let page = page_arg(doc, args, name)?;
             let (w, h, px) = render_page(&doc.path, page)?;
             let block = blockiness(&px, w, h);
@@ -135,7 +135,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Float(round3(score)))
         }
         "detect_posterization" => {
-            // Poucos níveis distintos de cinza numa página com gradiente
+            // Few distinct grey levels on a page with a gradient
             let page = page_arg(doc, args, name)?;
             let (_, _, px) = render_page(&doc.path, page)?;
             let mut seen = [false; 256];
@@ -148,7 +148,7 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
             Ok(Value::Bool(range > 60 && levels < 24))
         }
         "detect_banding" => {
-            // Degradê com saltos: em linhas suaves, variação abrupta repetida
+            // A gradient with jumps: on smooth lines, repeated abrupt variation
             let page = page_arg(doc, args, name)?;
             let (w, h, px) = render_page(&doc.path, page)?;
             Ok(Value::Bool(has_banding(&px, w, h)))
@@ -157,13 +157,13 @@ pub fn call(doc: &Rc<DocData>, name: &str, args: &[Value]) -> Result<Value, Runt
     }
 }
 
-// ---- auxiliares de análise visual ----
+// ---- visual analysis helpers ----
 
 fn round3(v: f64) -> f64 {
     (v * 1000.0).round() / 1000.0
 }
 
-/// Página deste documento (padrão 1).
+/// A page of this document (default 1).
 fn page_arg(doc: &Rc<DocData>, args: &[Value], name: &str) -> Result<i64, RuntimeError> {
     let n = match args.first() {
         Some(Value::Int(n)) => *n,
@@ -179,7 +179,7 @@ fn page_arg(doc: &Rc<DocData>, args: &[Value], name: &str) -> Result<i64, Runtim
     Ok(n)
 }
 
-/// `f(pagina_a, "outro.pdf" [, pagina_b])` → renders alinhados ao mesmo tamanho.
+/// `f(page_a, "other.pdf" [, page_b])` → renders aligned to the same size.
 fn two_pages(
     doc: &Rc<DocData>,
     args: &[Value],
@@ -199,7 +199,7 @@ fn two_pages(
     Ok(resize_to_match(a, b))
 }
 
-/// Iguala as dimensões por amostragem (vizinho mais próximo) para comparar.
+/// Matches the dimensions by sampling (nearest neighbor) so they can be compared.
 fn resize_to_match(a: GrayPage, b: GrayPage) -> (GrayPage, GrayPage) {
     if a.0 == b.0 && a.1 == b.1 {
         return (a, b);
@@ -212,13 +212,13 @@ fn resize_to_match(a: GrayPage, b: GrayPage) -> (GrayPage, GrayPage) {
 mod tests {
     use super::*;
 
-    /// Gera um degradê horizontal suave.
+    /// Generates a smooth horizontal gradient.
     fn gradiente(w: u32, h: u32) -> GrayPage {
         let px = (0..h).flat_map(|_| (0..w).map(|x| (x * 255 / w.max(1)) as u8)).collect();
         (w, h, px)
     }
 
-    /// Degradê quantizado em poucos níveis (posterizado/banding).
+    /// A gradient quantized into few levels (posterized/banding).
     fn posterizado(w: u32, h: u32, niveis: u8) -> GrayPage {
         let step = 255 / niveis as u32;
         let px = (0..h)
@@ -228,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn phash_igual_e_diferente() {
+    fn phash_same_and_different() {
         let a = gradiente(64, 64);
         let b = gradiente(64, 64);
         let ha = phash_bits(&a.2, a.0, a.1);
@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn ssim_e_pixel_diff() {
+    fn ssim_and_pixel_diff() {
         let a = gradiente(64, 64);
         assert!((ssim(&a, &a) - 1.0).abs() < 1e-9, "idênticas = 1.0");
         assert_eq!(pixel_diff_ratio(&a, &a, 10), 0.0);
@@ -255,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn resize_iguala_dimensoes() {
+    fn resize_matches_dimensions() {
         let (a, b) = resize_to_match(gradiente(100, 50), gradiente(60, 30));
         assert_eq!((a.0, a.1), (60, 30));
         assert_eq!((b.0, b.1), (60, 30));
@@ -263,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn posterizacao_e_banding() {
+    fn posterization_and_banding() {
         let suave = gradiente(128, 128);
         let ruim = posterizado(128, 128, 8);
         let niveis = |g: &GrayPage| {
@@ -277,11 +277,11 @@ mod tests {
     }
 
     #[test]
-    fn blockiness_detecta_blocos() {
-        // imagem lisa: sem blocagem
+    fn blockiness_detects_blocks() {
+        // smooth image: no blocking
         let liso: GrayPage = (64, 64, vec![128; 64 * 64]);
         assert!((blockiness(&liso.2, 64, 64) - 1.0).abs() < 0.01);
-        // degraus a cada 8 px: blocagem alta
+        // steps every 8 px: high blocking
         let blocos: Vec<u8> =
             (0..64).flat_map(|_| (0..64).map(|x: u32| ((x / 8) * 32) as u8)).collect();
         assert!(blockiness(&blocos, 64, 64) > 1.6);
@@ -301,11 +301,11 @@ fn resize(src: &GrayPage, w: u32, h: u32) -> GrayPage {
     (w, h, out)
 }
 
-/// pHash 64 bits: DCT-II 32x32, bloco 8x8 de baixa frequência vs mediana.
+/// 64-bit pHash: 32x32 DCT-II, low-frequency 8x8 block vs the median.
 fn phash_bits(px: &[u8], w: u32, h: u32) -> u64 {
     const N: usize = 32;
     let small = resize(&(w, h, px.to_vec()), N as u32, N as u32).2;
-    // DCT 2D separável
+    // separable 2D DCT
     let cos_table: Vec<Vec<f64>> = (0..N)
         .map(|u| {
             (0..N)
@@ -333,7 +333,7 @@ fn phash_bits(px: &[u8], w: u32, h: u32) -> u64 {
             dct[v * N + u] = sum;
         }
     }
-    // bloco 8x8 de baixa frequência, sem o termo DC
+    // low-frequency 8x8 block, without the DC term
     let mut block: Vec<f64> = Vec::with_capacity(64);
     for v in 0..8 {
         for u in 0..8 {
@@ -356,7 +356,7 @@ fn phash_hex(px: &[u8], w: u32, h: u32) -> String {
     format!("{:016x}", phash_bits(px, w, h))
 }
 
-/// SSIM global com médias, variâncias e covariância (0–1).
+/// Global SSIM using means, variances and covariance (0–1).
 fn ssim(a: &GrayPage, b: &GrayPage) -> f64 {
     let (pa, pb) = (&a.2, &b.2);
     let n = pa.len().min(pb.len());
@@ -391,7 +391,7 @@ fn pixel_diff_ratio(a: &GrayPage, b: &GrayPage, tolerance: u8) -> f64 {
     diff as f64 / n as f64
 }
 
-/// Razão entre a energia das bordas nos limites de bloco 8x8 e nas demais.
+/// Ratio between edge energy at 8x8 block boundaries and everywhere else.
 fn blockiness(px: &[u8], w: u32, h: u32) -> f64 {
     if w < 16 || h < 16 {
         return 1.0;
@@ -416,20 +416,20 @@ fn blockiness(px: &[u8], w: u32, h: u32) -> f64 {
     if a < 0.01 {
         return 1.0; // imagem lisa: nada nos limites de bloco = sem blocagem
     }
-    // Piso no denominador: degraus SÓ nos limites de bloco são o caso extremo
-    // de blocagem, não ausência dela (com b == 0 a razão seria indefinida).
+    // Floor on the denominator: steps ONLY at block boundaries are the extreme
+    // case of blocking, not its absence (with b == 0 the ratio is undefined).
     a / b.max(0.05)
 }
 
-/// Banding: degradê que salta em vez de variar suave. Analisa linhas e
-/// colunas — a direção do degradê não é conhecida de antemão.
+/// Banding: a gradient that jumps instead of varying smoothly. Analyzes rows
+/// and columns — the gradient's direction is not known in advance.
 fn has_banding(px: &[u8], w: u32, h: u32) -> bool {
     if w < 32 || h < 32 {
         return false;
     }
-    // Banding = degradê que progride numa direção em degraus largos.
-    // Texto também tem saltos, mas alternando sentido e sem platôs — por isso
-    // exigimos monotonicidade e poucos degraus em relação ao comprimento.
+    // Banding = a gradient progressing in one direction in wide steps.
+    // Text also has jumps, but alternating in direction and without plateaus —
+    // hence we require monotonicity and few steps relative to the length.
     let banding_in = |linha: &[u8]| {
         let deltas: Vec<(usize, i32)> = linha
             .windows(2)
@@ -440,34 +440,34 @@ fn has_banding(px: &[u8], w: u32, h: u32) -> bool {
         if deltas.len() < 4 {
             return false;
         }
-        // Degraus largos: transições raras em relação ao comprimento da linha
+        // Wide steps: transitions are rare relative to the line's length
         if deltas.len() > linha.len() / 8 {
-            return false; // muita variação = textura/texto, não banding
+            return false; // too much variation = texture/text, not banding
         }
         let jumps: Vec<&(usize, i32)> = deltas.iter().filter(|(_, d)| d.abs() >= 4).collect();
         if jumps.len() < 3 {
             return false;
         }
-        // Progressão monotônica: ao menos 80% dos saltos no mesmo sentido
+        // Monotonic progression: at least 80% of the jumps in the same direction
         let positivos = jumps.iter().filter(|(_, d)| *d > 0).count();
         let dominante = positivos.max(jumps.len() - positivos);
         if dominante * 5 < jumps.len() * 4 {
             return false;
         }
-        // Platôs de tamanho parecido entre os saltos (degraus regulares)
+        // Plateaus of similar size between the jumps (regular steps)
         let espacos: Vec<usize> = jumps.windows(2).map(|w| w[1].0 - w[0].0).collect();
         let media = espacos.iter().sum::<usize>() as f64 / espacos.len() as f64;
         media >= 4.0
     };
     let mut suspeitas = 0;
-    // colunas (degradê vertical)
+    // columns (vertical gradient)
     for x in (w / 4..w * 3 / 4).step_by((w / 16).max(1) as usize) {
         let col: Vec<u8> = (0..h).map(|y| px[(y * w + x) as usize]).collect();
         if banding_in(&col) {
             suspeitas += 1;
         }
     }
-    // linhas (degradê horizontal)
+    // rows (horizontal gradient)
     for y in (h / 4..h * 3 / 4).step_by((h / 16).max(1) as usize) {
         let row = &px[(y * w) as usize..((y + 1) * w) as usize];
         if banding_in(row) {
@@ -481,7 +481,7 @@ fn err(message: String) -> RuntimeError {
     RuntimeError { message }
 }
 
-/// Argumento opcional: número da imagem (1-based). Sem argumento, a primeira.
+/// Optional argument: the image number (1-based). Without one, the first.
 fn image_arg<'a>(
     images: &'a [&'a Rc<ImageData>],
     args: &[Value],

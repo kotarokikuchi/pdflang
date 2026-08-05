@@ -16,6 +16,9 @@ env:
 jobs:
   build:
     strategy:
+      # One platform failing must not cancel the others: each publishes its own
+      # assets, and a partial release is easier to finish than to redo.
+      fail-fast: false
       matrix:
         include:
           - target: linux-x64
@@ -144,8 +147,12 @@ jobs:
             [ -f "$ISCC" ] || { choco install innosetup -y --no-progress >/dev/null; }
             [ -f "$ISCC" ] || ISCC="$(command -v iscc)"
             OUT="$NAME-setup"
-            "$ISCC" //DAppVersion="$VERSION" //DSourceDir="dist\\$NAME" \
-                    //DOutputName="$OUT" packaging/pdfl.iss > /dev/null
+            # Absolute Windows paths: Inno resolves relative ones against the
+            # .iss file's directory, so "dist\..." became "packaging\dist\...".
+            HERE="$(cygpath -w "$PWD")"
+            "$ISCC" //DAppVersion="$VERSION" //DSourceDir="$HERE\\dist\\$NAME" \
+                    //DOutputDir="$HERE" //DOutputName="$OUT" \
+                    packaging/pdfl.iss > /dev/null
             sha256sum "$OUT.exe" > "$OUT.exe.sha256"
             ;;
           esac

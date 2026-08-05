@@ -175,9 +175,9 @@ mod tests {
 
     #[test]
     fn preserves_comments() {
-        let src = "// cabeçalho\ncheck \"a\" {\n  require doc.title != \"\" // trailing\n}\n";
+        let src = "// header\ncheck \"a\" {\n  require doc.title != \"\" // trailing\n}\n";
         let got = format_source(src).unwrap();
-        assert!(got.starts_with("// cabeçalho\n"), "{got}");
+        assert!(got.starts_with("// header\n"), "{got}");
         assert!(got.contains("!= \"\" // trailing"), "{got}");
     }
 
@@ -214,13 +214,13 @@ profile "p" {
       assert prepress::calculate_tac(page) <= MAX, "TAC #{page.tac} alto"
     }
     require !prepress::detect_hairlines(0.25)
-    x = [1, 2.5, "três"]
+    x = [1, 2.5, "three"]
     require x.length == 3 && (1 + 2) * 3 == 9
   }
 }
 "#;
         let once = format_source(src).unwrap();
         let twice = format_source(&once).unwrap();
-        assert_eq!(once, twice, "formatador não é idempotente:\n{once}");
+        assert_eq!(once, twice, "formatter is not idempotent:\n{once}");
     }
 }

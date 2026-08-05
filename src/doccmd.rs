@@ -263,7 +263,7 @@ profile "teste" {
   const MAX = 300
   check "TAC" tags: ["prepress"] {
     doc.pages.each { |page|
-      assert page.tac <= MAX, "Página #{page.number} com TAC alto"
+      assert page.tac <= MAX, "High TAC on page #{page.number}"
     }
     require !prepress::detect_hairlines(0.25)
   }
@@ -278,7 +278,7 @@ profile "teste" {
         assert!(md.contains("**Profile:** teste"));
         assert!(md.contains("| `MAX` | `300` |"));
         assert!(md.contains("### TAC — tags: `prepress`"));
-        assert!(md.contains("Página #{page.number} com TAC alto"), "{md}");
+        assert!(md.contains("High TAC on page #{page.number}"), "{md}");
         assert!(md.contains("`!prepress::detect_hairlines(0.25)`"));
         assert!(md.contains("### Vazio"));
         assert!(md.contains("(no direct validations)"));

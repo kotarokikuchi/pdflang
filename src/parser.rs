@@ -594,7 +594,7 @@ check "Fontes" tags: ["fonts", "basico"] {
 
     #[test]
     fn assert_with_interpolated_message() {
-        let src = r#"assert font.is_embedded, "Fonte #{font.name} não embutida""#;
+        let src = r#"assert font.is_embedded, "Font #{font.name} is not embedded""#;
         let prog = parse(src).unwrap();
         let Stmt::Assert { message: Some(Expr::Str(parts)), .. } = &prog[0] else {
             panic!("esperava assert com mensagem string")
@@ -629,7 +629,7 @@ profile "offset" {
   const MIN = 1
   check "Estrutura" {
     require doc.page_count >= MIN
-    assert doc.title != "", "PDF sem título"
+    assert doc.title != "", "PDF has no title"
   }
 }
 "#;

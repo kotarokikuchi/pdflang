@@ -259,7 +259,7 @@ impl Report {
         }
 
         push("", 6.0, false, black);
-        push("Diagnósticos", 13.0, true, black);
+        push("Diagnostics", 13.0, true, black);
         if self.diagnostics.is_empty() {
             push("No problems found.", 10.0, false, gray);
         }
@@ -269,7 +269,7 @@ impl Report {
                 Severity::Warning => ("warning", (0.72, 0.47, 0.12)),
                 Severity::Info => ("info", (0.17, 0.42, 0.69)),
             };
-            let line_info = d.line.map(|l| format!(" (linha {l})")).unwrap_or_default();
+            let line_info = d.line.map(|l| format!(" (line {l})")).unwrap_or_default();
             push("", 3.0, false, black);
             push(&format!("{} [{}] {}{}", d.id, label, d.check_name, line_info), 10.0, true, color);
             for chunk in wrap_text(&d.message, WRAP) {
@@ -378,20 +378,20 @@ mod tests {
     #[test]
     fn csv_escapes_fields() {
         let mut d = diag(Severity::Error);
-        d.message = "mensagem com \"aspas\", vírgula\ne quebra".into();
+        d.message = "message with \"quotes\", comma\nand a newline".into();
         let r = Report::new("s.pdfl".into(), "f.pdf".into(), None, 1, vec![d]);
         let csv = r.to_csv();
         assert!(csv.starts_with("id,severity,check,message,line,script,file,status\n"));
-        assert!(csv.contains("\"mensagem com \"\"aspas\"\", vírgula\ne quebra\""));
+        assert!(csv.contains("\"message with \"\"quotes\"\", comma\nand a newline\""));
     }
 
     #[test]
     fn html_escapes_and_summarizes() {
         let mut d = diag(Severity::Warning);
-        d.message = "tamanho <6pt> & cia".into();
+        d.message = "size <6pt> & co".into();
         let r = Report::new("s.pdfl".into(), "f.pdf".into(), Some("perfil-x".into()), 3, vec![d]);
         let html = r.to_html();
-        assert!(html.contains("tamanho &lt;6pt&gt; &amp; cia"));
+        assert!(html.contains("size &lt;6pt&gt; &amp; co"));
         assert!(html.contains("perfil-x"));
         assert!(html.contains("PASS")); // a warning does not drop the status
         assert!(html.contains("<strong>1</strong> warning(s)"));

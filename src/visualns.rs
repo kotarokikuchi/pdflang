@@ -232,7 +232,7 @@ mod tests {
         let a = gradiente(64, 64);
         let b = gradiente(64, 64);
         let ha = phash_bits(&a.2, a.0, a.1);
-        assert_eq!(ha, phash_bits(&b.2, b.0, b.1), "mesma imagem = mesmo hash");
+        assert_eq!(ha, phash_bits(&b.2, b.0, b.1), "same image = same hash");
         // invertido: hash bem diferente
         let inv: Vec<u8> = a.2.iter().map(|p| 255 - p).collect();
         let hi = phash_bits(&inv, a.0, a.1);
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn ssim_and_pixel_diff() {
         let a = gradiente(64, 64);
-        assert!((ssim(&a, &a) - 1.0).abs() < 1e-9, "idênticas = 1.0");
+        assert!((ssim(&a, &a) - 1.0).abs() < 1e-9, "identical = 1.0");
         assert_eq!(pixel_diff_ratio(&a, &a, 10), 0.0);
 
         let mut b = a.clone();
@@ -272,8 +272,8 @@ mod tests {
             seen.iter().filter(|&&s| s).count()
         };
         assert!(niveis(&suave) > 24 && niveis(&ruim) < 24);
-        assert!(has_banding(&ruim.2, ruim.0, ruim.1), "degradê quantizado = banding");
-        assert!(!has_banding(&suave.2, suave.0, suave.1), "degradê suave não é banding");
+        assert!(has_banding(&ruim.2, ruim.0, ruim.1), "quantized gradient = banding");
+        assert!(!has_banding(&suave.2, suave.0, suave.1), "smooth gradient is not banding");
     }
 
     #[test]

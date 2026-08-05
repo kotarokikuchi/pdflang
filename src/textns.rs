@@ -347,8 +347,8 @@ mod tests {
 
     #[test]
     fn normalization_and_words() {
-        assert_eq!(normalize("  Olá   MUNDO \n novo "), "olá mundo novo");
-        assert_eq!(words("Olá, mundo! (teste)"), vec!["Olá", "mundo", "teste"]);
+        assert_eq!(normalize("  Hello   WORLD \n new "), "hello world new");
+        assert_eq!(words("Hello, world! (test)"), vec!["Hello", "world", "test"]);
     }
 
     #[test]

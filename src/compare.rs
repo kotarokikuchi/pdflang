@@ -275,16 +275,16 @@ mod tests {
 
     #[test]
     fn identical() {
-        let a = doc(&["um dois três", "quatro cinco"], "T");
-        let r = compare_documents(&a, &doc(&["um dois três", "quatro cinco"], "T"), &opts());
+        let a = doc(&["one two three", "four five"], "T");
+        let r = compare_documents(&a, &doc(&["one two three", "four five"], "T"), &opts());
         assert_eq!(r.similarity, 100.0);
         assert!(r.diagnostics.is_empty());
     }
 
     #[test]
     fn text_changed() {
-        let a = doc(&["um dois três quatro"], "T");
-        let b = doc(&["um dois TRÊS quatro"], "T");
+        let a = doc(&["one two three four"], "T");
+        let b = doc(&["one two THREE four"], "T");
         let r = compare_documents(&a, &b, &opts());
         assert_eq!(r.similarity, 75.0);
         assert!(r.diagnostics.iter().any(|d| d.check_name == "text"));
@@ -293,8 +293,8 @@ mod tests {
 
     #[test]
     fn page_inserted() {
-        let a = doc(&["primeira página conteúdo", "última página conteúdo"], "T");
-        let b = doc(&["primeira página conteúdo", "página nova no meio", "última página conteúdo"], "T");
+        let a = doc(&["first page content", "last page content"], "T");
+        let b = doc(&["first page content", "new page in between", "last page content"], "T");
         let r = compare_documents(&a, &b, &opts());
         let msgs: Vec<&str> = r.diagnostics.iter().map(|d| d.message.as_str()).collect();
         assert!(msgs.iter().any(|m| m.contains("page 2 inserted")), "{msgs:?}");
@@ -303,19 +303,19 @@ mod tests {
 
     #[test]
     fn metadata_changed() {
-        let a = doc(&["texto igual aqui"], "Versão 1");
-        let b = doc(&["texto igual aqui"], "Versão 2");
+        let a = doc(&["same text here"], "Version 1");
+        let b = doc(&["same text here"], "Version 2");
         let r = compare_documents(&a, &b, &opts());
         assert_eq!(r.similarity, 100.0);
         assert_eq!(r.diagnostics.len(), 1);
         assert_eq!(r.diagnostics[0].severity, Severity::Warning);
-        assert!(r.diagnostics[0].message.contains("Versão 1"));
+        assert!(r.diagnostics[0].message.contains("Version 1"));
     }
 
     #[test]
     fn ignores_dates_and_normalizes() {
-        let a = doc(&["Emitido em 01/02/2026 VALOR TOTAL"], "T");
-        let b = doc(&["Emitido em 15/03/2026 valor  total"], "T");
+        let a = doc(&["Issued on 01/02/2026 TOTAL AMOUNT"], "T");
+        let b = doc(&["Issued on 15/03/2026 total  amount"], "T");
         let com = CompareOptions { normalize: true, ignore_dates: true, similarity_threshold: 100.0 };
         let r = compare_documents(&a, &b, &com);
         assert_eq!(r.similarity, 100.0, "{:?}", r.diagnostics);
@@ -325,8 +325,8 @@ mod tests {
 
     #[test]
     fn threshold_tolerates_changes() {
-        let a = doc(&["um dois três quatro"], "T");
-        let b = doc(&["um dois TRÊS quatro"], "T"); // 75% similarity
+        let a = doc(&["one two three four"], "T");
+        let b = doc(&["one two THREE four"], "T"); // 75% similarity
         let tolerante = CompareOptions { normalize: false, ignore_dates: false, similarity_threshold: 50.0 };
         let r = compare_documents(&a, &b, &tolerante);
         assert!(r.diagnostics.iter().all(|d| d.severity != Severity::Error), "{:?}", r.diagnostics);
@@ -335,11 +335,11 @@ mod tests {
 
     #[test]
     fn diff_sample() {
-        let a = doc(&["linha um\nlinha dois\nlinha três"], "T");
-        let b = doc(&["linha um\nlinha DOIS\nlinha três"], "T");
+        let a = doc(&["line one\nline two\nline three"], "T");
+        let b = doc(&["line one\nline TWO\nline three"], "T");
         let r = compare_documents(&a, &b, &opts());
         let msg = &r.diagnostics.iter().find(|d| d.check_name == "text").unwrap().message;
-        assert!(msg.contains("-linha dois"), "{msg}");
-        assert!(msg.contains("+linha DOIS"), "{msg}");
+        assert!(msg.contains("-line two"), "{msg}");
+        assert!(msg.contains("+line TWO"), "{msg}");
     }
 }

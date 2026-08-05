@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  WiX source for the Windows .msi, built by the release workflow:
+
+    wix build -arch x64 -d Version=0.9.1 \
+              -bindpath src=dist\pdfl-0.9.1-windows-x64 \
+              -o pdfl-0.9.1-windows-x64.msi packaging\pdfl.wxs
+
+  The .msi exists alongside the .exe installer because it is what deploys
+  unattended: Group Policy, Intune and `msiexec /qn` all want an MSI.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="pdfl"
+      Manufacturer="Kotaro Kikuchi"
+      Version="$(Version)"
+      Scope="perMachine"
+      Compressed="yes"
+      Language="1033"
+      Codepage="1252"
+      InstallerVersion="500"
+      UpgradeCode="3CAE869D-D46C-458B-85EA-53661A8A767E">
+
+    <!-- UpgradeCode above must never change: it is what lets 0.9.2 replace
+         0.9.1 instead of installing beside it. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of pdfl is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="pdfl" />
+    </StandardDirectory>
+
+    <!-- Everything staged for the .zip goes in: pdfl.exe, pdfium\bin\pdfium.dll,
+         README.md, LICENSE and examples\. The binary looks for pdfium next to
+         itself, so the layout is what makes it work. -->
+    <ComponentGroup Id="Payload" Directory="INSTALLFOLDER">
+      <Files Include="!(bindpath.src)\**" />
+    </ComponentGroup>
+
+    <!-- PATH is a separate component so it carries its own stable GUID.
+         Part="last" appends; the installer removes it again on uninstall. -->
+    <ComponentGroup Id="PathEntry" Directory="INSTALLFOLDER">
+      <Component Id="AddToPath" Guid="1BD6D41E-5B28-447F-B210-F7DBDC7A088C">
+        <Environment
+            Id="PdflPath"
+            Name="PATH"
+            Value="[INSTALLFOLDER]"
+            Action="set"
+            Part="last"
+            System="yes"
+            Permanent="no" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="pdfl" Level="1">
+      <ComponentGroupRef Id="Payload" />
+      <ComponentGroupRef Id="PathEntry" />
+    </Feature>
+
+    <WixVariable Id="WixUILicenseRtf" Value="" />
+  </Package>
+</Wix>

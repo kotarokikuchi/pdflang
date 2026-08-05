@@ -33,7 +33,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -59,6 +59,16 @@ jobs:
           mkdir -p "dist/$NAME"
           cp "target/release/pdfl$EXE" "dist/$NAME/"
           cp -r pdfium "dist/$NAME/pdfium"
+          # Only the shared library and the license texts have to ship. The C
+          # headers and the build files are for people compiling against pdfium,
+          # not for running pdfl. LICENSE, licenses/ and VERSION stay: the first
+          # two are required to redistribute, the third says which build this is.
+          rm -rf "dist/$NAME/pdfium/include" \
+                 "dist/$NAME/pdfium/args.gn" \
+                 "dist/$NAME/pdfium/PDFiumConfig.cmake"
+          # On Windows lib/ holds only the import library, used at link time.
+          # Elsewhere it holds libpdfium.so/.dylib, which is the whole point.
+          [ "$RUNNER_OS" = "Windows" ] && rm -rf "dist/$NAME/pdfium/lib"
           cp README.md LICENSE "dist/$NAME/"
           cp -r examples "dist/$NAME/examples"
           if [ "$RUNNER_OS" = "Windows" ]; then
@@ -73,7 +83,7 @@ jobs:
           fi
 
       - name: Publish to the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             *.tar.gz

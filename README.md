@@ -23,7 +23,7 @@ what CI should use. pdfium is bundled in both.
 | Platform | Installer | Portable archive |
 |---|---|---|
 | Linux x64 / arm64 | `pdfl_<version>_amd64.deb` · `_arm64.deb` | `pdfl-<version>-linux-{x64,arm64}.tar.gz` |
-| macOS x64 / arm64 | `pdfl-<version>-macos-{x64,arm64}.dmg` | `pdfl-<version>-macos-{x64,arm64}.tar.gz` |
+| macOS Intel / Apple Silicon | `pdfl-<version>-macos-{amd64,arm64}.dmg` | `pdfl-<version>-macos-{amd64,arm64}.tar.gz` |
 | Windows x64 | `pdfl-<version>-windows-x64-setup.exe` · `.msi` | `pdfl-<version>-windows-x64.zip` |
 
 Every asset has a matching `.sha256`.

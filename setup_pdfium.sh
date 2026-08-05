@@ -17,6 +17,17 @@ case "$(uname -s)-$(uname -m)" in
   *) echo "Unsupported platform: $(uname -s)-$(uname -m)"; exit 1 ;;
 esac
 
+# Cross-building needs the library for the target, not for this machine:
+#   PDFIUM_ASSET=pdfium-mac-x64.tgz ./setup_pdfium.sh
+# Windows assets keep the library in bin/, everything else in lib/.
+if [ -n "${PDFIUM_ASSET:-}" ]; then
+  ASSET="$PDFIUM_ASSET"
+  case "$ASSET" in
+    *-win-*) LIBDIR="bin" ;;
+    *)       LIBDIR="lib" ;;
+  esac
+fi
+
 URL="https://github.com/bblanchon/pdfium-binaries/releases/latest/download/$ASSET"
 echo "Downloading $URL ..."
 curl -L --fail "$URL" | tar -xz -C "$DEST"

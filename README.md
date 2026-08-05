@@ -16,12 +16,20 @@ CLI messages, diagnostics and reports are in **English**.
 ## Installation (prebuilt binary)
 
 Download the package for your platform from
-[Releases](https://github.com/kotarokikuchi/pdflang/releases) (Linux x64/arm64,
-macOS arm64 — libpdfium is bundled), extract it and run:
+[Releases](https://github.com/kotarokikuchi/pdflang/releases) — Linux x64/arm64,
+macOS arm64 and Windows x64, with pdfium bundled. Extract it and run:
 
 ```bash
 tar -xzf pdfl-*.tar.gz && cd pdfl-*/
 ./pdfl inspect document.pdf
+```
+
+On Windows the package is a `.zip` (extract it in Explorer, or with
+`tar -xf pdfl-*.zip`) and the binary is `pdfl.exe`:
+
+```powershell
+cd pdfl-*-windows-x64
+.\pdfl.exe inspect document.pdf
 ```
 
 ## Quick start (building from source)

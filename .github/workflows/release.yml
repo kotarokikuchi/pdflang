@@ -27,8 +27,13 @@ jobs:
             os: ubuntu-24.04-arm
           - target: macos-arm64
             os: macos-latest
-          - target: macos-x64
-            os: macos-13     # the last Intel image GitHub hosts
+          # macos-latest is Apple Silicon, so the Intel package is cross-built
+          # from it. The Intel-hosted images queue for a long time and are on
+          # their way out; the toolchain cross-compiles to x86_64 natively.
+          - target: macos-amd64
+            os: macos-latest
+            rust_target: x86_64-apple-darwin
+            pdfium_asset: pdfium-mac-x64.tgz
           - target: windows-x64
             os: windows-latest
     runs-on: ${{ matrix.os }}
@@ -45,9 +50,21 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build release
-        run: cargo build --release
+        run: |
+          TGT="${{ matrix.rust_target }}"
+          if [ -n "$TGT" ]; then
+            rustup target add "$TGT"
+            cargo build --release --target "$TGT"
+            echo "BIN=target/$TGT/release/pdfl" >> "$GITHUB_ENV"
+          else
+            cargo build --release
+            echo "BIN=target/release/pdfl" >> "$GITHUB_ENV"
+          fi
 
       - name: Download pdfium
+        # Cross-building needs the library for the target, not for the runner.
+        env:
+          PDFIUM_ASSET: ${{ matrix.pdfium_asset }}
         run: ./setup_pdfium.sh
 
       - name: Package (binary + libpdfium + docs)
@@ -62,7 +79,7 @@ jobs:
           EXE=""
           [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
           mkdir -p "dist/$NAME"
-          cp "target/release/pdfl$EXE" "dist/$NAME/"
+          cp "$BIN$EXE" "dist/$NAME/"
           cp -r pdfium "dist/$NAME/pdfium"
           # Only the shared library and the license texts have to ship. The C
           # headers and the build files are for people compiling against pdfium,
@@ -108,7 +125,7 @@ jobs:
             ROOT="debroot"
             mkdir -p "$ROOT/DEBIAN" "$ROOT/usr/bin" "$ROOT/usr/lib/$TRIPLET" \
                      "$ROOT/usr/share/doc/pdfl" "$ROOT/usr/share/pdfl"
-            cp target/release/pdfl "$ROOT/usr/bin/"
+            cp "$BIN" "$ROOT/usr/bin/"
             cp pdfium/lib/libpdfium.so "$ROOT/usr/lib/$TRIPLET/"
             cp README.md "$ROOT/usr/share/doc/pdfl/"
             cp LICENSE "$ROOT/usr/share/doc/pdfl/copyright"

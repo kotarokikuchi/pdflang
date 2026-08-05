@@ -89,7 +89,7 @@ fix::set_bleed_box(0, 0, 595, 842)
 | `fix::rotate_page([page,] degrees)` | 90/180/270 度回転（ページ省略で全ページ） |
 | `fix::delete_page(n)` | ページを削除 |
 | `fix::duplicate_page(n)` | ページを複製（直後に挿入） |
-| `fix::reorder_pages([...])` | 並べ替え（各ページをちょうど一度ずつ） |
+| `fix::reorder_pages([新しい, 順序])` | 並べ替え（各ページをちょうど一度ずつ） |
 | `fix::split_document(from, to, "out.pdf")` | 範囲を別ファイルに保存 |
 | `fix::merge_documents("other.pdf")` | 別 PDF のページを末尾に追加 |
 

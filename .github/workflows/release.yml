@@ -2,7 +2,10 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    # A tag é a versão nua (0.6.2). O `v*` continua aceito porque a v0.6.1 já
+    # foi publicada assim — sem ele, uma tag antiga não dispararia nada, que é
+    # a falha silenciosa pior de diagnosticar.
+    tags: ["[0-9]*", "v*"]
 
 permissions:
   contents: write
@@ -37,17 +40,19 @@ jobs:
 
       - name: Empacotar (binário + libpdfium + docs)
         run: |
-          # Nome do artefato sem a versão: a URL .../releases/latest/download/
-          # continua válida a cada release, e a documentação não precisa ser
-          # atualizada a cada tag. A versão fica na tag do release e em
-          # `pdfl --version`.
-          NAME="pdfl-${{ matrix.target }}"
-          mkdir -p "dist/pdfl"
-          cp target/release/pdfl "dist/pdfl/"
-          cp -r pdfium "dist/pdfl/pdfium"
-          cp README.md LICENSE "dist/pdfl/"
-          cp -r examples "dist/pdfl/examples"
-          tar -C dist -czf "$NAME.tar.gz" pdfl
+          # A versão vai no nome do artefato e no diretório de dentro, para que
+          # um pacote baixado continue identificável depois de extraído.
+          # Em troca, .../releases/latest/download/<nome> deixa de servir: ele
+          # exige o nome exato. Quem instala em CI usa `gh release download
+          # --pattern 'pdfl-*-<alvo>.tar.gz'` (ver docs/*/12-*.md).
+          VERSION="${GITHUB_REF_NAME#v}"   # tag 0.6.2 ou v0.6.2 dão o mesmo nome
+          NAME="pdfl-${VERSION}-${{ matrix.target }}"
+          mkdir -p "dist/$NAME"
+          cp target/release/pdfl "dist/$NAME/"
+          cp -r pdfium "dist/$NAME/pdfium"
+          cp README.md LICENSE "dist/$NAME/"
+          cp -r examples "dist/$NAME/examples"
+          tar -C dist -czf "$NAME.tar.gz" "$NAME"
           shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" || sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
 
       - name: Publicar no release

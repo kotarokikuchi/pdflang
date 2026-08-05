@@ -336,6 +336,19 @@ Releasing means bumping `version` in `Cargo.toml`, then:
 CI runs the same script with `--check` and fails if the two disagree, so a bump
 that forgets the documentation cannot merge.
 
+## About this project
+
+pdfl is developed by one person, with the code open. **Pull requests are not
+accepted** — please do not spend time on one.
+
+Bug reports and questions are welcome as
+[issues](https://github.com/kotarokikuchi/pdflang/issues): a reproducible bug is
+useful even when nobody else can fix it.
+
+The MIT licence means you can fork this and take it wherever you want, and
+[ROADMAP.md](ROADMAP.md) exists so that a fork inherits the reasoning — what is
+built, what is planned, and what was deliberately left out and why.
+
 ## License
 
 [MIT](LICENSE). The native pdfium library, downloaded by `setup_pdfium.sh` and

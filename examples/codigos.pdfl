@@ -1,0 +1,23 @@
+// codigos.pdfl — codes:: namespace demonstration
+// Usage: pdfl run examples/codigos.pdfl document.pdf
+
+profile "barcode-validation" {
+
+  check "Batch Code" tags: ["codes"] {
+    require codes::detect_barcodes()
+    code = codes::decode_barcode(1)
+    print("Code detected:", codes::get_barcode_type(1), "=", code)
+    assert codes::validate_barcode_checksum(1),
+    "invalid check digit in code #{code}"
+  }
+
+  check "Code Matches the Text" tags: ["codes"] {
+    assert codes::compare_barcode_with_text(),
+    "the barcode content does not appear in the document text"
+  }
+
+  check "EAN-13 Format" tags: ["codes"] {
+    assert codes::validate_barcode_format("^\\d{13}$"),
+    "code in an unexpected format (expected 13 digits)"
+  }
+}

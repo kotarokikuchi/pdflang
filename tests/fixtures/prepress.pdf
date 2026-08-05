@@ -1,0 +1,36 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /TrimBox [8.5 8.5 586.5 833.5] /BleedBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 124 >>
+stream
+1 1 0 0.5 k 100 400 300 300 re f 0.1 w 0 0 0 RG 50 100 m 545 100 l S BT /F1 12 Tf 72 750 Td (Pagina de teste prepress) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Title (Fixture Prepress) >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000296 00000 n 
+0000000366 00000 n 
+0000000541 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R /Info 6 0 R >>
+startxref
+588
+%%EOF

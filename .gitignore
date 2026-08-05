@@ -1,0 +1,10 @@
+/target
+/pdfium/
+
+# Chaves e segredos — jamais versionados.
+*.key
+*.pem
+.env
+
+# Documento interno de especificação — não vai para o repositório público.
+plano.pdf

@@ -1,0 +1,19 @@
+// regioes.pdfl — region type and rule block demonstration
+// Usage: pdfl run examples/regioes.pdfl document.pdf
+
+profile "regions" {
+  check "Text by Region" {
+    // adjust the coordinates to your page size (in points)
+    header = region(0, 600, 467, 66, "header")
+    footer = region(0, 0, 467, 60, "footer")
+    print("header:", text::extract_from_region(3, header).trim())
+    print("footer:", text::extract_from_region(3, footer).trim())
+    print("TAC in the footer region:", prepress::calculate_tac_by_region(3, footer).first(), "%")
+  }
+
+  rule "Numbered Footer" on doc.pages.filter { |p| p.number > 2 } {
+    footer = region(0, 0, 467, 60)
+    content = text::extract_from_region(page.number, footer).trim()
+    assert content != "", "page #{page.number} has nothing in the footer"
+  }
+}

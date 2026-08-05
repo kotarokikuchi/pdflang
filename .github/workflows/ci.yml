@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Testes unitários (sem pdfium)
+        run: cargo test --workspace --verbose
+
+      - name: Build sem warnings
+        run: cargo build
+        env:
+          RUSTFLAGS: -Dwarnings
+
+      - name: Baixar pdfium
+        run: ./setup_pdfium.sh
+
+      - name: Formatação dos exemplos
+        run: |
+          for f in examples/*.pdfl; do
+            ./target/debug/pdfl fmt "$f" --check
+          done
+
+      - name: Smoke e2e
+        run: |
+          # script de barcode passa (exit 0)
+          ./target/debug/pdfl run examples/codigos.pdfl tests/fixtures/barcode.pdf --output json > /dev/null
+          # inspect roda
+          ./target/debug/pdfl inspect tests/fixtures/prepress.pdf
+          # validação com falha esperada (exit 2)
+          ec=0
+          ./target/debug/pdfl run examples/exemplo.pdfl tests/fixtures/minimal.pdf --output json > /dev/null || ec=$?
+          test "$ec" -eq 2
+          # determinismo do relatório
+          ./target/debug/pdfl run examples/imagens.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r1.json || true
+          ./target/debug/pdfl run examples/imagens.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r2.json || true
+          cmp /tmp/r1.json /tmp/r2.json

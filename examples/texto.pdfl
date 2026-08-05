@@ -1,0 +1,26 @@
+// texto.pdfl — text:: namespace demonstration
+// Usage: pdfl run examples/texto.pdfl document.pdf
+
+profile "text-validation" {
+
+  check "Required Content" tags: ["text"] {
+    require text::count_words() > 0
+    assert text::require_text("mundo"), "word 'mundo' not found in the document"
+    assert text::forbid_text("confidential"), "document contains the forbidden term 'confidential'"
+  }
+
+  check "Patterns" tags: ["text"] {
+    // dates in dd/mm/yyyy format are forbidden in this example
+    assert text::forbid_match("\\d{2}/\\d{2}/\\d{4}"), "document contains a date in a forbidden format"
+  }
+
+  check "Personal Data" tags: ["pii"] {
+    found = text::detect_personal_data()
+    assert found.length == 0, "personal data found: #{found.join(", ")}"
+  }
+
+  check "Language" tags: ["text"] {
+    language = text::detect_language()
+    assert language != "unknown", "could not detect the document language"
+  }
+}

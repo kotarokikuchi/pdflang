@@ -1,0 +1,28 @@
+// imagens.pdfl — visual:: namespace demonstration
+// Usage: pdfl run examples/imagens.pdfl document.pdf
+
+profile "image-validation" {
+
+  const MIN_DPI = 300
+
+  check "Inventory" tags: ["images"] {
+    require visual::detect_images()
+    print("Images found:", visual::count_images())
+    print("Color spaces:", visual::detect_image_color_space().join(", "))
+  }
+
+  check "Minimum Resolution" tags: ["images", "prepress"] {
+    doc.images.each { |img|
+      assert img.dpi >= MIN_DPI,
+      "Image #{img.width}x#{img.height}px on page #{img.page_number} at #{img.dpi} DPI (minimum #{MIN_DPI})"
+    }
+  }
+
+  check "Color Mode" tags: ["prepress"] {
+    // for offset printing, RGB images need conversion
+    doc.images.each { |img|
+      assert img.color_space != "DeviceRGB",
+      "RGB image on page #{img.page_number} — convert to CMYK before printing"
+    }
+  }
+}

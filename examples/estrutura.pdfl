@@ -1,0 +1,27 @@
+// estrutura.pdfl — struct:: namespace demonstration
+// Usage: pdfl run examples/estrutura.pdfl document.pdf
+
+profile "structure-validation" {
+
+  check "Required Metadata" tags: ["metadata"] {
+    assert struct::get_title() != "", "PDF has no title in its metadata"
+    assert struct::get_creation_date() != "", "PDF has no creation date"
+    print("Metadata found:", struct::list_metadata_entries().join("; "))
+  }
+
+  check "File Size" tags: ["structure"] {
+    // files above 1 MB per page suggest bloat
+    assert !struct::detect_file_bloat(1024),
+    "bloated file: #{struct::file_size() / 1024} KB for #{doc.page_count} page(s)"
+  }
+
+  check "Content" tags: ["structure"] {
+    require struct::count_objects() > 0
+  }
+
+  check "Traceability" tags: ["audit"] {
+    // the hash goes into the report for the audit trail
+    print("SHA-256:", struct::calculate_sha256())
+    require struct::calculate_sha256().length == 64
+  }
+}

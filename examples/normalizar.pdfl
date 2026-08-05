@@ -1,0 +1,19 @@
+// normalizar.pdfl — fix:: namespace demonstration
+// Usage: pdfl fix document.pdf examples/normalizar.pdfl --output fixed.pdf
+
+profile "basic-normalization" {
+
+  // Boxes for A4 printing with 8.5pt (~3mm) of bleed
+  fix::set_trim_box(8.5, 8.5, 586.5, 833.5)
+  fix::set_bleed_box(0, 0, 595, 842)
+
+  // Duplicates the cover and numbers the pages
+  fix::duplicate_page(1)
+  fix::add_page_numbers()
+  fix::add_watermark("DRAFT")
+
+  // A check can validate the document BEFORE the fixes
+  check "Preconditions" {
+    require doc.page_count > 0
+  }
+}

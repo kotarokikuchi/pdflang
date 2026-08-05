@@ -1,0 +1,39 @@
+// prepress.pdfl — prepress:: namespace demonstration
+// Usage: pdfl run examples/prepress.pdfl document.pdf
+
+profile "offset-prepress" {
+
+  const TAC_LIMIT = 300%
+  const BLEED = 3mm
+
+  check "Ink Coverage" tags: ["prepress"] {
+    doc.pages.each { |page|
+      assert prepress::calculate_tac(page) <= TAC_LIMIT,
+      "Page #{page.number}: TAC #{page.tac} above the limit of #{TAC_LIMIT}%"
+    }
+    print("Average ink coverage:", prepress::calculate_ink_coverage(), "%")
+  }
+
+  check "Thin Lines" tags: ["prepress"] {
+    assert !prepress::detect_hairlines(0.25),
+    "hairline detected (strokes below 0.25pt disappear in print)"
+  }
+
+  check "Fonts" tags: ["fonts"] {
+    assert prepress::validate_font_embedding(),
+    "fonts not embedded: #{doc.fonts.filter { |f| !f.is_embedded }.map { |f| f.name }.join(", ")}"
+  }
+
+  check "Boxes and Bleed" tags: ["prepress", "boxes"] {
+    require prepress::validate_trim_box()
+    require prepress::validate_bleed_box()
+    assert prepress::check_page_geometry(BLEED),
+    "bleed smaller than 3mm on some page"
+  }
+
+  check "Color Mode" tags: ["prepress"] {
+    mode = prepress::detect_color_mode()
+    assert mode != "RGB" && mode != "Mixed",
+    "document contains RGB images (detected mode: #{mode})"
+  }
+}

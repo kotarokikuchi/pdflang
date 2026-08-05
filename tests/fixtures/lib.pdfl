@@ -1,0 +1,6 @@
+// biblioteca compartilhada de validações
+function pagina_a4(page) {
+  abs(page.width - 595.0) < 5.0 && abs(page.height - 842.0) < 5.0
+}
+
+const VERSAO_LIB = "1.0"

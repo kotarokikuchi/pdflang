@@ -1,0 +1,321 @@
+# 11. سطر الأوامر
+
+[← المكتبة القياسية](10-stdlib.md) · [الفهرس](README.md) · [التالي: وصفات عملية →](12-recipes.md)
+
+عشرة أوامر: أربعة لملفات PDF، وأربعة للنصوص البرمجية، واثنان للتوزيع.
+
+| الأمر | الغرض |
+|---|---|
+| [`run`](#pdfl-run) | يدقّق ملف PDF بنص برمجي |
+| [`compare`](#pdfl-compare) | يقارن نسختين |
+| [`watch`](#pdfl-watch) | يراقب مجلدًا ويدقّق ما يصل إليه |
+| [`fix`](#pdfl-fix) | يطبّق تعديلات ويحفظ ملف PDF جديدًا |
+| [`inspect`](#pdfl-inspect) | نظرة سريعة على ملف PDF |
+| [`lint`](#pdfl-lint) | يحلّل نصًا برمجيًا دون تنفيذه |
+| [`fmt`](#pdfl-fmt) | ينسّق نصًا برمجيًا |
+| [`doc`](#pdfl-doc) | يولّد توثيق نص برمجي |
+| [`pack`](#pdfl-pack) | يحزم الملفات التعريفية والبيانات |
+| [`add`](#pdfl-add) | يثبّت حزمة |
+
+---
+
+## رموز الخروج
+
+مشتركة بين كل الأوامر التي تدقّق.
+
+| الرمز | المعنى |
+|---|---|
+| `0` | نجح كل شيء |
+| `1` | تحذيرات فقط |
+| `2` | أخطاء تدقيق، أو تعذّرت قراءة ملف PDF |
+| `3` | خطأ نحوي في النص البرمجي |
+
+```bash
+pdfl run profile.pdfl file.pdf > report.json
+case $? in
+  0) echo "approved" ;;
+  1) echo "approved with warnings" ;;
+  2) echo "rejected — see report.json" ;;
+  3) echo "error in the validation script" ;;
+esac
+```
+
+---
+
+## `pdfl run`
+
+يدقّق ملف PDF بنص برمجي.
+
+```bash
+pdfl run <script.pdfl> <input.pdf> [options]
+```
+
+| الخيار | الافتراضي | الغرض |
+|---|---|---|
+| `--output json\|csv\|html\|pdf` | `json` | صيغة التقرير |
+| `--output-file <file>` | — | يكتب في ملف بدل المخرج القياسي |
+| `--fail-on error\|warning` | `error` | مع `warning` يعطي التحذير أيضًا الرمز 2 |
+| `--verbose` | — | معلومات إضافية على مخرج الأخطاء |
+
+```bash
+pdfl run prepress.pdfl magazine.pdf                                    # JSON في الطرفية
+pdfl run prepress.pdfl magazine.pdf --output html --output-file report.html
+pdfl run prepress.pdfl magazine.pdf --output pdf --output-file report.pdf
+pdfl run prepress.pdfl magazine.pdf --output csv --output-file findings.csv
+pdfl run prepress.pdfl magazine.pdf --fail-on warning                  # الوضع الصارم
+```
+
+### تقرير JSON
+
+```json
+{
+  "script_name": "prepress.pdfl",
+  "input_file": "magazine.pdf",
+  "profile": "offset-magazine",
+  "status": "FAIL",
+  "total_pages_analyzed": 120,
+  "error_count": 2,
+  "warning_count": 0,
+  "info_count": 0,
+  "diagnostics": [
+    {
+      "id": "PDFL-001",
+      "severity": "error",
+      "check_name": "Ink coverage",
+      "message": "page 7: 324% ink (limit 300%)",
+      "line": 12
+    }
+  ]
+}
+```
+
+ملف PDF نفسه مع النص البرمجي نفسه يعطي دائمًا **تقريرًا متطابقًا بايتًا بايت**:
+يمكن حفظه في نظام الإصدارات ومقارنة الفروق في التكامل المستمر.
+
+---
+
+## `pdfl compare`
+
+يقارن نسختين: النص والبنية والبيانات الوصفية.
+
+```bash
+pdfl compare <v1.pdf> <v2.pdf> [options]
+```
+
+| الخيار | الافتراضي | الغرض |
+|---|---|---|
+| `--output json\|csv\|html\|pdf` | `json` | الصيغة |
+| `--output-file <file>` | — | يكتب في ملف |
+| `--normalize` | — | يتجاهل حالة الأحرف والمسافات |
+| `--ignore-dates` | — | يحجب التواريخ قبل المقارنة |
+| `--similarity-threshold <0-100>` | `100` | أدنى تشابه مقبول |
+
+```bash
+pdfl compare approved_v1.pdf new_v2.pdf --normalize --ignore-dates
+
+# يسمح بفارق حتى 1 %، وما دونه خطأ
+pdfl compare v1.pdf v2.pdf --similarity-threshold 99 \
+  --output html --output-file diff.html
+```
+
+### كيف يعمل
+
+- تُحاذى الصفحات **بالمحتوى** لا بالرقم: فإدراج صفحة في الوسط لا يجعل كل ما
+  بعدها فروقًا. ويعمل على مستندات تتجاوز ألف صفحة.
+- يحصل كل زوج على درجة تشابه وعيّنة من الأسطر المتغيرة (`-` محذوف، `+` مضاف).
+- تغيّر البيانات الوصفية **تحذير**؛ وتغيّر النص دون العتبة **خطأ**، وفوقها
+  **تحذير**.
+- الدرجة الإجمالية في الحقل `similarity` من التقرير.
+
+```
+page 4 → 4: similarity 97.8% | -original title | +revised title
+```
+
+---
+
+## `pdfl watch`
+
+يراقب مجلدًا ويدقّق كل ملف PDF يصل أو يتغيّر.
+
+```bash
+pdfl watch <folder> --script <script.pdfl> [options]
+```
+
+| الخيار | الافتراضي | الغرض |
+|---|---|---|
+| `--pattern <glob>` | `*.pdf` | أي الملفات تُعالَج |
+| `--exclude <glob>` | — | أيها يُستثنى |
+| `--output-dir <folder>` | بجوار ملف PDF | أين تُكتب التقارير |
+| `--depth <n>` | `1` | عمق المجلدات الفرعية |
+| `--debounce <ms>` | `1000` | انتظار استقرار الملف |
+| `--report json\|csv\|html\|pdf` | `json` | صيغة التقارير |
+| `--fail-fast` | — | يتوقف عند أول خطأ |
+| `--once` | — | يعالج الموجود ثم يخرج |
+
+```bash
+# مجلد استلام في مطبعة، بلا انقطاع
+pdfl watch inbox/ --script preflight.pdfl --output-dir reports/ --report html
+
+# تشغيل دفعي للتكامل المستمر: يخرج بأسوأ رمز صادفه
+pdfl watch inbox/ --script preflight.pdfl --once
+echo "result: $?"
+```
+
+الـ **debounce** موجود لأن الملفات الكبيرة تصل قطعًا: فلا يُعالَج إلا ملف كفّ
+عن التغيّر، وبذلك لا يُقرأ ملف PDF نصف مكتوب.
+
+تُكتب التقارير باسم `<name>.report.json` (أو `.csv` أو `.html` أو `.pdf`).
+
+---
+
+## `pdfl fix`
+
+يطبّق عمليات `fix::` ويحفظ ملف PDF جديدًا. التفاصيل في [الفصل 8](08-fix.md).
+
+```bash
+pdfl fix original.pdf normalize.pdfl --output out.pdf --dry-run  # للمعاينة فقط
+pdfl fix original.pdf normalize.pdfl --output fixed.pdf          # للتطبيق
+```
+
+---
+
+## `pdfl inspect`
+
+نظرة عامة على ملف PDF بلا نص برمجي.
+
+```bash
+pdfl inspect <file.pdf>
+```
+
+```
+File:     magazine.pdf
+Size:     26 KB (27284713 bytes)
+SHA-256:  af1029842e5bfeae338ead82fb449ef851be742b1d63117c12596e3ea123a616
+
+Pages:    120
+Page size: 496 x 709 pt
+Boxes:    MediaBox, TrimBox, BleedBox
+
+Metadata:
+  Title: Example Magazine
+  Creator: Adobe InDesign 19.3
+
+Fonts:    26
+  ABCDEF+Helvetica — embedded
+  Arial — NOT embedded
+Images:   81 (minimum DPI 136, spaces: DeviceCMYK, Indexed)
+Max. estimated TAC: 300% (RGB render approximation)
+
+Warnings:
+  ! there are non-embedded fonts
+  ! 3 image(s) below 300 DPI
+```
+
+أول أمر يُشغَّل عند وصول ملف جديد: في ثوانٍ تعرف هل يستحق الفتح.
+
+---
+
+## `pdfl lint`
+
+يحلّل نصًا برمجيًا دون تنفيذه ويبلّغ عن مشكلات الجودة.
+
+```bash
+pdfl lint <script.pdfl>
+```
+
+ما يكشفه:
+
+- المتغيرات ومعاملات الكتل والدوال المصرَّح بها و**غير المستعملة قط**
+  (سبقها بـ `_` لكتم التحذير: `_page`)
+- الفحوص **المكرّرة** أو **الفارغة**
+- فضاءات الأسماء غير المعروفة (`text::` و`struct::` و`visual::` و`prepress::`
+  و`codes::` و`fix::` و`data::`)
+- `assert` / `require` خارج أي فحص
+- استعمال `fix::` (وهو لا يعمل إلا مع `pdfl fix`)
+
+```bash
+$ pdfl lint profile.pdfl
+profile.pdfl: warning: variable 'LIMIT' declared and never used
+profile.pdfl: warning: check "Fonts" declared 2 times
+```
+
+وعند وجود تحذيرات يكون رمز الخروج `1` — صالح للتكامل المستمر.
+
+---
+
+## `pdfl fmt`
+
+ينسّق النص البرمجي: إزاحة بمسافتين، ومسافات متسقة، وضغط الأسطر الفارغة.
+وتبقى التعليقات والوحدات (`3mm` تظل `3mm`) كما هي.
+
+```bash
+pdfl fmt <script.pdfl>            # ينسّق في مكانه
+pdfl fmt <script.pdfl> --check    # لا يغيّر شيئًا؛ الرمز 1 إن لم يكن منسَّقًا
+```
+
+```bash
+# فرض معيار الفريق في التكامل المستمر
+for f in profiles/*.pdfl; do pdfl fmt "$f" --check || exit 1; done
+```
+
+---
+
+## `pdfl doc`
+
+يولّد التوثيق من النص البرمجي نفسه.
+
+```bash
+pdfl doc <script.pdfl> [--output markdown|html]
+```
+
+ويُخرج: الملف التعريفي، وجدول الثوابت، والدوال، والاستيرادات، ولكل فحص وسومه
+وما يدقّقه (رسائل `assert` تصير الأوصاف).
+
+```bash
+pdfl doc prepress.pdfl > docs/prepress-profile.md
+pdfl doc prepress.pdfl --output html > profile.html
+```
+
+وهو المُخرَج الذي يشرح لمسؤول الإنتاج الذي لا يقرأ الشيفرة ما الذي يدقّقه الملف
+التعريفي.
+
+---
+
+## `pdfl pack`
+
+يحزم النصوص البرمجية والبيانات في ملف `.pdflpkg` قابل للتوزيع.
+
+```bash
+pdfl pack <folder> [--name <name>] [--version <version>] [--output <file>]
+```
+
+يجمع تكراريًا ملفات `.pdfl` و`.csv` و`.txt` و`.json` و`.xlsx` من المجلد، ويرفق
+`manifest.json` يسجّل بصمة SHA-256 لكل ملف. والحزم حتمي: المجلد نفسه يُنتج
+البايتات نفسها.
+
+```bash
+pdfl pack profiles/print-shop --name print-profile --version 1.0.0
+```
+
+---
+
+## `pdfl add`
+
+يثبّت حزمة محلية مع التحقق من بصمات البيان.
+
+```bash
+pdfl add print-profile.pdflpkg
+# يثبّت في ./pdfl_profiles/print-profile@1.0.0/
+
+pdfl run pdfl_profiles/print-profile@1.0.0/prepress.pdfl file.pdf
+```
+
+وإن لم تطابق بصمة أي ملف ما هو مسجَّل **رُفض التثبيت** — فالحزمة التالفة أو
+المعبوث بها لا تدخل.
+
+> المستودعات البعيدة والتواقيع الرقمية ليست ضمن هذا الإصدار: `add` يثبّت من ملف
+> محلي.
+
+---
+
+[← المكتبة القياسية](10-stdlib.md) · [الفهرس](README.md) · [التالي: وصفات عملية →](12-recipes.md)

@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+          - target: linux-arm64
+            os: ubuntu-24.04-arm
+          - target: macos-arm64
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Baixar pdfium
+        run: ./setup_pdfium.sh
+
+      - name: Empacotar (binário + libpdfium + docs)
+        run: |
+          # Nome do artefato sem a versão: a URL .../releases/latest/download/
+          # continua válida a cada release, e a documentação não precisa ser
+          # atualizada a cada tag. A versão fica na tag do release e em
+          # `pdfl --version`.
+          NAME="pdfl-${{ matrix.target }}"
+          mkdir -p "dist/pdfl"
+          cp target/release/pdfl "dist/pdfl/"
+          cp -r pdfium "dist/pdfl/pdfium"
+          cp README.md LICENSE "dist/pdfl/"
+          cp -r examples "dist/pdfl/examples"
+          tar -C dist -czf "$NAME.tar.gz" pdfl
+          shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" || sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
+
+      - name: Publicar no release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.tar.gz
+            *.tar.gz.sha256
+          generate_release_notes: true

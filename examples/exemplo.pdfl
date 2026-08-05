@@ -1,0 +1,37 @@
+// exemplo.pdfl — basic PDF validation
+// Usage: pdfl run examples/exemplo.pdfl document.pdf --output json
+
+profile "basic-validation" {
+
+  const A4_WIDTH = 595.0
+  const A4_HEIGHT = 842.0
+  const TOLERANCE = 5.0
+
+  check "Structure" tags: ["basic"] {
+    require doc.page_count > 0
+  }
+
+  check "Metadata" tags: ["metadata"] {
+    assert doc.title != "", "PDF has no title in its metadata"
+    assert doc.author != "", "PDF has no author in its metadata"
+  }
+
+  check "Embedded Fonts" tags: ["fonts"] {
+    doc.fonts.each { |font|
+      assert font.is_embedded, "Font #{font.name} is not embedded"
+    }
+  }
+
+  check "Text Present" tags: ["text"] {
+    assert doc.extract_text().trim().length > 0, "PDF has no text (blank pages?)"
+  }
+
+  check "A4 Dimensions" tags: ["basic"] {
+    doc.pages.each { |page|
+      assert abs(page.width - A4_WIDTH) < TOLERANCE,
+      "Page #{page.number}: width #{page.width}pt outside A4"
+      assert abs(page.height - A4_HEIGHT) < TOLERANCE,
+      "Page #{page.number}: height #{page.height}pt outside A4"
+    }
+  }
+}

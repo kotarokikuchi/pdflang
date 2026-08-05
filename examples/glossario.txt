@@ -1,0 +1,4 @@
+# Terms that must appear in the document
+Ola
+mundo
+Total Warranty

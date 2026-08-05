@@ -285,9 +285,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # token automático do Actions, nada a configurar
         run: |
           gh release download --repo kotarokikuchi/pdflang \
-            --pattern 'pdfl-*-linux-x64.tar.gz'
-          mkdir pdfl && tar xzf pdfl-*-linux-x64.tar.gz --strip-components=1 -C pdfl
-          echo "$PWD/pdfl" >> $GITHUB_PATH
+            --pattern 'pdfl_*_amd64.deb'
+          sudo dpkg -i pdfl_*_amd64.deb
 
       - name: Conferir os próprios scripts
         run: |

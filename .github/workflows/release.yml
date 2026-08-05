@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: linux-x64
+          - target: linux-amd64
             os: ubuntu-latest
           - target: linux-arm64
             os: ubuntu-24.04-arm
@@ -34,7 +34,7 @@ jobs:
             os: macos-latest
             rust_target: x86_64-apple-darwin
             pdfium_asset: pdfium-mac-x64.tgz
-          - target: windows-x64
+          - target: windows-amd64
             os: windows-latest
     runs-on: ${{ matrix.os }}
     # bash on every runner: the Windows one defaults to PowerShell, and both
@@ -67,14 +67,11 @@ jobs:
           PDFIUM_ASSET: ${{ matrix.pdfium_asset }}
         run: ./setup_pdfium.sh
 
-      - name: Package (binary + libpdfium + docs)
+      - name: Stage the payload (binary + libpdfium + docs)
         run: |
-          # The version goes in the artifact's name and in the directory inside
-          # it, so a downloaded package stays identifiable after extraction.
-          # In exchange, .../releases/latest/download/<name> no longer works: it
-          # needs the exact name. CI installs use `gh release download
-          # --pattern 'pdfl-*-<target>.*'` (see docs/*/12-*.md).
-          VERSION="${GITHUB_REF_NAME#v}"   # tags 0.7.0 and v0.7.0 give the same name
+          # This tree is not published on its own: it is what the .deb, .dmg and
+          # the Windows installers are each built from. Only installers ship.
+          VERSION="${GITHUB_REF_NAME#v}"   # tags 0.9.0 and v0.9.0 give the same name
           NAME="pdfl-${VERSION}-${{ matrix.target }}"
           EXE=""
           [ "$RUNNER_OS" = "Windows" ] && EXE=".exe"
@@ -93,20 +90,9 @@ jobs:
           [ "$RUNNER_OS" = "Windows" ] && rm -rf "dist/$NAME/pdfium/lib"
           cp README.md LICENSE "dist/$NAME/"
           cp -r examples "dist/$NAME/examples"
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            # zip, not tar.gz: Explorer opens it without extra tools. 7z ships
-            # on the runner; Git Bash has no zip(1). Run it from inside dist/ so
-            # the archive root is $NAME, matching the tar branch.
-            (cd dist && 7z a -tzip "../$NAME.zip" "$NAME") > /dev/null
-            sha256sum "$NAME.zip" > "$NAME.zip.sha256"
-          else
-            tar -C dist -czf "$NAME.tar.gz" "$NAME"
-            shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" || sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
-          fi
 
-      # The archives above stay: the CI recipes in docs/*/12-*.md install from
-      # them, and they need no privileges. What follows is the installable form
-      # of the same build, one per platform.
+      # The only published artifacts. CI installs from the .deb (see
+      # docs/*/12-*.md), which is why the Linux job matters beyond desktops.
       - name: Installer (.deb / .dmg / .exe)
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -191,10 +177,6 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            *.tar.gz
-            *.tar.gz.sha256
-            *.zip
-            *.zip.sha256
             *.deb
             *.deb.sha256
             *.dmg

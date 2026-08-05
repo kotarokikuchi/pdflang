@@ -15,20 +15,15 @@ CLI messages, diagnostics and reports are in **English**.
 
 ## Installation
 
-Every [release](https://github.com/kotarokikuchi/pdflang/releases) ships two
-forms of the same build for each platform: an **installer**, which puts `pdfl`
-on your `PATH`, and a **portable archive**, which needs no privileges and is
-what CI should use. pdfium is bundled in both.
+Every [release](https://github.com/kotarokikuchi/pdflang/releases) ships an
+installer per platform, with pdfium bundled. Each asset has a matching
+`.sha256`.
 
-| Platform | Installer | Portable archive |
-|---|---|---|
-| Linux x64 / arm64 | `pdfl_<version>_amd64.deb` · `_arm64.deb` | `pdfl-<version>-linux-{x64,arm64}.tar.gz` |
-| macOS Intel / Apple Silicon | `pdfl-<version>-macos-{amd64,arm64}.dmg` | `pdfl-<version>-macos-{amd64,arm64}.tar.gz` |
-| Windows x64 | `pdfl-<version>-windows-x64-setup.exe` · `.msi` | `pdfl-<version>-windows-x64.zip` |
-
-Every asset has a matching `.sha256`.
-
-### Installers
+| Platform | Installer |
+|---|---|
+| Linux amd64 / arm64 | `pdfl_<version>_amd64.deb` · `pdfl_<version>_arm64.deb` |
+| macOS Intel / Apple Silicon | `pdfl-<version>-macos-amd64.dmg` · `-arm64.dmg` |
+| Windows amd64 | `pdfl-<version>-windows-amd64-setup.exe` · `.msi` |
 
 ```bash
 # Debian, Ubuntu and derivatives
@@ -45,27 +40,15 @@ For unattended Windows deployment — Group Policy, Intune, or a scripted rollou
 system `PATH`:
 
 ```powershell
-msiexec /i pdfl-<version>-windows-x64.msi /qn
+msiexec /i pdfl-<version>-windows-amd64.msi /qn
 ```
 
 > The macOS and Windows installers are unsigned, so Gatekeeper and SmartScreen
 > will warn on first run. On macOS, right-click → Open; on Windows, "More info"
 > → "Run anyway".
 
-### Portable archives
-
-```bash
-tar -xzf pdfl-*.tar.gz && cd pdfl-*/
-./pdfl inspect document.pdf
-```
-
-On Windows the archive is a `.zip` (extract it in Explorer, or with
-`tar -xf pdfl-*.zip`) and the binary is `pdfl.exe`:
-
-```powershell
-cd pdfl-*-windows-x64
-.\pdfl.exe inspect document.pdf
-```
+In CI, install from the `.deb` — that is what the recipes in the documentation
+do. On any other platform, or to avoid installing at all, build from source.
 
 ## Quick start (building from source)
 

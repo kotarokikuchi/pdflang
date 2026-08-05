@@ -1,6 +1,6 @@
 [package]
 name = "pdfl"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2021"
 description = "Interpreter for the PDFLang language (.pdfl), for validating PDFs"
 license = "MIT"

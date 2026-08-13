@@ -17,12 +17,19 @@
   标签就会运行。
 - `inspect` 与 `lint` 的 `--json`，以及 `doc` 的 `--output json`。所有子命令
   都可被程序读取了。
+- `--output sarif` 与 `--output junit`，凡是可以选择报告格式的地方都支持——`run`、
+  `compare`、`watch` 和 `fix`。SARIF 是 GitHub code scanning 读的格式，JUnit 是
+  任何 CI 的测试面板读的格式。
 
 ### 需要留意
 
 - 没有任何 check 携带的标签会**报错**，而不是空通过。否则标签拼错的流水线将
   什么都不校验，却报告文件干净。
 - `rule` 不带标签，因此 `--tags` 会跳过它——这与不带标签的 check 是同一个答案。
+- JSON 报告新增 `checks_run`，即运行过的 check 与 rule。它不提升
+  `schema_version`，因为忽略未知字段的读取方不会因此出错。JUnit 需要它：诊断只
+  会点到有所发现的 check，而一次干净的运行若报告为零个测试，CI 会认为这次运行
+  从未发生。
 
 ---
 

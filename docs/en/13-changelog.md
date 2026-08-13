@@ -18,6 +18,9 @@ quietly.
   when it carries any of the tags given.
 - `--json` on `inspect` and `lint`, and `--output json` on `doc`. Every
   subcommand can now be read by a program.
+- `--output sarif` and `--output junit`, wherever a report format is chosen —
+  `run`, `compare`, `watch` and `fix`. SARIF is what GitHub code scanning reads;
+  JUnit is what the test panel of any CI reads.
 
 ### Worth knowing
 
@@ -26,6 +29,11 @@ quietly.
   report a clean file.
 - A `rule` carries no tags, so `--tags` skips it — the same answer an untagged
   check gets.
+- The JSON report gained `checks_run`, the checks and rules that ran. It does
+  not bump `schema_version`, because a reader that ignores unknown fields
+  survives it. JUnit needs it: the diagnostics only name the checks that found
+  something, and a clean run reported as zero tests is a run a CI thinks never
+  happened.
 
 ---
 

@@ -53,7 +53,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 
 | 选项 | 默认 | 功能 |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | 报告格式 |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | 报告格式 |
 | `--output-file <file>` | — | 写入文件而非标准输出 |
 | `--fail-on error\|warning` | `error` | 设为 `warning` 时警告也退出码 2 |
 | `--verbose` | — | 标准错误输出附加信息 |
@@ -72,6 +72,7 @@ pdfl run prepress.pdfl magazine.pdf --fail-on warning                  # 严格�
 
 ```json
 {
+  "schema_version": 1,
   "script_name": "prepress.pdfl",
   "input_file": "magazine.pdf",
   "profile": "offset-magazine",
@@ -88,12 +89,48 @@ pdfl run prepress.pdfl magazine.pdf --fail-on warning                  # 严格�
       "message": "page 7: 324% ink (limit 300%)",
       "line": 12
     }
-  ]
+  ],
+  "checks_run": ["Ink coverage", "Fonts", "Bleed"]
 }
 ```
 
 同一个 PDF 配同一个脚本，总是产生**逐字节相同的报告**，可用于版本管理和
 CI 中的差异比对。
+
+`schema_version` 是第一个键，消费方可以先据此分支，再去解析其余内容。它仅在读取
+旧输出的一方会被破坏时才提升；新增字段不会提升它。
+
+### SARIF 与 JUnit
+
+再加两种格式，让结果出现在团队本来就会看的地方，而不是无人打开的日志里。
+
+```bash
+# GitHub code scanning：发现会成为拉取请求上的注释
+pdfl run prepress.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+
+# 任何 CI 的测试面板：每个 check 一个测试，通过的也算
+pdfl run prepress.pdfl magazine.pdf --output junit --output-file pdfl.xml
+```
+
+在 SARIF 中，发现锚定在**脚本**上，而不是 PDF 上：我们知道的行号是 check 的行号，
+而 PDF 通常是流经 CI 的产物，并不是仓库里的文件——指向它只会在一个不存在的路径上
+加注释。受检文件放在 `properties.inputFile` 里，诊断标识符放在
+`partialFingerprints` 里，正是后者让 GitHub 认得出自己已经见过的发现，而不是每次
+运行都重新开一条。
+
+在 JUnit 中，每个运行过的 check 都是一个测试用例，包括那些什么都没发现的。只列出
+失败的格式会把一次干净的运行报告成零个测试，而 CI 会把它读作从未发生的运行。
+`info` 级别的发现不会让用例失败，它写入 `<system-out>`。
+
+```yaml
+- name: Preflight
+  run: pdfl run prepress.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+  # 退出码 2 表示文件被拒，但上传仍然要进行
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: pdfl.sarif
+```
 
 ---
 
@@ -107,7 +144,7 @@ pdfl compare <v1.pdf> <v2.pdf> [options]
 
 | 选项 | 默认 | 功能 |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | 格式 |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | 格式 |
 | `--output-file <file>` | — | 写入文件 |
 | `--normalize` | — | 忽略大小写和空白 |
 | `--ignore-dates` | — | 比较前遮蔽日期 |
@@ -150,7 +187,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--output-dir <folder>` | 与 PDF 同目录 | 报告输出位置 |
 | `--depth <n>` | `1` | 子目录深度 |
 | `--debounce <ms>` | `1000` | 等待文件稳定的时间 |
-| `--report json\|csv\|html\|pdf` | `json` | 报告格式 |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | 报告格式 |
 | `--fail-fast` | — | 遇到第一个错误即停止 |
 | `--once` | — | 处理现有文件后退出 |
 

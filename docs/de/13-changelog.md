@@ -18,6 +18,9 @@ nichts stillschweigend.
   läuft, wenn er einen der angegebenen Tags trägt.
 - `--json` bei `inspect` und `lint`, `--output json` bei `doc`. Jeder
   Unterbefehl ist nun maschinell lesbar.
+- `--output sarif` und `--output junit`, überall wo ein Berichtsformat gewählt
+  wird — `run`, `compare`, `watch` und `fix`. SARIF liest GitHub code scanning;
+  JUnit liest das Test-Panel jeder CI.
 
 ### Wissenswert
 
@@ -26,6 +29,11 @@ nichts stillschweigend.
   melden.
 - Eine `rule` trägt keine Tags, `--tags` überspringt sie also — dieselbe Antwort
   wie für einen Check ohne Tag.
+- Der JSON-Bericht hat `checks_run` bekommen: die Checks und Rules, die gelaufen
+  sind. Das hebt `schema_version` nicht an, denn ein Leser, der unbekannte
+  Felder ignoriert, übersteht es. JUnit braucht es: die Diagnosen nennen nur die
+  Checks, die etwas gefunden haben, und ein sauberer Lauf, der als null Tests
+  gemeldet wird, ist für eine CI ein Lauf, der nie stattfand.
 
 ---
 

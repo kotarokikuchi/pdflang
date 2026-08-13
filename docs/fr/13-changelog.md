@@ -18,6 +18,9 @@ adapter. Rien ne change ici en silence.
   s'exécute s'il porte l'un des tags donnés.
 - `--json` sur `inspect` et `lint`, `--output json` sur `doc`. Chaque
   sous-commande est désormais lisible par un programme.
+- `--output sarif` et `--output junit`, partout où l'on choisit un format de
+  rapport — `run`, `compare`, `watch` et `fix`. SARIF est ce que lit GitHub code
+  scanning ; JUnit, ce que lit le panneau de tests de n'importe quelle CI.
 
 ### Bon à savoir
 
@@ -26,6 +29,11 @@ adapter. Rien ne change ici en silence.
   et annoncerait un fichier propre.
 - Une `rule` ne porte pas de tags, donc `--tags` la saute — la même réponse
   qu'un check sans tag.
+- Le rapport JSON gagne `checks_run`, les checks et rules qui se sont exécutés.
+  Cela n'augmente pas `schema_version` : un lecteur qui ignore les champs
+  inconnus y survit. JUnit en a besoin — les diagnostics ne nomment que les
+  checks ayant trouvé quelque chose, et une exécution propre annoncée comme zéro
+  test est, pour une CI, une exécution qui n'a jamais eu lieu.
 
 ---
 

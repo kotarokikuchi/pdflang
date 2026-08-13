@@ -68,6 +68,11 @@ pub struct Report {
     pub warning_count: usize,
     pub info_count: usize,
     pub diagnostics: Vec<Diagnostic>,
+    /// The checks and rules that ran, in order. The diagnostics only name the
+    /// ones that found something, so without this a format that counts tests
+    /// cannot tell a clean run from an empty one.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub checks_run: Vec<String>,
     /// Applied fix:: operations (the `pdfl fix` command).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub fixes: Vec<String>,
@@ -99,6 +104,7 @@ impl Report {
             warning_count,
             info_count,
             diagnostics,
+            checks_run: Vec::new(),
             fixes: Vec::new(),
             similarity: None,
         }
@@ -239,6 +245,172 @@ th {{ background: #f5f5f5; }}
             pages = self.total_pages_analyzed,
         )
     }
+}
+
+// ---- SARIF and JUnit ----
+
+impl Report {
+    fn severity_label(severity: &Severity) -> &'static str {
+        match severity {
+            Severity::Error => "error",
+            Severity::Warning => "warning",
+            Severity::Info => "info",
+        }
+    }
+
+    /// SARIF 2.1.0, the format GitHub code scanning reads.
+    ///
+    /// A result is anchored on the script, not on the PDF: the line we know is
+    /// the line of the check, and the file under validation is usually an
+    /// artifact passing through CI rather than something in the repository, so
+    /// anchoring there would annotate a path that does not exist. The input
+    /// file travels in `properties` instead, where it stays visible.
+    ///
+    /// The diagnostic id goes in `partialFingerprints`, which is what lets a
+    /// consumer recognise the same finding across runs — the reason the id is
+    /// derived from the finding rather than counted.
+    pub fn to_sarif(&self) -> String {
+        use serde_json::json;
+
+        // A rule per distinct check, in first-seen order: GitHub groups alerts
+        // by rule, and an unknown ruleId shows up bare.
+        let mut rule_ids: Vec<&str> = Vec::new();
+        for d in &self.diagnostics {
+            if !rule_ids.contains(&d.check_name.as_str()) {
+                rule_ids.push(&d.check_name);
+            }
+        }
+        let rules: Vec<_> = rule_ids
+            .iter()
+            .map(|id| json!({ "id": id, "shortDescription": { "text": id } }))
+            .collect();
+
+        let results: Vec<_> = self
+            .diagnostics
+            .iter()
+            .map(|d| {
+                let mut region = serde_json::Map::new();
+                if let Some(l) = d.line {
+                    region.insert("startLine".into(), json!(l));
+                }
+                json!({
+                    "ruleId": d.check_name,
+                    "level": match d.severity {
+                        Severity::Error => "error",
+                        Severity::Warning => "warning",
+                        // SARIF has no "info"; "note" is its equivalent.
+                        Severity::Info => "note",
+                    },
+                    "message": { "text": d.message },
+                    "locations": [{
+                        "physicalLocation": {
+                            "artifactLocation": { "uri": self.script_name },
+                            "region": region,
+                        }
+                    }],
+                    "partialFingerprints": { "pdflDiagnostic/v1": d.id },
+                    "properties": { "inputFile": self.input_file },
+                })
+            })
+            .collect();
+
+        let sarif = json!({
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{
+                "tool": { "driver": {
+                    "name": "PDFLang",
+                    "informationUri": "https://github.com/kotarokikuchi/pdflang",
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "rules": rules,
+                }},
+                "results": results,
+            }],
+        });
+        serde_json::to_string_pretty(&sarif).expect("sarif is always serializable")
+    }
+
+    /// JUnit XML, which every CI knows how to display.
+    ///
+    /// One test case per check that ran — including the ones that passed, which
+    /// is why the interpreter records them. A format that reported only the
+    /// failures would show a clean run as zero tests, and a CI reads that as a
+    /// run that never happened.
+    pub fn to_junit(&self) -> String {
+        let e = xml_escape;
+
+        // Every check that ran, plus any check that only shows up in the
+        // diagnostics — a report from `fix` or `compare` has no check list, and
+        // dropping those findings would be worse than an odd-looking suite.
+        let mut cases: Vec<&str> = self.checks_run.iter().map(|s| s.as_str()).collect();
+        for d in &self.diagnostics {
+            if !cases.contains(&d.check_name.as_str()) {
+                cases.push(&d.check_name);
+            }
+        }
+
+        let mut body = String::new();
+        let mut failures = 0;
+        for case in &cases {
+            let found: Vec<&Diagnostic> =
+                self.diagnostics.iter().filter(|d| d.check_name == *case).collect();
+            let failing: Vec<&&Diagnostic> =
+                found.iter().filter(|d| d.severity != Severity::Info).collect();
+            body.push_str(&format!(
+                "    <testcase name=\"{}\" classname=\"{}\"",
+                e(case),
+                e(&self.input_file)
+            ));
+            if failing.is_empty() {
+                // Info findings do not fail a case, but they must not vanish.
+                let infos: String =
+                    found.iter().map(|d| format!("{}\n", e(&describe(d)))).collect();
+                if infos.is_empty() {
+                    body.push_str("/>\n");
+                } else {
+                    body.push_str(&format!(
+                        ">\n      <system-out>{infos}      </system-out>\n    </testcase>\n"
+                    ));
+                }
+                continue;
+            }
+            failures += 1;
+            let first = failing[0];
+            // One <failure> per case: a second one is not portable, so the rest
+            // of the findings go in its body rather than in siblings.
+            let detail: String = found.iter().map(|d| format!("{}\n", e(&describe(d)))).collect();
+            body.push_str(&format!(
+                ">\n      <failure message=\"{}\" type=\"{}\">\n\
+                 {detail}      </failure>\n    </testcase>\n",
+                e(&first.message),
+                Self::severity_label(&first.severity),
+            ));
+        }
+
+        format!(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <testsuites name=\"pdfl\" tests=\"{n}\" failures=\"{failures}\">\n\
+             \x20 <testsuite name=\"{script}\" tests=\"{n}\" failures=\"{failures}\" errors=\"0\" skipped=\"0\">\n\
+             {body}  </testsuite>\n\
+             </testsuites>\n",
+            n = cases.len(),
+            script = e(&self.script_name),
+        )
+    }
+}
+
+/// One finding on one line, for a format that carries text rather than fields.
+fn describe(d: &Diagnostic) -> String {
+    let line = d.line.map(|l| format!(" (line {l})")).unwrap_or_default();
+    format!("{} [{}]{} {}", d.id, Report::severity_label(&d.severity), line, d.message)
+}
+
+fn xml_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
 }
 
 // ---- PDF ----
@@ -440,6 +612,72 @@ mod tests {
         assert!(html.contains("perfil-x"));
         assert!(html.contains("PASS")); // a warning does not drop the status
         assert!(html.contains("<strong>1</strong> warning(s)"));
+    }
+
+    #[test]
+    fn sarif_carries_the_fingerprint_and_the_rule() {
+        let mut d = diag(Severity::Warning);
+        d.id = "PDFL-093751a2".into();
+        d.check_name = "Ink".into();
+        d.line = Some(12);
+        let r = Report::new("p.pdfl".into(), "f.pdf".into(), None, 1, vec![d]);
+        let v: serde_json::Value = serde_json::from_str(&r.to_sarif()).unwrap();
+        assert_eq!(v["version"], "2.1.0");
+        let run = &v["runs"][0];
+        assert_eq!(run["tool"]["driver"]["rules"][0]["id"], "Ink");
+        let res = &run["results"][0];
+        assert_eq!(res["ruleId"], "Ink");
+        assert_eq!(res["level"], "warning");
+        // The id is what lets a consumer match a finding across runs.
+        assert_eq!(res["partialFingerprints"]["pdflDiagnostic/v1"], "PDFL-093751a2");
+        // Anchored on the script, because the PDF is not a file the CI can annotate.
+        let loc = &res["locations"][0]["physicalLocation"];
+        assert_eq!(loc["artifactLocation"]["uri"], "p.pdfl");
+        assert_eq!(loc["region"]["startLine"], 12);
+        assert_eq!(res["properties"]["inputFile"], "f.pdf");
+    }
+
+    #[test]
+    fn sarif_maps_info_to_note() {
+        let r = Report::new("p.pdfl".into(), "f.pdf".into(), None, 1, vec![diag(Severity::Info)]);
+        let v: serde_json::Value = serde_json::from_str(&r.to_sarif()).unwrap();
+        assert_eq!(v["runs"][0]["results"][0]["level"], "note");
+    }
+
+    /// A clean run must still count its tests. Reporting zero tests is how a CI
+    /// concludes the run never happened.
+    #[test]
+    fn junit_counts_the_checks_that_passed() {
+        let mut d = diag(Severity::Error);
+        d.check_name = "Ink".into();
+        d.message = "TAC above 300% & rising".into();
+        let mut r = Report::new("p.pdfl".into(), "f.pdf".into(), None, 1, vec![d]);
+        r.checks_run = vec!["Ink".into(), "Fonts".into(), "Bleed".into()];
+        let xml = r.to_junit();
+        assert!(xml.contains("tests=\"3\" failures=\"1\""), "{xml}");
+        // The passing ones are self-closing cases; the failing one carries the message.
+        assert!(xml.contains("<testcase name=\"Fonts\" classname=\"f.pdf\"/>"), "{xml}");
+        assert!(xml.contains("message=\"TAC above 300% &amp; rising\" type=\"error\""), "{xml}");
+    }
+
+    /// `fix` and `compare` build a report without ever running a check. Their
+    /// findings still have to appear.
+    #[test]
+    fn junit_keeps_findings_that_have_no_check() {
+        let r = Report::new("p.pdfl".into(), "f.pdf".into(), None, 1, vec![diag(Severity::Error)]);
+        let xml = r.to_junit();
+        assert!(xml.contains("tests=\"1\" failures=\"1\""), "{xml}");
+        assert!(xml.contains("<testcase name=\"c\""), "{xml}");
+    }
+
+    #[test]
+    fn junit_does_not_fail_on_info() {
+        let mut r = Report::new("p.pdfl".into(), "f.pdf".into(), None, 1, vec![diag(Severity::Info)]);
+        r.checks_run = vec!["c".into()];
+        let xml = r.to_junit();
+        assert!(xml.contains("failures=\"0\""), "{xml}");
+        // An info finding does not fail the case, but it is not dropped either.
+        assert!(xml.contains("<system-out>"), "{xml}");
     }
 
     #[test]

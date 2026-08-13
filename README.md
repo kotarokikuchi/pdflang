@@ -74,10 +74,11 @@ error, `10` = the document could not be read or a file could not be written —
 kept out of the 0–2 range so CI can tell a broken input from a rejected one.
 
 Output formats (`--output` on `run`/`compare`, `--report` on `fix`/`watch`):
-`json` (default), `csv` (one line per diagnostic), `html` (self-contained) and
-`pdf` (A4 audit file). Text formats go to stdout or to `--output-file`; `pdf`
-always writes to a file (`--output-file` or `<input>.report.pdf`). `print()` and
-progress go to stderr.
+`json` (default), `csv` (one line per diagnostic), `html` (self-contained),
+`pdf` (A4 audit file), `sarif` (SARIF 2.1.0, which GitHub code scanning reads)
+and `junit` (JUnit XML, which any CI's test panel reads). Text formats go to
+stdout or to `--output-file`; `pdf` always writes to a file (`--output-file` or
+`<input>.report.pdf`). `print()` and progress go to stderr.
 
 ## Example script
 
@@ -260,7 +261,7 @@ Full example in [examples/normalize.pdfl](examples/normalize.pdfl).
 Compares two versions of a PDF (text, structure and metadata):
 
 ```bash
-pdfl compare v1.pdf v2.pdf [--output json|csv|html] [--normalize] \
+pdfl compare v1.pdf v2.pdf [--output json|csv|html|pdf|sarif|junit] [--normalize] \
   [--ignore-dates] [--similarity-threshold 95]
 ```
 
@@ -282,7 +283,8 @@ to the file (or into `--output-dir`):
 
 ```bash
 pdfl watch input/ --script profile.pdfl [--pattern "*.pdf"] [--exclude "*_draft*"] \
-  [--output-dir reports/] [--depth 1] [--debounce 1000] [--report json|csv|html] \
+  [--output-dir reports/] [--depth 1] [--debounce 1000] \
+  [--report json|csv|html|pdf|sarif|junit] \
   [--fail-fast] [--once]
 ```
 

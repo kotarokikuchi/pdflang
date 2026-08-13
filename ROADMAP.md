@@ -69,7 +69,8 @@ and `Cargo.toml`.
 | Self-contained HTML, PDF | 🟩 yes — `src/report.rs`; the PDF is deterministic with embedded Helvetica |
 | Canonical JSON/CSV | 🟩 yes — JSON carries `schema_version`, bumped only on a breaking change |
 | `schema_version` in CSV | 🟥 no — deliberately: a CSV consumer parses by header, so a format change is already visible there, and a constant column on every row is noise |
-| SARIF, JUnit XML, Markdown, NDJSON, XLSX, XML, SQLite artifact | 🟥 no |
+| SARIF, JUnit XML | 🟩 yes — `--output sarif\|junit` wherever a report format is chosen: `run`, `compare`, `watch`, `fix` |
+| Markdown, NDJSON, XLSX, XML, SQLite artifact | 🟥 no |
 | NDJSON progress on stderr | 🟥 no |
 | stdout/stderr separation | 🟩 yes — report on stdout, `print()` and progress on stderr |
 | Normalized PDF to stdout | 🟥 no — `fix` always writes a file |
@@ -189,13 +190,15 @@ Diagnostic identifiers are stable, checks declare their severity, the JSON
 report carries a schema version, and infrastructure failures exit outside the
 finding range. Baseline runs are no longer blocked.
 
+Wave 2 has started: `run`, `compare`, `watch` and `fix` write SARIF and JUnit, so
+a finding lands on the pull request and in the CI's test panel. The JSON report
+gained `checks_run` along the way, because a format that counts tests has to know
+which checks passed, and the diagnostics only name the ones that failed.
+
 ### Wave 2 — collect what is already paid for
 
 Each of these reuses structure that exists; none needs a new dependency.
 
-5. **SARIF and JUnit output** — `src/report.rs` already models a diagnostic with
-   id, severity, check name, message and line. Two more serializers, and they are
-   what makes the tool visible inside GitHub and any CI.
 6. **Shell completions** via `clap_complete`, and `--quiet`.
 7. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
    stop packaging formats it cannot open.
@@ -266,7 +269,7 @@ Each claim maps to a command:
 grep -cE '^\s+"[a-z0-9_]+"( \| "[a-z0-9_]+")* =>' src/textns.rs   # and the others
 
 # the absences
-grep -rin "sarif\|junit\|baseline\|rayon\|serve\|repl" src/ Cargo.toml
+grep -rin "baseline\|rayon\|serve\|repl" src/ Cargo.toml
 
 ```
 

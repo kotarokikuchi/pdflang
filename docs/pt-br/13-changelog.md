@@ -18,6 +18,9 @@ em silêncio.
   quando carrega qualquer uma das tags informadas.
 - `--json` no `inspect` e no `lint`, e `--output json` no `doc`. Todo subcomando
   passa a ser legível por programa.
+- `--output sarif` e `--output junit`, onde quer que se escolha um formato de
+  relatório — `run`, `compare`, `watch` e `fix`. SARIF é o que o GitHub code
+  scanning lê; JUnit é o que o painel de testes de qualquer CI lê.
 
 ### Vale saber
 
@@ -26,6 +29,11 @@ em silêncio.
   limpo.
 - Um `rule` não tem tags, então `--tags` o pula — mesma resposta que um check
   sem tag recebe.
+- O relatório JSON ganhou `checks_run`, os checks e rules que rodaram. Ele não
+  sobe o `schema_version`, porque quem ignora campo desconhecido sobrevive a
+  isso. O JUnit precisa dele: os diagnósticos só nomeiam os checks que acharam
+  algo, e uma execução limpa reportada como zero testes é, para uma CI, uma
+  execução que não aconteceu.
 
 ---
 

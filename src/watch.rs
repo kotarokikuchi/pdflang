@@ -86,13 +86,17 @@ fn process_file(file: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wa
             let mut interp = interpreter::Interpreter::new();
             interp.script_dir = opts.script_dir.clone();
             match interp.run(program, doc) {
-                Ok(()) => Report::new(
-                    script_name.into(),
-                    file.to_string_lossy().into_owned(),
-                    interp.profile_name.clone(),
-                    total_pages,
-                    interp.diagnostics,
-                ),
+                Ok(()) => {
+                    let mut r = Report::new(
+                        script_name.into(),
+                        file.to_string_lossy().into_owned(),
+                        interp.profile_name.clone(),
+                        total_pages,
+                        interp.diagnostics,
+                    );
+                    r.checks_run = interp.checks_run;
+                    r
+                }
                 Err(e) => error_report(script_name, file, format!("{e}")),
             }
         }
@@ -104,6 +108,8 @@ fn process_file(file: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wa
         crate::OutputFormat::Csv => (report.to_csv().into_bytes(), "csv"),
         crate::OutputFormat::Html => (report.to_html().into_bytes(), "html"),
         crate::OutputFormat::Pdf => (report.to_pdf(), "pdf"),
+        crate::OutputFormat::Sarif => (report.to_sarif().into_bytes(), "sarif"),
+        crate::OutputFormat::Junit => (report.to_junit().into_bytes(), "xml"),
     };
     let dir = opts.output_dir.clone().unwrap_or_else(|| file.parent().unwrap_or(Path::new(".")).to_path_buf());
     let stem = file.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();

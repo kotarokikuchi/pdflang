@@ -54,7 +54,7 @@ pdfl run <script.pdfl> <entree.pdf> [options]
 
 | Option | Défaut | Rôle |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | Format du rapport |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format du rapport |
 | `--output-file <fichier>` | — | Écrit dans un fichier au lieu de la sortie standard |
 | `--fail-on error\|warning` | `error` | Avec `warning`, un avertissement donne aussi le code 2 |
 | `--verbose` | — | Informations supplémentaires sur la sortie d'erreur |
@@ -73,6 +73,7 @@ pdfl run prepresse.pdfl magazine.pdf --fail-on warning                   # mode 
 
 ```json
 {
+  "schema_version": 1,
   "script_name": "prepress.pdfl",
   "input_file": "magazine.pdf",
   "profile": "offset-magazine",
@@ -89,12 +90,53 @@ pdfl run prepresse.pdfl magazine.pdf --fail-on warning                   # mode 
       "message": "page 7: 324% ink (limit 300%)",
       "line": 12
     }
-  ]
+  ],
+  "checks_run": ["Ink coverage", "Fonts", "Bleed"]
 }
 ```
 
 Le même PDF avec le même script produit toujours un **rapport identique octet
 pour octet** : on peut le versionner et comparer les différences en CI.
+
+`schema_version` est la première clé, pour qu'un consommateur puisse trancher
+avant d'analyser le reste. Elle n'augmente que si un lecteur de la sortie
+précédente cassait ; ajouter un champ ne l'augmente pas.
+
+### SARIF et JUnit
+
+Deux formats de plus, pour que le résultat apparaisse là où l'équipe regarde
+déjà, et non dans un log que personne n'ouvre.
+
+```bash
+# GitHub code scanning : les constats deviennent des annotations sur la pull request
+pdfl run prepresse.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+
+# Panneau de tests de n'importe quelle CI : un test par check, réussis compris
+pdfl run prepresse.pdfl magazine.pdf --output junit --output-file pdfl.xml
+```
+
+En SARIF, un constat est ancré sur le **script**, pas sur le PDF : la ligne que
+l'on connaît est celle du check, et le PDF est le plus souvent un artefact de
+passage dans la CI plutôt qu'un fichier du dépôt — pointer là annoterait un
+chemin qui n'existe pas. Le fichier validé voyage dans `properties.inputFile`,
+et l'identifiant du diagnostic dans `partialFingerprints` : c'est ce qui permet
+à GitHub de reconnaître un constat déjà vu au lieu de le rouvrir à chaque
+exécution.
+
+En JUnit, chaque check exécuté est un cas de test, y compris ceux qui n'ont rien
+trouvé. Un format ne listant que les échecs annoncerait une exécution propre
+comme zéro test, et une CI lit cela comme une exécution qui n'a jamais eu lieu.
+Un constat `info` ne fait pas échouer son cas ; il part dans `<system-out>`.
+
+```yaml
+- name: Prépresse
+  run: pdfl run prepresse.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+  # le code 2 signale un fichier refusé, et l'envoi doit quand même avoir lieu
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: pdfl.sarif
+```
 
 ---
 
@@ -108,7 +150,7 @@ pdfl compare <v1.pdf> <v2.pdf> [options]
 
 | Option | Défaut | Rôle |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | Format |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format |
 | `--output-file <fichier>` | — | Écrit dans un fichier |
 | `--normalize` | — | Ignore casse et espaces |
 | `--ignore-dates` | — | Masque les dates avant de comparer |
@@ -154,7 +196,7 @@ pdfl watch <dossier> --script <script.pdfl> [options]
 | `--output-dir <dossier>` | à côté du PDF | Où écrire les rapports |
 | `--depth <n>` | `1` | Profondeur des sous-dossiers |
 | `--debounce <ms>` | `1000` | Attente que le fichier se stabilise |
-| `--report json\|csv\|html\|pdf` | `json` | Format des rapports |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format des rapports |
 | `--fail-fast` | — | S'arrête à la première erreur |
 | `--once` | — | Traite l'existant puis quitte |
 

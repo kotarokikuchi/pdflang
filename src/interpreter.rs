@@ -218,9 +218,11 @@ pub struct Interpreter {
     /// caught by the caller rather than passing quietly — a CI filtering on a
     /// misspelled tag would otherwise run nothing and report success.
     pub tag_filter: Option<Vec<String>>,
-    /// How many checks actually ran, so the caller can tell "everything passed"
-    /// from "nothing was selected".
-    pub checks_run: usize,
+    /// The checks and rules that actually ran, in order, so the caller can tell
+    /// "everything passed" from "nothing was selected" — and so a report format
+    /// that counts tests can show the ones that passed, which the diagnostics
+    /// alone never mention.
+    pub checks_run: Vec<String>,
     /// Values passed with --var, reachable from the script as `vars.name`.
     /// Kept in their own namespace so a script cannot collide with them by
     /// accident, and so a missing one names the flag that would supply it.
@@ -248,7 +250,7 @@ impl Interpreter {
             current_check: String::new(),
             current_severity: Severity::Error,
             tag_filter: None,
-            checks_run: 0,
+            checks_run: Vec::new(),
             vars: HashMap::new(),
             seen: HashMap::new(),
             allow_fixes: false,
@@ -290,7 +292,7 @@ impl Interpreter {
                         return Ok(());
                     }
                 }
-                self.checks_run += 1;
+                self.checks_run.push(name.clone());
                 self.current_check = name.clone();
                 self.current_severity = severity.clone();
                 self.scopes.push(HashMap::new());
@@ -310,6 +312,7 @@ impl Interpreter {
                 }
                 // A rule is a check applied page by page, with `page` bound in
                 // the body's scope.
+                self.checks_run.push(name.clone());
                 let previous_check = std::mem::replace(&mut self.current_check, name.clone());
                 let selected: Vec<Value> = match pages {
                     Some(expr) => match self.eval(expr) {
@@ -1122,7 +1125,7 @@ check "Prepress" tags: ["prepress"] {
         let mut i = Interpreter::new();
         i.tag_filter = Some(vec!["prepress".into()]);
         i.run(&prog, mock_doc()).unwrap();
-        assert_eq!(i.checks_run, 1);
+        assert_eq!(i.checks_run, ["Prepress"]);
         assert_eq!(i.diagnostics.len(), 1);
         assert_eq!(i.diagnostics[0].message, "prepress");
     }
@@ -1139,7 +1142,7 @@ check "Prepress" tags: ["prepress"] {
         let mut i = Interpreter::new();
         i.tag_filter = Some(vec!["typo".into()]);
         i.run(&prog, mock_doc()).unwrap();
-        assert_eq!(i.checks_run, 0);
+        assert!(i.checks_run.is_empty());
         assert_eq!(i.diagnostics.len(), 0);
     }
 

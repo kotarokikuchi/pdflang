@@ -53,7 +53,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 
 | オプション | 既定 | 動作 |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | レポート形式 |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | レポート形式 |
 | `--output-file <file>` | — | 標準出力ではなくファイルへ書き出す |
 | `--fail-on error\|warning` | `error` | `warning` にすると警告でも終了コード2 |
 | `--verbose` | — | 標準エラー出力に追加情報 |
@@ -81,6 +81,7 @@ pdfl run prepress.pdfl magazine.pdf --fail-on warning
 
 ```json
 {
+  "schema_version": 1,
   "script_name": "prepress.pdfl",
   "input_file": "magazine.pdf",
   "profile": "offset-magazine",
@@ -97,12 +98,52 @@ pdfl run prepress.pdfl magazine.pdf --fail-on warning
       "message": "page 7: 324% ink (limit 300%)",
       "line": 12
     }
-  ]
+  ],
+  "checks_run": ["Ink coverage", "Fonts", "Bleed"]
 }
 ```
 
 同じ PDF に同じスクリプトを適用すれば、常に**バイト単位で同一のレポート**が
 得られます。バージョン管理や CI での差分比較に使えます。
+
+`schema_version` を先頭のキーに置いてあるので、消費側は残りを解析する前に分岐
+できます。以前の出力を読んでいた側が壊れる場合にのみ上がり、フィールドの追加で
+は上がりません。
+
+### SARIF と JUnit
+
+結果を、誰も開かないログではなくチームがすでに見ている場所へ出すための2つの形式
+です。
+
+```bash
+# GitHub code scanning：所見がプルリクエストの注釈になる
+pdfl run prepress.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+
+# 任意の CI のテストパネル：check ごとに1テスト。合格したものも含む
+pdfl run prepress.pdfl magazine.pdf --output junit --output-file pdfl.xml
+```
+
+SARIF では所見を **スクリプト** に紐づけます。PDF ではありません。分かっている
+行番号は check の行であり、PDF はたいてい CI を通り抜ける成果物であってリポジ
+トリ内のファイルではないため、そちらを指すと存在しないパスに注釈を付けることに
+なります。検証対象のファイルは `properties.inputFile` に、診断の識別子は
+`partialFingerprints` に入ります。後者があるおかげで、GitHub は既に見た所見を
+それと認識し、実行のたびに開き直すことをしません。
+
+JUnit では、実行された check がすべてテストケースになります。何も見つけなかった
+ものも含みます。失敗だけを並べる形式では、きれいな実行がテスト0件として報告され、
+CI はそれを「実行されなかった」と読みます。`info` の所見はケースを失敗させず、
+`<system-out>` に書き出されます。
+
+```yaml
+- name: Preflight
+  run: pdfl run prepress.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+  # 終了コード 2 は不合格のファイル。それでもアップロードは必要
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: pdfl.sarif
+```
 
 ---
 
@@ -116,7 +157,7 @@ pdfl compare <v1.pdf> <v2.pdf> [options]
 
 | オプション | 既定 | 動作 |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | 形式 |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | 形式 |
 | `--output-file <file>` | — | ファイルへ書き出す |
 | `--normalize` | — | 大文字小文字と空白を無視 |
 | `--ignore-dates` | — | 日付を伏せてから比較 |
@@ -162,7 +203,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--output-dir <folder>` | PDF と同じ場所 | レポートの出力先 |
 | `--depth <n>` | `1` | サブフォルダの深さ |
 | `--debounce <ms>` | `1000` | ファイルが安定するまでの待ち時間 |
-| `--report json\|csv\|html\|pdf` | `json` | レポート形式 |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | レポート形式 |
 | `--fail-fast` | — | 最初のエラーで停止 |
 | `--once` | — | 既にあるファイルを処理して終了 |
 

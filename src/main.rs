@@ -204,6 +204,10 @@ pub enum OutputFormat {
     Csv,
     Html,
     Pdf,
+    /// SARIF 2.1.0, for GitHub code scanning.
+    Sarif,
+    /// JUnit XML, for the test panel of any CI.
+    Junit,
 }
 
 /// Writes the report: stdout for text formats (or --output-file); PDF always
@@ -214,6 +218,8 @@ fn emit_report(report: &Report, format: OutputFormat, file: Option<&PathBuf>, in
         OutputFormat::Csv => report.to_csv().into_bytes(),
         OutputFormat::Html => report.to_html().into_bytes(),
         OutputFormat::Pdf => report.to_pdf(),
+        OutputFormat::Sarif => report.to_sarif().into_bytes(),
+        OutputFormat::Junit => report.to_junit().into_bytes(),
     };
     let default_pdf = || {
         let stem = input.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
@@ -513,19 +519,20 @@ fn run_cmd(
 
     // A filter that matches nothing would otherwise run no checks and report a
     // pass, so a misspelled tag in a pipeline would look like a clean file.
-    if !tags.is_empty() && interp.checks_run == 0 {
+    if !tags.is_empty() && interp.checks_run.is_empty() {
         eprintln!("error: no check carries any of these tags: {}", tags.join(", "));
         eprintln!("nothing was validated — check the spelling, or drop --tags");
         return ExitCode::from(EXIT_INFRASTRUCTURE);
     }
 
-    let report = Report::new(
+    let mut report = Report::new(
         script_name,
         input.to_string_lossy().into_owned(),
         interp.profile_name.clone(),
         total_pages,
         interp.diagnostics,
     );
+    report.checks_run = interp.checks_run;
     emit_report(&report, format, output_file, input);
     ExitCode::from(report.exit_code(matches!(fail_on, FailOn::Warning)) as u8)
 }

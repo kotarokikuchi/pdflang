@@ -53,7 +53,7 @@ pdfl run <skript.pdfl> <eingabe.pdf> [optionen]
 
 | Option | Vorgabe | Zweck |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | Format des Berichts |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format des Berichts |
 | `--output-file <datei>` | — | Schreibt in eine Datei statt auf die Standardausgabe |
 | `--fail-on error\|warning` | `error` | Mit `warning` führt auch eine Warnung zu Code 2 |
 | `--verbose` | — | Zusatzinformationen auf der Fehlerausgabe |
@@ -72,6 +72,7 @@ pdfl run vorstufe.pdfl magazin.pdf --fail-on warning                   # strenge
 
 ```json
 {
+  "schema_version": 1,
   "script_name": "prepress.pdfl",
   "input_file": "magazine.pdf",
   "profile": "offset-magazine",
@@ -88,13 +89,55 @@ pdfl run vorstufe.pdfl magazin.pdf --fail-on warning                   # strenge
       "message": "page 7: 324% ink (limit 300%)",
       "line": 12
     }
-  ]
+  ],
+  "checks_run": ["Ink coverage", "Fonts", "Bleed"]
 }
 ```
 
 Dasselbe PDF mit demselben Skript ergibt stets einen **Byte für Byte
 identischen Bericht**: Man kann ihn versionieren und Unterschiede in der CI
 vergleichen.
+
+`schema_version` steht als erster Schlüssel, damit ein Konsument sich
+entscheiden kann, bevor er den Rest parst. Sie steigt nur, wenn ein Leser der
+vorherigen Ausgabe brechen würde; ein zusätzliches Feld lässt sie unverändert.
+
+### SARIF und JUnit
+
+Zwei weitere Formate, damit das Ergebnis dort auftaucht, wo das Team ohnehin
+hinsieht, statt in einem Log, das niemand öffnet.
+
+```bash
+# GitHub code scanning: die Befunde werden zu Anmerkungen am Pull Request
+pdfl run vorstufe.pdfl magazin.pdf --output sarif --output-file pdfl.sarif
+
+# Test-Panel jeder CI: ein Test je Check, die bestandenen eingeschlossen
+pdfl run vorstufe.pdfl magazin.pdf --output junit --output-file pdfl.xml
+```
+
+In SARIF hängt ein Befund am **Skript**, nicht am PDF: die Zeile, die wir
+kennen, ist die des Checks, und das PDF ist meist ein Artefakt auf dem Weg durch
+die CI und keine Datei im Repository — dorthin zu zeigen würde einen Pfad
+annotieren, den es nicht gibt. Die geprüfte Datei reist in
+`properties.inputFile`, die Diagnose-Kennung in `partialFingerprints` — und
+genau daran erkennt GitHub einen bereits gesehenen Befund, statt ihn bei jedem
+Lauf neu zu öffnen.
+
+In JUnit ist jeder gelaufene Check ein Testfall, auch die, die nichts gefunden
+haben. Ein Format, das nur die Fehlschläge auflistet, meldete einen sauberen
+Lauf als null Tests, und eine CI liest das als einen Lauf, der nie stattfand.
+Ein `info`-Befund lässt seinen Fall nicht durchfallen; er landet in
+`<system-out>`.
+
+```yaml
+- name: Vorstufe
+  run: pdfl run vorstufe.pdfl magazin.pdf --output sarif --output-file pdfl.sarif
+  # Exit 2 heißt abgelehnte Datei, und der Upload muss trotzdem laufen
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: pdfl.sarif
+```
 
 ---
 
@@ -108,7 +151,7 @@ pdfl compare <v1.pdf> <v2.pdf> [optionen]
 
 | Option | Vorgabe | Zweck |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | Format |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format |
 | `--output-file <datei>` | — | Schreibt in eine Datei |
 | `--normalize` | — | Ignoriert Groß-/Kleinschreibung und Leerzeichen |
 | `--ignore-dates` | — | Maskiert Datumsangaben vor dem Vergleich |
@@ -154,7 +197,7 @@ pdfl watch <ordner> --script <skript.pdfl> [optionen]
 | `--output-dir <ordner>` | neben dem PDF | Wohin die Berichte gehen |
 | `--depth <n>` | `1` | Tiefe der Unterordner |
 | `--debounce <ms>` | `1000` | Wartezeit, bis die Datei stabil ist |
-| `--report json\|csv\|html\|pdf` | `json` | Format der Berichte |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format der Berichte |
 | `--fail-fast` | — | Hält beim ersten Fehler an |
 | `--once` | — | Verarbeitet den Bestand und beendet sich |
 

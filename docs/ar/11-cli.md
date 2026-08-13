@@ -53,7 +53,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 
 | الخيار | الافتراضي | الغرض |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | صيغة التقرير |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | صيغة التقرير |
 | `--output-file <file>` | — | يكتب في ملف بدل المخرج القياسي |
 | `--fail-on error\|warning` | `error` | مع `warning` يعطي التحذير أيضًا الرمز 2 |
 | `--verbose` | — | معلومات إضافية على مخرج الأخطاء |
@@ -72,6 +72,7 @@ pdfl run prepress.pdfl magazine.pdf --fail-on warning                  # الو�
 
 ```json
 {
+  "schema_version": 1,
   "script_name": "prepress.pdfl",
   "input_file": "magazine.pdf",
   "profile": "offset-magazine",
@@ -88,12 +89,49 @@ pdfl run prepress.pdfl magazine.pdf --fail-on warning                  # الو�
       "message": "page 7: 324% ink (limit 300%)",
       "line": 12
     }
-  ]
+  ],
+  "checks_run": ["Ink coverage", "Fonts", "Bleed"]
 }
 ```
 
 ملف PDF نفسه مع النص البرمجي نفسه يعطي دائمًا **تقريرًا متطابقًا بايتًا بايت**:
 يمكن حفظه في نظام الإصدارات ومقارنة الفروق في التكامل المستمر.
+
+`schema_version` هو المفتاح الأول، ليقرر المستهلك قبل أن يحلّل ما بعده. ولا
+يرتفع إلا إذا كان قارئ المخرَج السابق سينكسر؛ وإضافة حقل لا ترفعه.
+
+### SARIF وJUnit
+
+صيغتان إضافيتان، لتظهر النتيجة حيث ينظر الفريق أصلًا، لا في سجلّ لا يفتحه أحد.
+
+```bash
+# GitHub code scanning: تتحوّل الملاحظات إلى تعليقات على طلب السحب
+pdfl run prepress.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+
+# لوحة الاختبارات في أي تكامل مستمر: اختبار لكل فحص، بما فيها الناجحة
+pdfl run prepress.pdfl magazine.pdf --output junit --output-file pdfl.xml
+```
+
+في SARIF تُربط الملاحظة بـ**النص البرمجي** لا بملف PDF: فالسطر الذي نعرفه هو
+سطر الفحص، وملف PDF غالبًا أثرٌ عابر في خطّ التكامل لا ملفًّا في المستودع —
+والإشارة إليه تعني التعليق على مسار غير موجود. أما الملف المفحوص فيسافر في
+`properties.inputFile`، ومعرّف التشخيص في `partialFingerprints`، وهو ما يجعل
+GitHub يتعرّف على ملاحظة رآها من قبل بدل أن يفتحها من جديد في كل تشغيلة.
+
+وفي JUnit يصير كل فحص جرى حالة اختبار، بما في ذلك ما لم يجد شيئًا. فالصيغة التي
+تسرد الإخفاقات وحدها تصف تشغيلة نظيفة بأنها صفر اختبارات، ويقرأ التكامل المستمر
+ذلك على أنه تشغيلة لم تحدث. وملاحظة من نوع `info` لا تُسقِط حالتها، بل تُكتب في
+`<system-out>`.
+
+```yaml
+- name: Preflight
+  run: pdfl run prepress.pdfl magazine.pdf --output sarif --output-file pdfl.sarif
+  # الرمز 2 يعني ملفًا مرفوضًا، والرفع يجب أن يتم على كل حال
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: pdfl.sarif
+```
 
 ---
 
@@ -107,7 +145,7 @@ pdfl compare <v1.pdf> <v2.pdf> [options]
 
 | الخيار | الافتراضي | الغرض |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | الصيغة |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | الصيغة |
 | `--output-file <file>` | — | يكتب في ملف |
 | `--normalize` | — | يتجاهل حالة الأحرف والمسافات |
 | `--ignore-dates` | — | يحجب التواريخ قبل المقارنة |
@@ -151,7 +189,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--output-dir <folder>` | بجوار ملف PDF | أين تُكتب التقارير |
 | `--depth <n>` | `1` | عمق المجلدات الفرعية |
 | `--debounce <ms>` | `1000` | انتظار استقرار الملف |
-| `--report json\|csv\|html\|pdf` | `json` | صيغة التقارير |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | صيغة التقارير |
 | `--fail-fast` | — | يتوقف عند أول خطأ |
 | `--once` | — | يعالج الموجود ثم يخرج |
 

@@ -56,7 +56,7 @@ pdfl run <script.pdfl> <entrada.pdf> [opções]
 
 | Opção | Padrão | O que faz |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | Formato do relatório |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Formato do relatório |
 | `--output-file <arquivo>` | — | Grava em arquivo em vez do stdout |
 | `--fail-on error\|warning` | `error` | Com `warning`, avisos também dão exit 2 |
 | `--verbose` | — | Informação extra no stderr |
@@ -84,6 +84,7 @@ pdfl run prepress.pdfl revista.pdf --fail-on warning
 
 ```json
 {
+  "schema_version": 1,
   "script_name": "prepress.pdfl",
   "input_file": "revista.pdf",
   "profile": "offset-revista",
@@ -100,12 +101,52 @@ pdfl run prepress.pdfl revista.pdf --fail-on warning
       "message": "page 7: 324% ink (limit 300%)",
       "line": 12
     }
-  ]
+  ],
+  "checks_run": ["Ink coverage", "Fonts", "Bleed"]
 }
 ```
 
 O mesmo PDF com o mesmo script sempre gera o **mesmo relatório, byte a byte** —
 dá para versionar e comparar em CI.
+
+`schema_version` é a primeira chave para o consumidor decidir antes de parsear o
+resto. Ela sobe só quando quem lia a saída anterior quebraria; acrescentar um
+campo não a faz subir.
+
+### SARIF e JUnit
+
+Mais dois formatos, para o resultado aparecer onde a equipe já olha, e não num
+log que ninguém abre.
+
+```bash
+# GitHub code scanning: os achados viram anotações no pull request
+pdfl run prepress.pdfl revista.pdf --output sarif --output-file pdfl.sarif
+
+# Painel de testes de qualquer CI: um teste por check, incluindo os que passaram
+pdfl run prepress.pdfl revista.pdf --output junit --output-file pdfl.xml
+```
+
+No SARIF o achado é ancorado no **script**, não no PDF: a linha que se conhece é
+a do check, e o PDF costuma ser um artefato de passagem na CI, não um arquivo do
+repositório — apontar para lá anotaria um caminho que não existe. O arquivo
+validado viaja em `properties.inputFile`, e o id do diagnóstico em
+`partialFingerprints`, que é o que permite ao GitHub reconhecer um achado já
+visto em vez de reabri-lo a cada execução.
+
+No JUnit todo check que rodou é um caso de teste, inclusive os que não acharam
+nada. Um formato que listasse só as falhas reportaria uma execução limpa como
+zero testes, e uma CI lê isso como execução que não aconteceu. Um achado `info`
+não reprova o caso; ele vai para `<system-out>`.
+
+```yaml
+- name: Preflight
+  run: pdfl run prepress.pdfl revista.pdf --output sarif --output-file pdfl.sarif
+  # exit 2 é arquivo reprovado, e o upload ainda precisa acontecer
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: pdfl.sarif
+```
 
 ---
 
@@ -119,7 +160,7 @@ pdfl compare <v1.pdf> <v2.pdf> [opções]
 
 | Opção | Padrão | O que faz |
 |---|---|---|
-| `--output json\|csv\|html\|pdf` | `json` | Formato |
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Formato |
 | `--output-file <arquivo>` | — | Grava em arquivo |
 | `--normalize` | — | Ignora maiúsculas e espaçamento |
 | `--ignore-dates` | — | Mascara datas antes de comparar |
@@ -169,7 +210,7 @@ pdfl watch <pasta> --script <script.pdfl> [opções]
 | `--output-dir <pasta>` | ao lado do PDF | Onde gravar os relatórios |
 | `--depth <n>` | `1` | Níveis de subpasta |
 | `--debounce <ms>` | `1000` | Espera o arquivo parar de ser copiado |
-| `--report json\|csv\|html\|pdf` | `json` | Formato dos relatórios |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Formato dos relatórios |
 | `--fail-fast` | — | Para no primeiro erro |
 | `--once` | — | Processa o que já está lá e sai |
 
@@ -206,7 +247,7 @@ pdfl fix <entrada.pdf> <script.pdfl> --output <saida.pdf> [opções]
 |---|---|
 | `--output <arquivo>` | PDF de saída (obrigatório) |
 | `--dry-run` | Lista as operações sem salvar |
-| `--report json\|csv\|html\|pdf` | Formato do relatório |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | Formato do relatório |
 | `--report-file <arquivo>` | Grava o relatório em arquivo |
 
 ```bash

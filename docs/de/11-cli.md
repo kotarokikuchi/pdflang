@@ -224,6 +224,7 @@ pdfl watch <ordner> --script <skript.pdfl> [optionen]
 | `--events` | — | Wacht auf Systembenachrichtigungen statt auf einen Zeitgeber — nicht auf Netzfreigaben |
 | `--journal <datei>` | — | Nur angehängtes Protokoll des Geprüften; ein erneuter Lauf überspringt, was darin steht |
 | `--timeout <s>` | — | Bricht die Prüfung einer Datei nach so vielen Sekunden ab und meldet sie als abgelehnt |
+| `--var NAME=WERT` | — | Wert, den jede Datei als `vars.NAME` liest; wiederholbar |
 | `--jobs <n>` | `1` | Gleichzeitig geprüfte Dateien; `0` heißt eine je CPU |
 | `--once` | — | Verarbeitet den Bestand und beendet sich |
 
@@ -328,6 +329,12 @@ das, was ein Skript nicht verursachen kann: pdfium, das bei einem fehlerhaften
 oder feindseligen PDF in eine Schleife gerät oder blockiert. Ohne das Flag wartet
 die Prüfung einer Datei so lange wie nötig, das einzige Verhalten, bevor es dieses
 Flag gab.
+
+`--var` erreicht jede Datei unverändert — ein Wert für den ganzen Lauf, sinnvoll
+für etwas in einem Ordner Konstantes (ein Kundenname), nicht für etwas je Datei
+Unterschiedliches (eine Auftragsnummer). Ohne das Flag könnte ein Skript, das
+`vars.*` liest, nie beobachtet werden: jede Datei scheiterte mit „was not
+provided".
 
 Die Berichte entstehen als `<name>.report.json` (oder `.csv`, `.html`, `.pdf`).
 
@@ -522,6 +529,7 @@ pdfl test <skript.pdfl> [--dir <ordner>] [--update]
 | `--dir <ordner>` | `tests/` neben dem Skript | Wo die Fall-PDFs liegen |
 | `--update` | — | Zeichnet die erwarteten Berichte auf, statt zu vergleichen |
 | `--jobs <n>` | `1` | Gleichzeitig laufende Fälle; `0` heißt einer je CPU |
+| `--var NAME=WERT` | — | Wert, den jeder Fall als `vars.NAME` liest; wiederholbar |
 
 Ein Fall ist ein PDF und der von ihm erwartete Bericht, nebeneinander:
 
@@ -588,6 +596,11 @@ sein Bericht führt den Grund als Befund, „diese Datei muss als unlesbar
 abgelehnt werden" kann also selbst ein Test sein. Dieser Bericht nennt die Datei
 so, wie sie übergeben wurde: zeichnen Sie Baselines mit einem **relativen**
 `--dir` auf, wenn sie eingecheckt werden sollen.
+
+`--var` erreicht jeden Fall unverändert — ein Wert für den ganzen Lauf, nicht
+einer je Datei. Ohne das Flag könnte ein Skript, das `vars.*` liest, nie
+getestet werden: jeder Fall scheiterte mit „was not provided", gleich welches
+PDF.
 
 ---
 

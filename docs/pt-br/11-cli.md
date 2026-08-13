@@ -235,6 +235,7 @@ pdfl watch <pasta> --script <script.pdfl> [opções]
 | `--events` | — | Acorda com as notificações do sistema em vez de por tempo — não em pasta de rede |
 | `--journal <arquivo>` | — | Registro append-only do que foi validado; rodar de novo pula o que ele cobre |
 | `--timeout <s>` | — | Mata a análise de um arquivo depois desse tanto de segundos e o reporta como recusado |
+| `--var NOME=VALOR` | — | Valor que todo arquivo lê como `vars.NOME`; repetível |
 | `--jobs <n>` | `1` | Arquivos validados ao mesmo tempo; `0` é um por CPU |
 | `--once` | — | Processa o que já está lá e sai |
 
@@ -337,6 +338,11 @@ interpretador de propósito — a recursão tem limite de profundidade — entã
 loop ou travando num PDF malformado ou adversário. Sem a flag, a análise de um
 arquivo espera o tempo que precisar, que era o único comportamento antes dela
 existir.
+
+`--var` chega a cada arquivo sem mudar — um valor para a execução inteira, útil
+para algo constante numa pasta (um nome de cliente) e não algo que varia por
+arquivo (um número de pedido). Sem ele, um script que lê `vars.*` nunca poderia
+ser observado: todo arquivo falharia com "was not provided".
 
 Os relatórios saem como `<nome>.report.json` (ou `.csv`, `.html`, `.pdf`).
 
@@ -539,6 +545,7 @@ pdfl test <script.pdfl> [--dir <pasta>] [--update]
 | `--dir <pasta>` | `tests/` ao lado do script | Onde estão os PDFs dos casos |
 | `--update` | — | Grava os relatórios esperados em vez de comparar |
 | `--jobs <n>` | `1` | Casos rodando ao mesmo tempo; `0` é um por CPU |
+| `--var NOME=VALOR` | — | Valor que todo caso lê como `vars.NOME`; repetível |
 
 Um caso é um PDF e o relatório esperado dele, lado a lado:
 
@@ -602,6 +609,10 @@ Um caso cujo PDF não abre é julgado como qualquer outro — o relatório dele 
 motivo como achado, então "este arquivo tem que ser recusado como ilegível"
 também pode ser um teste. Esse relatório nomeia o arquivo como ele foi passado,
 então grave as linhas de base com `--dir` **relativo** se elas forem versionadas.
+
+`--var` chega a cada caso sem mudar — um valor para a execução inteira, não um
+por arquivo. Sem ele, um script que lê `vars.*` nunca poderia ser testado: todo
+caso falharia com "was not provided", não importa o PDF.
 
 ---
 

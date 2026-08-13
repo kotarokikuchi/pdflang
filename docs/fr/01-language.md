@@ -432,8 +432,10 @@ suivent cette convention.
 
 ### Des valeurs venues de la ligne de commande
 
-`--var nom=valeur` sur `pdfl run` parvient au script sous la forme `vars.nom`,
-toujours en texte. C'est ce qui évite qu'un profil devienne cinq copies presque
+`--var nom=valeur` sur `pdfl run`, `pdfl test` et `pdfl watch` parvient au script
+sous la forme `vars.nom`, toujours en texte. `test` et `watch` transmettent la
+même valeur à chaque cas ou fichier : un nom de client pour toute l'exécution,
+pas un par fichier. C'est ce qui évite qu'un profil devienne cinq copies presque
 identiques :
 
 ```pdfl

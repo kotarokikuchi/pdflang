@@ -237,6 +237,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--events` | — | Wake on filesystem notifications instead of a timer — not on network shares |
 | `--journal <file>` | — | Append-only record of what was validated; re-running skips what it covers |
 | `--timeout <s>` | — | Kills a file's analysis past this many seconds and reports it as rejected |
+| `--var NAME=VALUE` | — | Value every file reads as `vars.NAME`; repeatable |
 | `--jobs <n>` | `1` | Files to validate at the same time; `0` means one per CPU |
 | `--once` | — | Processes what is already there and exits |
 
@@ -338,6 +339,11 @@ interpreter on purpose — recursion is depth-limited — so `--timeout` exists 
 what a script cannot cause: pdfium looping or blocking on a malformed or
 adversarial PDF. Unset, a file's analysis waits as long as it takes, which was
 the only behaviour before this flag existed.
+
+`--var` reaches every file unchanged — the same value for the whole run, useful
+for something constant across a folder (a client name) rather than something
+that varies per file (an order number). Without it, a script reading `vars.*`
+could never be watched at all: every file would fail with "was not provided".
 
 Reports are written as `<name>.report.json` (or `.csv`, `.html`, `.pdf`).
 
@@ -541,6 +547,7 @@ pdfl test <script.pdfl> [--dir <folder>] [--update]
 | `--dir <folder>` | `tests/` next to the script | Where the case PDFs live |
 | `--update` | — | Records the expected reports instead of comparing them |
 | `--jobs <n>` | `1` | Cases to run at the same time; `0` means one per CPU |
+| `--var NAME=VALUE` | — | Value every case reads as `vars.NAME`; repeatable |
 
 A case is a PDF and the report expected of it, side by side:
 
@@ -604,6 +611,10 @@ A case whose PDF cannot be read is judged like any other — its report carries
 the reason as a finding, so "this file must be rejected as unreadable" can
 itself be a test. That report names the file as it was passed, so record
 baselines with a **relative** `--dir` if they are going to be committed.
+
+`--var` reaches every case unchanged — one value for the whole run, not one per
+file. Without it, a script reading `vars.*` could never be tested at all: every
+case would fail with "was not provided", regardless of the PDF.
 
 ---
 

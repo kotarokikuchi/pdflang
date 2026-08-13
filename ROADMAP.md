@@ -52,7 +52,7 @@ and `Cargo.toml`.
 | `--fail-fast` | 🟧 partial | exists in `watch`, not in `run` |
 | `--max-findings N` | 🟥 no | |
 | stdin input, stdin file list | 🟥 no | |
-| Typed script parameters and free variables | 🟧 partial | `--var name=value` reaches the script as `vars.name`; no typed `params` block that declares what a script requires |
+| Typed script parameters and free variables | 🟧 partial | `--var name=value` reaches the script as `vars.name`, on `run`, `test` and `watch` alike; no typed `params` block that declares what a script requires |
 | Input by URL | 🟥 no | out of scope until a network namespace exists |
 | `--tags` | 🟩 yes | filters checks; a tag no check carries is an error rather than an empty pass |
 | `--quiet` / `--verbose` | 🟩 yes | `--quiet` is global and silences progress on stderr, never errors and never `print()`; `run` has `--verbose` |

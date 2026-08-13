@@ -425,8 +425,9 @@ enforce it, but the examples and shipped profiles follow it.
 
 ### Values from the command line
 
-`--var name=value` on `pdfl run` reaches the script as `vars.name`, always as
-text. It is what keeps one profile from becoming five near-identical copies:
+`--var name=value` on `pdfl run`, `pdfl test` and `pdfl watch` reaches the script
+as `vars.name`, always as text. `test` and `watch` forward the same value to
+every case or file — one client name for the whole run, not one per file. It is what keeps one profile from becoming five near-identical copies:
 
 ```pdfl
 check "Job matches the order" {

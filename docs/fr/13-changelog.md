@@ -85,6 +85,11 @@ adapter. Rien ne change ici en silence.
   d'arriver, et non jusqu'à un intervalle complet plus tard. Avec
   `--debounce 3000`, un fichier qui arrive est signalé après environ 3s au lieu
   de jusqu'à 6s.
+- `--var` atteint désormais `pdfl test` et `pdfl watch`, pas seulement `pdfl
+  run`. Ni l'un ni l'autre ne le transmettait aux processus enfants qu'ils
+  lancent : un script lisant `vars.*` ne pouvait donc être ni testé ni
+  surveillé — chaque cas ou fichier échouait avec « was not provided », quel
+  qu'en soit le contenu.
 
 ---
 

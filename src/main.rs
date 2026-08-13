@@ -175,6 +175,9 @@ enum Command {
         /// rejected instead of leaving the batch stuck. Unset waits forever
         #[arg(long)]
         timeout: Option<u64>,
+        /// Value every file reads as `vars.<name>`; repeatable
+        #[arg(long = "var", value_name = "NAME=VALUE")]
+        vars: Vec<String>,
     },
     /// Shows a quick summary of a PDF
     Inspect {
@@ -244,6 +247,9 @@ enum Command {
         /// Cases to run at the same time (0 = one per CPU)
         #[arg(long, default_value_t = 1)]
         jobs: usize,
+        /// Value every case reads as `vars.<name>`; repeatable
+        #[arg(long = "var", value_name = "NAME=VALUE")]
+        vars: Vec<String>,
     },
     /// Prints a completion script for a shell (bash, zsh, fish, elvish, powershell)
     Completions {
@@ -395,11 +401,16 @@ fn main() -> ExitCode {
             events,
             journal,
             timeout,
+            vars,
         } => {
-            // Parsed here only to fail fast: a syntax error is one message,
-            // not one per file in the folder.
+            // Parsed here only to fail fast: a syntax error, or a malformed
+            // --var, is one message, not one per file in the folder.
             if let Err(code) = load_program(&script) {
                 return code;
+            }
+            if let Err(bad) = parse_vars(&vars) {
+                eprintln!("error: --var expects NAME=VALUE, got '{bad}'");
+                return ExitCode::from(EXIT_INFRASTRUCTURE);
             }
             let opts = watch::WatchOptions {
                 script,
@@ -411,6 +422,7 @@ fn main() -> ExitCode {
                 debounce_ms: debounce,
                 fail_fast,
                 timeout: timeout.map(std::time::Duration::from_secs),
+                vars,
                 journal,
                 events,
                 once,
@@ -545,16 +557,20 @@ fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
         }
-        Command::Test { script, dir, update, jobs } => {
-            // Parsed here only to fail fast: a syntax error is one message, not
-            // one per case.
+        Command::Test { script, dir, update, jobs, vars } => {
+            // Parsed here only to fail fast: a syntax error, or a malformed
+            // --var, is one message, not one per case.
             if let Err(code) = load_program(&script) {
                 return code;
+            }
+            if let Err(bad) = parse_vars(&vars) {
+                eprintln!("error: --var expects NAME=VALUE, got '{bad}'");
+                return ExitCode::from(EXIT_INFRASTRUCTURE);
             }
             let dir = dir.unwrap_or_else(|| {
                 script.parent().unwrap_or(Path::new(".")).join("tests")
             });
-            ExitCode::from(testcmd::test(&script, &dir, update, resolve_jobs(jobs)))
+            ExitCode::from(testcmd::test(&script, &dir, update, resolve_jobs(jobs), &vars))
         }
         Command::Completions { shell } => {
             // stdout, so it can be piped straight into the shell's completion

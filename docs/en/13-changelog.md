@@ -80,6 +80,10 @@ quietly.
 - `pdfl watch` now wakes when the freshest file has settled, instead of up to
   one full interval later. With `--debounce 3000`, a file that arrives is
   reported about 3s later rather than up to 6s.
+- `--var` now reaches `pdfl test` and `pdfl watch`, not just `pdfl run`.
+  Neither forwarded it to the children they spawn, so a script reading
+  `vars.*` could not be tested or watched at all — every case or file failed
+  with "was not provided", regardless of its content.
 
 ---
 

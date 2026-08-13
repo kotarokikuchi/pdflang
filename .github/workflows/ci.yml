@@ -107,4 +107,21 @@ jobs:
             --output-dir /tmp/wj --once --timeout 30 --journal /tmp/batch.jsonl \
             --jobs 0 || ec=$?
           test "$ec" -eq 2
+          # --var must reach the child a case/file is validated in, or a
+          # script reading vars.* can never be tested or watched at all
+          cat > /tmp/needs_var.pdfl <<'EOF'
+          check "Has the var" {
+            require vars.client == "AcmeCorp"
+          }
+          EOF
+          ec=0
+          ./target/debug/pdfl test /tmp/needs_var.pdfl --dir /tmp/cases \
+            --var client=AcmeCorp --update || ec=$?
+          test "$ec" -eq 0
+          ./target/debug/pdfl test /tmp/needs_var.pdfl --dir /tmp/cases \
+            --var client=AcmeCorp
+          rm -rf /tmp/wv && mkdir -p /tmp/wv
+          ./target/debug/pdfl watch /tmp/cases --script /tmp/needs_var.pdfl \
+            --output-dir /tmp/wv --once --var client=AcmeCorp --jobs 0
+          test -z "$(grep -l '"error_count": [1-9]' /tmp/wv/*.json || true)"
           test "$(wc -l < /tmp/batch.jsonl)" -eq 5

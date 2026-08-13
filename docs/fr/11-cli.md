@@ -223,6 +223,7 @@ pdfl watch <dossier> --script <script.pdfl> [options]
 | `--events` | — | Se réveille sur les notifications du système plutôt que sur une minuterie — pas sur un partage réseau |
 | `--journal <fichier>` | — | Journal en ajout seul de ce qui a été validé ; relancer saute ce qu'il couvre |
 | `--timeout <s>` | — | Tue l'analyse d'un fichier après ce nombre de secondes et le signale comme refusé |
+| `--var NOM=VALEUR` | — | Valeur que chaque fichier lit comme `vars.NOM` ; répétable |
 | `--jobs <n>` | `1` | Fichiers validés en même temps ; `0` = un par CPU |
 | `--once` | — | Traite l'existant puis quitte |
 
@@ -323,6 +324,12 @@ exprès — la récursion est limitée en profondeur — `--timeout` existe donc
 qu'un script ne peut pas causer : pdfium qui boucle ou se bloque sur un PDF
 malformé ou hostile. Sans le drapeau, l'analyse d'un fichier attend aussi
 longtemps que nécessaire, le seul comportement avant l'existence de cette option.
+
+`--var` atteint chaque fichier sans changer — une valeur pour toute l'exécution,
+utile pour quelque chose de constant sur un dossier (un nom de client) plutôt
+que variable par fichier (un numéro de commande). Sans lui, un script lisant
+`vars.*` ne pourrait jamais être surveillé : chaque fichier échouerait avec
+« was not provided ».
 
 Les rapports s'écrivent en `<nom>.report.json` (ou `.csv`, `.html`, `.pdf`).
 
@@ -517,6 +524,7 @@ pdfl test <script.pdfl> [--dir <dossier>] [--update]
 | `--dir <dossier>` | `tests/` à côté du script | Où se trouvent les PDF des cas |
 | `--update` | — | Enregistre les rapports attendus au lieu de comparer |
 | `--jobs <n>` | `1` | Cas exécutés en même temps ; `0` = un par CPU |
+| `--var NOM=VALEUR` | — | Valeur que chaque cas lit comme `vars.NOM` ; répétable |
 
 Un cas, c'est un PDF et le rapport qu'on en attend, côte à côte :
 
@@ -583,6 +591,10 @@ raison sous forme de constat, donc « ce fichier doit être refusé comme illisi
 peut être un test à part entière. Ce rapport nomme le fichier tel qu'il a été
 passé : enregistrez les références avec un `--dir` **relatif** si elles doivent
 être versionnées.
+
+`--var` atteint chaque cas sans changer — une valeur pour toute l'exécution, pas
+une par fichier. Sans lui, un script lisant `vars.*` ne pourrait jamais être
+testé : chaque cas échouerait avec « was not provided », quel que soit le PDF.
 
 ---
 

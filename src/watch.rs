@@ -44,6 +44,10 @@ pub struct WatchOptions {
     /// file as rejected instead. `None` waits forever — the behaviour before
     /// this flag existed.
     pub timeout: Option<Duration>,
+    /// `--var NAME=VALUE`, forwarded to every file. Without this, a script
+    /// reading `vars.*` could never be watched: every file would fail with
+    /// "was not provided", regardless of its content.
+    pub vars: Vec<String>,
     /// Append-only record of what has been validated, and the only way a batch
     /// survives being interrupted.
     pub journal: Option<PathBuf>,
@@ -217,8 +221,8 @@ fn subscribe(
 /// finding, so a hung document is a rejection the batch can act on rather than
 /// a silence that leaves the file unwritten and the batch stuck. Only a child
 /// that could not be started at all leaves nothing to write.
-fn analyse(exe: &Path, script: &Path, file: &Path, timeout: Option<Duration>) -> Option<Report> {
-    match run_bounded(exe, script, file, timeout) {
+fn analyse(exe: &Path, script: &Path, file: &Path, timeout: Option<Duration>, vars: &[String]) -> Option<Report> {
+    match run_bounded(exe, script, file, timeout, vars) {
         RunOutcome::SpawnFailed(e) => {
             eprintln!("error: could not run {}: {e}", exe.display());
             None
@@ -254,9 +258,16 @@ enum RunOutcome {
 /// on adversarial input — not the script: recursion in a `.pdfl` function is
 /// already depth-limited by the interpreter, so there is no hang to defend
 /// against on that side.
-fn run_bounded(exe: &Path, script: &Path, file: &Path, timeout: Option<Duration>) -> RunOutcome {
+fn run_bounded(
+    exe: &Path,
+    script: &Path,
+    file: &Path,
+    timeout: Option<Duration>,
+    vars: &[String],
+) -> RunOutcome {
     let mut cmd = std::process::Command::new(exe);
     cmd.arg("run").arg(script).arg(file).args(["--output", "json", "--quiet"]);
+    cmd.args(vars.iter().flat_map(|v| ["--var", v]));
     spawn_bounded(cmd, timeout)
 }
 
@@ -338,7 +349,7 @@ fn timeout_report(script: &Path, file: &Path, timeout: Duration) -> Report {
 /// Runs the batch `jobs` at a time, keeping the order of `files`.
 fn analyse_all(exe: &Path, files: &[PathBuf], opts: &WatchOptions) -> Vec<Option<Report>> {
     if opts.jobs <= 1 || files.len() <= 1 {
-        return files.iter().map(|f| analyse(exe, &opts.script, f, opts.timeout)).collect();
+        return files.iter().map(|f| analyse(exe, &opts.script, f, opts.timeout, &opts.vars)).collect();
     }
     let next = AtomicUsize::new(0);
     // With --fail-fast, no new file is started once one has failed. The ones
@@ -354,7 +365,7 @@ fn analyse_all(exe: &Path, files: &[PathBuf], opts: &WatchOptions) -> Vec<Option
                 }
                 let i = next.fetch_add(1, Ordering::Relaxed);
                 let Some(file) = files.get(i) else { return };
-                let report = analyse(exe, &opts.script, file, opts.timeout);
+                let report = analyse(exe, &opts.script, file, opts.timeout, &opts.vars);
                 if opts.fail_fast && report.as_ref().is_some_and(|r| r.exit_code(false) >= 2) {
                     stop.store(true, Ordering::Relaxed);
                 }
@@ -700,6 +711,41 @@ mod tests {
                 assert_eq!(stdout, b"done\n");
             }
             _ => panic!("expected the child to finish"),
+        }
+    }
+
+    /// Without this, a script reading `vars.*` could never be watched at all —
+    /// every file would fail with "was not provided", regardless of its
+    /// content. Checked against a real subprocess standing in for `pdfl`,
+    /// consistent with how the rest of this module is tested.
+    #[test]
+    fn run_bounded_forwards_vars_to_the_child() {
+        let dir = tempdir("run-bounded-vars");
+        let echo_var = dir.join("fake-pdfl.sh");
+        std::fs::write(
+            &echo_var,
+            "#!/bin/sh\n\
+             val=\"\"\n\
+             while [ $# -gt 0 ]; do\n\
+             \x20 if [ \"$1\" = \"--var\" ]; then val=\"$2\"; fi\n\
+             \x20 shift\n\
+             done\n\
+             printf '%s' \"$val\"\n",
+        )
+        .unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&echo_var, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let outcome = run_bounded(
+            &echo_var,
+            Path::new("p.pdfl"),
+            Path::new("f.pdf"),
+            None,
+            &["client=AcmeCorp".to_string()],
+        );
+        match outcome {
+            RunOutcome::Finished(_, stdout, _) => assert_eq!(stdout, b"client=AcmeCorp"),
+            _ => panic!("expected the fake child to finish"),
         }
     }
 

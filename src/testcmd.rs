@@ -7,6 +7,10 @@
 //!
 //! `--update` writes the expected files. Recording is a deliberate act: a run
 //! that silently refreshed its own baseline would never fail.
+//!
+//! `--var` is forwarded to every case unchanged. Without it, a script reading
+//! `vars.*` could never be tested at all — every case would fail with "was not
+//! provided", regardless of the PDF.
 
 use crate::note;
 use std::path::{Path, PathBuf};
@@ -22,12 +26,13 @@ use std::path::{Path, PathBuf};
 /// `input_file` is reduced to the file's name: the full path depends on the
 /// directory the runner was invoked from, and a baseline that changes with the
 /// caller's shell is not a baseline.
-fn run_case(exe: &Path, script: &Path, pdf_path: &Path) -> Result<String, String> {
+fn run_case(exe: &Path, script: &Path, pdf_path: &Path, vars: &[String]) -> Result<String, String> {
     let output = std::process::Command::new(exe)
         .arg("run")
         .arg(script)
         .arg(pdf_path)
         .args(["--output", "json", "--quiet"])
+        .args(vars.iter().flat_map(|v| ["--var", v]))
         .output()
         .map_err(|e| format!("could not run {}: {e}", exe.display()))?;
 
@@ -50,9 +55,15 @@ fn run_case(exe: &Path, script: &Path, pdf_path: &Path) -> Result<String, String
 /// Runs the cases `jobs` at a time and returns the reports in the order the
 /// cases were given, so what is printed never depends on which child finished
 /// first.
-fn run_cases(exe: &Path, script: &Path, pdfs: &[PathBuf], jobs: usize) -> Vec<Result<String, String>> {
+fn run_cases(
+    exe: &Path,
+    script: &Path,
+    pdfs: &[PathBuf],
+    jobs: usize,
+    vars: &[String],
+) -> Vec<Result<String, String>> {
     if jobs <= 1 || pdfs.len() <= 1 {
-        return pdfs.iter().map(|p| run_case(exe, script, p)).collect();
+        return pdfs.iter().map(|p| run_case(exe, script, p, vars)).collect();
     }
     let next = std::sync::atomic::AtomicUsize::new(0);
     let done: std::sync::Mutex<Vec<(usize, Result<String, String>)>> =
@@ -62,7 +73,7 @@ fn run_cases(exe: &Path, script: &Path, pdfs: &[PathBuf], jobs: usize) -> Vec<Re
             scope.spawn(|| loop {
                 let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let Some(pdf_path) = pdfs.get(i) else { return };
-                let result = run_case(exe, script, pdf_path);
+                let result = run_case(exe, script, pdf_path, vars);
                 done.lock().expect("no panic holds this lock").push((i, result));
             });
         }
@@ -72,7 +83,7 @@ fn run_cases(exe: &Path, script: &Path, pdfs: &[PathBuf], jobs: usize) -> Vec<Re
     results.into_iter().map(|(_, r)| r).collect()
 }
 
-pub fn test(script: &Path, dir: &Path, update: bool, jobs: usize) -> u8 {
+pub fn test(script: &Path, dir: &Path, update: bool, jobs: usize, vars: &[String]) -> u8 {
     let mut pdfs: Vec<PathBuf> = match std::fs::read_dir(dir) {
         Ok(entries) => entries
             .flatten()
@@ -104,7 +115,7 @@ pub fn test(script: &Path, dir: &Path, update: bool, jobs: usize) -> u8 {
     let mut written = 0;
     // The cases run first and are judged afterwards, in order: what a run
     // prints must not depend on which child happened to finish first.
-    let reports = run_cases(&exe, script, &pdfs, jobs);
+    let reports = run_cases(&exe, script, &pdfs, jobs, vars);
     for (pdf_path, result) in pdfs.iter().zip(reports) {
         let name = crate::file_name(pdf_path);
         let expected_path = expected_path(pdf_path);
@@ -307,5 +318,59 @@ mod tests {
             expected_path(Path::new("cases/invoice.pdf")),
             Path::new("cases/invoice.expected.json")
         );
+    }
+
+    fn tempdir(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("pdfl-testcmd-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// A shell script standing in for the `pdfl` binary, echoing back the value
+    /// of the first `--var` it sees: a real subprocess, not a mock of one,
+    /// consistent with how `spawn_bounded` is tested in `watch.rs`.
+    fn fake_pdfl_echoing_var(dir: &Path) -> PathBuf {
+        let path = dir.join("fake-pdfl.sh");
+        std::fs::write(
+            &path,
+            "#!/bin/sh\n\
+             val=\"\"\n\
+             while [ $# -gt 0 ]; do\n\
+             \x20 if [ \"$1\" = \"--var\" ]; then val=\"$2\"; fi\n\
+             \x20 shift\n\
+             done\n\
+             printf '{\"schema_version\":1,\"script_name\":\"s\",\"input_file\":\"f\",\
+             \"status\":\"PASS\",\"total_pages_analyzed\":1,\"error_count\":0,\
+             \"warning_count\":0,\"info_count\":0,\"diagnostics\":[],\"seen_var\":\"%s\"}' \"$val\"\n",
+        )
+        .unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path
+    }
+
+    /// Without this, a script reading `vars.*` could never be tested at all —
+    /// every case would fail with "was not provided", regardless of the PDF.
+    #[test]
+    fn vars_reach_the_child_run() {
+        let dir = tempdir("vars");
+        let pdf = dir.join("a.pdf");
+        std::fs::write(&pdf, b"bytes").unwrap();
+        let exe = fake_pdfl_echoing_var(&dir);
+
+        let json = run_case(&exe, Path::new("p.pdfl"), &pdf, &["order=SO-1".to_string()]).unwrap();
+        assert!(json.contains("\"seen_var\": \"order=SO-1\""), "{json}");
+    }
+
+    #[test]
+    fn no_vars_means_no_var_flag_is_sent() {
+        let dir = tempdir("no-vars");
+        let pdf = dir.join("a.pdf");
+        std::fs::write(&pdf, b"bytes").unwrap();
+        let exe = fake_pdfl_echoing_var(&dir);
+
+        let json = run_case(&exe, Path::new("p.pdfl"), &pdf, &[]).unwrap();
+        assert!(json.contains("\"seen_var\": \"\""), "{json}");
     }
 }

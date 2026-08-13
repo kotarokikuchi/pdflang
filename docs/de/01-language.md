@@ -433,8 +433,10 @@ halten sich daran.
 
 ### Werte von der Kommandozeile
 
-`--var name=wert` bei `pdfl run` erreicht das Skript als `vars.name`, immer als
-Text. Das verhindert, dass aus einem Profil fünf fast gleiche Kopien werden:
+`--var name=wert` bei `pdfl run`, `pdfl test` und `pdfl watch` erreicht das Skript
+als `vars.name`, immer als Text. `test` und `watch` reichen denselben Wert an
+jeden Fall oder jede Datei weiter — ein Kundenname für den ganzen Lauf, nicht
+einer je Datei. Das verhindert, dass aus einem Profil fünf fast gleiche Kopien werden:
 
 ```pdfl
 check "Auftrag passt zur Bestellung" {

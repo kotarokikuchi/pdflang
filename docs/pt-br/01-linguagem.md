@@ -425,8 +425,10 @@ obriga, mas os exemplos e perfis prontos seguem isso.
 
 ### Valores vindos da linha de comando
 
-`--var nome=valor` no `pdfl run` chega ao script como `vars.nome`, sempre como
-texto. É o que evita que um perfil vire cinco cópias quase iguais:
+`--var nome=valor` no `pdfl run`, `pdfl test` e `pdfl watch` chega ao script como
+`vars.nome`, sempre como texto. `test` e `watch` repassam o mesmo valor para
+cada caso ou arquivo — um nome de cliente para a execução inteira, não um por
+arquivo. É o que evita que um perfil vire cinco cópias quase iguais:
 
 ```pdfl
 check "Job confere com o pedido" {

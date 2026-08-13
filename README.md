@@ -159,6 +159,13 @@ metadata.
 
 Full example in [examples/images.pdfl](examples/images.pdfl).
 
+Comparing one document against another — SSIM, perceptual hash, pixel diff and
+the quality checks — has two worked examples:
+[examples/proof.pdfl](examples/proof.pdfl) checks a press file against the proof
+a client signed off, and [examples/reprint.pdfl](examples/reprint.pdfl) checks a
+reprint against the edition already on shelves, where one page is *supposed* to
+differ.
+
 ## Namespace `prepress::`
 
 Prepress validations:

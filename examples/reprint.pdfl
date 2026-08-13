@@ -1,0 +1,59 @@
+// reprint.pdfl — publisher: a reprint against the edition already on shelves
+// Usage: pdfl run examples/reprint.pdfl reprint-3rd.pdf
+// 
+// A reprint is supposed to be the same book. In practice one page is meant to
+// change — the colophon carries the new print run and date — and every other
+// page changing is a mistake someone will find after ten thousand copies.
+// 
+// The interesting part is the asymmetry: one page must differ, the rest must
+// not. Point PREVIOUS at the edition that shipped.
+
+profile "reprint-against-shipped-edition" {
+
+  const PREVIOUS = "editions/2nd-printing.pdf"
+
+  // The page carrying the print run and date.
+  const COLOPHON = 4
+
+  const IDENTICAL = 0.995
+
+  // The cover is reproduced at a larger size than anything inside, so a drop in
+  // quality shows there first.
+  const COVER_QUALITY = 70.0
+
+  rule "Body pages unchanged" on doc.pages.filter { |p| p.number != COLOPHON } {
+    ssim = visual::measure_ssim(page.number, PREVIOUS)
+    assert ssim >= IDENTICAL,
+    "page #{page.number} changed since the previous printing (SSIM #{ssim})"
+  }
+
+  check "The colophon did change" tags: ["reprint"] {
+    // If it did not, this file is the old edition under a new name — the
+    // reprint statement was never updated.
+    changed = visual::measure_ssim(COLOPHON, PREVIOUS) < IDENTICAL
+    assert changed,
+    "the colophon on page #{COLOPHON} is identical to the previous printing — was it updated?"
+  }
+
+  check "Cover quality held up" tags: ["reprint", "cover"] {
+    quality = visual::estimate_image_quality(1)
+    assert quality >= COVER_QUALITY,
+    "cover quality #{quality} is below #{COVER_QUALITY} — check the source image"
+  }
+
+  check "Cover free of banding" tags: ["cover"] {
+    // Flat tints and gradients on a cover band visibly at trade-paperback size.
+    assert !visual::detect_banding(1), "banding on the cover"
+    assert !visual::detect_posterization(1), "posterization on the cover"
+  }
+
+  check "How far each page moved" tags: ["reprint"] {
+    // Reports rather than judges: every page's distance goes to stderr, so a
+    // human deciding what to look at can see which pages drifted and by how
+    // much. Nothing here can fail — the judging is done by the checks above.
+    doc.pages.each { |page|
+      similarity = visual::diff_pages(page.number, PREVIOUS)
+      print("page", page.number, "similarity", similarity)
+    }
+  }
+}

@@ -341,6 +341,21 @@ prefix silences it), duplicate or empty checks, unknown namespace, `assert`
 outside a check, and use of `fix::` outside the `pdfl fix` command. The formatter
 preserves comments and the author's line breaks.
 
+## Command `pdfl test`
+
+Golden-file tests for a profile: a folder of PDFs, each with the report expected
+of it.
+
+```bash
+pdfl test prepress.pdfl --update    # record what the script finds today
+pdfl test prepress.pdfl             # from then on; exit 2 if anything changed
+```
+
+Cases live in `tests/` next to the script (or `--dir`), as `case.pdf` +
+`case.expected.json`. A failure names what changed — the counts, the verdict,
+and which findings appeared or vanished. Recording is always deliberate: a run
+that refreshed its own baseline could never fail.
+
 ## Command `pdfl completions`
 
 ```bash

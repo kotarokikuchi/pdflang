@@ -2,7 +2,7 @@
 
 [← Standard library](10-stdlib.md) · [Index](README.md) · [Next: Recipes →](12-recipes.md)
 
-Eleven commands: four that work on PDFs, four on scripts, two for
+Twelve commands: four that work on PDFs, five on scripts, two for
 distribution and one for the shell.
 
 | Command | What it does |
@@ -14,6 +14,7 @@ distribution and one for the shell.
 | [`inspect`](#pdfl-inspect) | Quick summary of a PDF |
 | [`lint`](#pdfl-lint) | Analyzes a script without running it |
 | [`fmt`](#pdfl-fmt) | Formats a script |
+| [`test`](#pdfl-test) | Runs a script against a folder of PDFs and compares each report |
 | [`doc`](#pdfl-doc) | Generates documentation from a script |
 | [`pack`](#pdfl-pack) | Packages profiles and data files |
 | [`add`](#pdfl-add) | Installs a package |
@@ -435,6 +436,66 @@ a corrupted or tampered package never lands.
 
 > A remote repository and digital signatures are not part of this version: `add`
 > installs from local files.
+
+---
+
+## `pdfl test`
+
+Runs a script against every PDF in a folder and compares each report to the one
+recorded beside it. A profile that starts finding something different fails a
+test instead of surprising someone downstream.
+
+```bash
+pdfl test <script.pdfl> [--dir <folder>] [--update]
+```
+
+| Option | Default | What it does |
+|---|---|---|
+| `--dir <folder>` | `tests/` next to the script | Where the case PDFs live |
+| `--update` | — | Records the expected reports instead of comparing them |
+
+A case is a PDF and the report expected of it, side by side:
+
+```
+profiles/print-shop/
+  prepress.pdfl
+  tests/
+    approved.pdf
+    approved.expected.json
+    heavy_ink.pdf
+    heavy_ink.expected.json
+```
+
+```bash
+# First time: record what the script finds today
+pdfl test prepress.pdfl --update
+
+# From then on
+pdfl test prepress.pdfl
+```
+
+```
+ok   approved.pdf
+FAIL heavy_ink.pdf
+     error_count: expected 1, got 0
+     missing:    PDFL-093751a2 [error] Ink coverage (line 12): page 7: 324% ink (limit 300%)
+1 passed, 1 failed
+```
+
+The failure names what changed — the counts, the verdict, and which findings
+appeared or vanished — rather than printing two JSON files side by side.
+
+Recording is always deliberate: a run that refreshed its own baseline would
+never fail. Read the diff first, then re-record with `--update` when the change
+is the one you meant.
+
+The expected report is the one `pdfl run` produces, with `input_file` reduced to
+the file's name — a baseline that changed with the directory you invoked it from
+would not be a baseline. A PDF that cannot be opened fails its own case and
+leaves the others to run.
+
+Exit codes: `0` all passed, `2` at least one failed, `10` the folder could not
+be read or holds no PDF.
 
 ---
 

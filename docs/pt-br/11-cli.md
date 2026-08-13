@@ -2,7 +2,7 @@
 
 [← Biblioteca padrão](10-stdlib.md) · [Índice](README.md) · [Próximo: Receitas →](12-receitas.md)
 
-Onze comandos: quatro que trabalham com PDFs, quatro sobre os scripts, dois de
+Doze comandos: quatro que trabalham com PDFs, cinco sobre os scripts, dois de
 distribuição e um para o shell.
 
 | Comando | O que faz |
@@ -14,6 +14,7 @@ distribuição e um para o shell.
 | [`inspect`](#pdfl-inspect) | Resumo rápido de um PDF |
 | [`lint`](#pdfl-lint) | Analisa um script sem executar |
 | [`fmt`](#pdfl-fmt) | Formata um script |
+| [`test`](#pdfl-test) | Roda um script sobre uma pasta de PDFs e compara cada relatório |
 | [`doc`](#pdfl-doc) | Gera documentação de um script |
 | [`pack`](#pdfl-pack) | Empacota perfis e bases |
 | [`add`](#pdfl-add) | Instala um pacote |
@@ -432,6 +433,66 @@ Se algum arquivo tiver hash diferente do registrado, a instalação é **recusad
 
 > Repositório remoto e assinatura digital não fazem parte desta versão: o `add`
 > instala a partir de arquivos locais.
+
+---
+
+## `pdfl test`
+
+Roda um script sobre cada PDF de uma pasta e compara cada relatório com o que
+está gravado ao lado. Um perfil que passa a achar outra coisa quebra um teste,
+em vez de surpreender alguém lá na frente.
+
+```bash
+pdfl test <script.pdfl> [--dir <pasta>] [--update]
+```
+
+| Opção | Padrão | O que faz |
+|---|---|---|
+| `--dir <pasta>` | `tests/` ao lado do script | Onde estão os PDFs dos casos |
+| `--update` | — | Grava os relatórios esperados em vez de comparar |
+
+Um caso é um PDF e o relatório esperado dele, lado a lado:
+
+```
+perfis/grafica/
+  prepress.pdfl
+  tests/
+    aprovado.pdf
+    aprovado.expected.json
+    tinta_pesada.pdf
+    tinta_pesada.expected.json
+```
+
+```bash
+# Na primeira vez: grave o que o script acha hoje
+pdfl test prepress.pdfl --update
+
+# Daí em diante
+pdfl test prepress.pdfl
+```
+
+```
+ok   aprovado.pdf
+FAIL tinta_pesada.pdf
+     error_count: expected 1, got 0
+     missing:    PDFL-093751a2 [error] Cobertura de tinta (line 12): página 7: 324% de tinta (limite 300%)
+1 passed, 1 failed
+```
+
+A falha diz o que mudou — as contagens, o veredito e quais achados surgiram ou
+sumiram — em vez de imprimir dois JSON lado a lado.
+
+Gravar é sempre um ato deliberado: uma execução que atualizasse a própria linha
+de base nunca falharia. Leia a diferença primeiro e regrave com `--update`
+quando a mudança for a que você queria.
+
+O relatório esperado é o que o `pdfl run` produz, com o `input_file` reduzido ao
+nome do arquivo — uma linha de base que mudasse conforme o diretório de onde se
+chamou não seria linha de base. Um PDF que não abre reprova o próprio caso e
+deixa os outros rodarem.
+
+Códigos de saída: `0` todos passaram, `2` pelo menos um falhou, `10` a pasta não
+pôde ser lida ou não tem PDF.
 
 ---
 

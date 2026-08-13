@@ -2,7 +2,7 @@
 
 [← 標準ライブラリ](10-stdlib.md) · [目次](README.md) · [次：レシピ →](12-recipes.md)
 
-11のコマンド：PDF を扱うもの4つ、スクリプトを扱うもの4つ、配布用が2つ、シェル用
+12のコマンド：PDF を扱うもの4つ、スクリプトを扱うもの5つ、配布用が2つ、シェル用
 が1つ。
 
 | コマンド | 動作 |
@@ -14,6 +14,7 @@
 | [`inspect`](#pdfl-inspect) | PDF の概要を素早く表示 |
 | [`lint`](#pdfl-lint) | スクリプトを実行せずに解析 |
 | [`fmt`](#pdfl-fmt) | スクリプトを整形 |
+| [`test`](#pdfl-test) | PDF のフォルダに対してスクリプトを実行し、各レポートを比較 |
 | [`doc`](#pdfl-doc) | スクリプトからドキュメントを生成 |
 | [`pack`](#pdfl-pack) | プロファイルとデータを1つにまとめる |
 | [`add`](#pdfl-add) | パッケージをインストール |
@@ -419,6 +420,66 @@ pdfl run pdfl_profiles/print-profile@1.0.0/prepress.pdfl file.pdf
 
 > リモートリポジトリと電子署名はこのバージョンには含まれません。`add` は
 > ローカルファイルからインストールします。
+
+---
+
+## `pdfl test`
+
+フォルダ内のすべての PDF に対してスクリプトを実行し、各レポートを隣に記録された
+ものと比較します。プロファイルが違うものを見つけ始めたら、下流の誰かを驚かせる
+前にテストが落ちます。
+
+```bash
+pdfl test <script.pdfl> [--dir <フォルダ>] [--update]
+```
+
+| オプション | 既定 | 動作 |
+|---|---|---|
+| `--dir <フォルダ>` | スクリプトの隣の `tests/` | ケースの PDF が置いてある場所 |
+| `--update` | — | 比較せず、期待するレポートを記録する |
+
+1つのケースは、PDF とそれに期待するレポートを並べたものです。
+
+```
+profiles/print-shop/
+  prepress.pdfl
+  tests/
+    approved.pdf
+    approved.expected.json
+    heavy_ink.pdf
+    heavy_ink.expected.json
+```
+
+```bash
+# 最初の一度：いまスクリプトが見つけるものを記録する
+pdfl test prepress.pdfl --update
+
+# それ以降
+pdfl test prepress.pdfl
+```
+
+```
+ok   approved.pdf
+FAIL heavy_ink.pdf
+     error_count: expected 1, got 0
+     missing:    PDFL-093751a2 [error] Ink coverage (line 12): page 7: 324% ink (limit 300%)
+1 passed, 1 failed
+```
+
+失敗したときは、2つの JSON を並べて表示するのではなく、何が変わったのか——件数、
+判定、そして現れた所見と消えた所見——を挙げます。
+
+記録は常に意図的な操作です。自分のベースラインを勝手に更新する実行は、決して
+失敗しません。まず差分を読み、その変更が意図したものであれば `--update` で
+記録し直してください。
+
+期待するレポートは `pdfl run` が出すものと同じで、`input_file` だけはファイル名
+に縮めてあります。呼び出したディレクトリによって変わるベースラインは、ベース
+ラインではないからです。開けない PDF はそのケースだけを失敗させ、残りは実行され
+ます。
+
+終了コード：`0` 全件合格、`2` 1件以上の不合格、`10` フォルダが読めないか PDF が
+ない。
 
 ---
 

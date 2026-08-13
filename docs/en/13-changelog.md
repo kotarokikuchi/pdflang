@@ -36,6 +36,10 @@ quietly.
 - `data::load_dataset` and `data::lookup_value` read `.json` as well as `.csv`:
   an array of arrays, or an array of objects whose first object names the
   columns in the order the file writes them.
+- `pdfl test <script>` runs a script against a folder of PDFs and compares each
+  report to the one recorded beside it, so a profile that starts finding
+  something different fails a test instead of surprising someone downstream.
+  `--update` records the expected reports.
 
 ### Worth knowing
 

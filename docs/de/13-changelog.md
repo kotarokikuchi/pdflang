@@ -38,6 +38,10 @@ nichts stillschweigend.
 - `data::load_dataset` und `data::lookup_value` lesen neben `.csv` auch `.json`:
   ein Array von Arrays, oder ein Array von Objekten, dessen erstes Objekt die
   Spalten in der Reihenfolge der Datei benennt.
+- `pdfl test <skript>` führt ein Skript über einen Ordner PDFs aus und
+  vergleicht jeden Bericht mit dem daneben aufgezeichneten. Ein Profil, das
+  plötzlich etwas anderes findet, lässt so einen Test scheitern, statt jemanden
+  weiter hinten zu überraschen. `--update` zeichnet die erwarteten Berichte auf.
 
 ### Wissenswert
 

@@ -60,3 +60,12 @@ jobs:
           ./target/debug/pdfl run examples/images.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r1.json || true
           ./target/debug/pdfl run examples/images.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r2.json || true
           cmp /tmp/r1.json /tmp/r2.json
+          # the test runner: record, then verify against what was recorded
+          mkdir -p /tmp/cases && cp tests/fixtures/*.pdf /tmp/cases/
+          ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases --update
+          ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases
+          # a changed expectation has to fail, or the runner proves nothing
+          sed -i 's/"total_pages_analyzed": [0-9]*/"total_pages_analyzed": 999/' /tmp/cases/minimal.expected.json
+          ec=0
+          ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases || ec=$?
+          test "$ec" -eq 2

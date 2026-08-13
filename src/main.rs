@@ -18,6 +18,7 @@ mod pdf;
 mod prepressns;
 mod report;
 mod structns;
+mod testcmd;
 mod textns;
 mod visualns;
 mod watch;
@@ -212,6 +213,18 @@ enum Command {
         /// Does not write: fails (exit 1) if the file is not formatted
         #[arg(long)]
         check: bool,
+    },
+    /// Runs a script against a folder of PDFs and compares each report to the
+    /// one recorded beside it
+    Test {
+        /// The .pdfl script under test
+        script: PathBuf,
+        /// Folder with the case PDFs (default: tests/ next to the script)
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// Records the expected reports instead of comparing them
+        #[arg(long)]
+        update: bool,
     },
     /// Prints a completion script for a shell (bash, zsh, fish, elvish, powershell)
     Completions {
@@ -493,6 +506,16 @@ fn main() -> ExitCode {
                 note(format!("{}: formatted", script.display()));
                 ExitCode::SUCCESS
             }
+        }
+        Command::Test { script, dir, update } => {
+            let program = match load_program(&script) {
+                Ok(p) => p,
+                Err(code) => return code,
+            };
+            let dir = dir.unwrap_or_else(|| {
+                script.parent().unwrap_or(Path::new(".")).join("tests")
+            });
+            ExitCode::from(testcmd::test(&script, &program, &dir, update))
         }
         Command::Completions { shell } => {
             // stdout, so it can be piped straight into the shell's completion

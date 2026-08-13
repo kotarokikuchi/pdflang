@@ -125,7 +125,8 @@ Six of the planned tooling subcommands exist in some form; eleven do not.
 | `inspect` | 🟩 yes |
 | `pack` | 🟩 yes |
 | `add` | 🟩 yes |
-| `test`, `repl`, `debug`, `bench`, `explain`, `new`, `migrate`, `graph`, `doctor`, `capabilities`, `cache` | 🟥 no |
+| `test` | 🟩 yes — golden-file runner: a folder of PDFs, each with the report expected of it |
+| `repl`, `debug`, `bench`, `explain`, `new`, `migrate`, `graph`, `doctor`, `capabilities`, `cache` | 🟥 no |
 | Shell completions | 🟩 yes — `pdfl completions <shell>`, via `clap_complete` |
 | LSP, editor extension, man pages, corpus runner | 🟥 no |
 
@@ -206,11 +207,12 @@ the two halves finally agree on which formats exist.
 
 ### Wave 3 — real cost, decided deliberately
 
-Each adds a dependency and a support surface. Waves 1 and 2 are done, so this is
-what is left.
+Each adds a dependency and a support surface. Waves 1 and 2 are done, and
+`pdfl test` is in; this is what is left.
 
-10. **`pdfl test`** — a golden-file runner. Anyone writing profiles has no way to
-    test them today, which limits how far the package format can go.
+`pdfl test` needed no dependency in the end — it reuses the interpreter and the
+report, and compares the JSON it already knows how to produce.
+
 11. **Parallelism** — needed before batch means anything.
 12. **Event-based watch**, keeping polling as the fallback for network shares.
 13. **Batch as runtime semantics** — the largest single block of work. Worth

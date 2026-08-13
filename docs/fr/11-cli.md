@@ -2,7 +2,7 @@
 
 [← Bibliothèque standard](10-stdlib.md) · [Sommaire](README.md) · [Suivant : recettes →](12-recipes.md)
 
-Onze commandes : quatre pour les PDF, quatre pour les scripts, deux pour la
+Douze commandes : quatre pour les PDF, cinq pour les scripts, deux pour la
 distribution et une pour le shell.
 
 | Commande | Rôle |
@@ -14,6 +14,7 @@ distribution et une pour le shell.
 | [`inspect`](#pdfl-inspect) | Vue d'ensemble rapide d'un PDF |
 | [`lint`](#pdfl-lint) | Analyse un script sans l'exécuter |
 | [`fmt`](#pdfl-fmt) | Met en forme un script |
+| [`test`](#pdfl-test) | Exécute un script sur un dossier de PDF et compare chaque rapport |
 | [`doc`](#pdfl-doc) | Génère la documentation d'un script |
 | [`pack`](#pdfl-pack) | Empaquette profils et données |
 | [`add`](#pdfl-add) | Installe un paquet |
@@ -408,6 +409,67 @@ un paquet corrompu ou altéré n'entre pas.
 
 > Dépôts distants et signatures numériques ne font pas partie de cette version :
 > `add` installe depuis un fichier local.
+
+---
+
+## `pdfl test`
+
+Exécute un script sur chaque PDF d'un dossier et compare chaque rapport à celui
+enregistré à côté. Un profil qui se met à trouver autre chose fait échouer un
+test au lieu de surprendre quelqu'un plus loin.
+
+```bash
+pdfl test <script.pdfl> [--dir <dossier>] [--update]
+```
+
+| Option | Défaut | Rôle |
+|---|---|---|
+| `--dir <dossier>` | `tests/` à côté du script | Où se trouvent les PDF des cas |
+| `--update` | — | Enregistre les rapports attendus au lieu de comparer |
+
+Un cas, c'est un PDF et le rapport qu'on en attend, côte à côte :
+
+```
+profils/imprimerie/
+  prepresse.pdfl
+  tests/
+    approuve.pdf
+    approuve.expected.json
+    encre_lourde.pdf
+    encre_lourde.expected.json
+```
+
+```bash
+# La première fois : enregistrer ce que le script trouve aujourd'hui
+pdfl test prepresse.pdfl --update
+
+# Ensuite
+pdfl test prepresse.pdfl
+```
+
+```
+ok   approuve.pdf
+FAIL encre_lourde.pdf
+     error_count: expected 1, got 0
+     missing:    PDFL-093751a2 [error] Taux d'encrage (line 12) : page 7 : 324% d'encre (limite 300%)
+1 passed, 1 failed
+```
+
+L'échec nomme ce qui a changé — les compteurs, le verdict, et quels constats
+sont apparus ou ont disparu — plutôt que d'imprimer deux fichiers JSON côte à
+côte.
+
+Enregistrer est toujours un geste délibéré : une exécution qui rafraîchirait sa
+propre référence ne pourrait jamais échouer. Lisez d'abord la différence, puis
+réenregistrez avec `--update` quand le changement est celui que vous vouliez.
+
+Le rapport attendu est celui de `pdfl run`, avec `input_file` réduit au nom du
+fichier : une référence qui changerait selon le répertoire d'appel n'en serait
+pas une. Un PDF illisible fait échouer son propre cas et laisse les autres
+s'exécuter.
+
+Codes de sortie : `0` tous passés, `2` au moins un échec, `10` dossier illisible
+ou sans PDF.
 
 ---
 

@@ -37,6 +37,10 @@ adapter. Rien ne change ici en silence.
 - `data::load_dataset` et `data::lookup_value` lisent `.json` en plus de `.csv` :
   un tableau de tableaux, ou un tableau d'objets dont le premier nomme les
   colonnes dans l'ordre du fichier.
+- `pdfl test <script>` exécute un script sur un dossier de PDF et compare chaque
+  rapport à celui enregistré à côté : un profil qui se met à trouver autre chose
+  fait échouer un test au lieu de surprendre quelqu'un plus loin. `--update`
+  enregistre les rapports attendus.
 
 ### Bon à savoir
 

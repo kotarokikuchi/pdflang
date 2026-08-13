@@ -2,7 +2,7 @@
 
 [← 标准库](10-stdlib.md) · [目录](README.md) · [下一章：实用范例 →](12-recipes.md)
 
-共 11 个命令：4 个处理 PDF，4 个处理脚本，2 个用于分发，1 个用于 shell。
+共 12 个命令：4 个处理 PDF，5 个处理脚本，2 个用于分发，1 个用于 shell。
 
 | 命令 | 功能 |
 |---|---|
@@ -13,6 +13,7 @@
 | [`inspect`](#pdfl-inspect) | 快速查看 PDF 概要 |
 | [`lint`](#pdfl-lint) | 不执行地分析脚本 |
 | [`fmt`](#pdfl-fmt) | 格式化脚本 |
+| [`test`](#pdfl-test) | 用脚本跑一整个文件夹的 PDF，并比对每份报告 |
 | [`doc`](#pdfl-doc) | 由脚本生成文档 |
 | [`pack`](#pdfl-pack) | 打包配置与数据 |
 | [`add`](#pdfl-add) | 安装软件包 |
@@ -386,6 +387,61 @@ pdfl run pdfl_profiles/print-profile@1.0.0/prepress.pdfl file.pdf
 若任一文件的哈希与记录不符，安装会被**拒绝** — 损坏或被篡改的包不会进入。
 
 > 远程仓库和数字签名不在本版本范围内：`add` 从本地文件安装。
+
+---
+
+## `pdfl test`
+
+用脚本跑遍文件夹里的每个 PDF，并把每份报告与记录在旁边的那份比对。配置文件一旦
+开始查出不一样的东西，失败的是测试，而不是下游某个人的一天。
+
+```bash
+pdfl test <script.pdfl> [--dir <文件夹>] [--update]
+```
+
+| 选项 | 默认 | 功能 |
+|---|---|---|
+| `--dir <文件夹>` | 脚本旁边的 `tests/` | 用例 PDF 所在的位置 |
+| `--update` | — | 记录预期报告，而不是比对 |
+
+一个用例，就是一个 PDF 和它应有的报告，并排放着：
+
+```
+profiles/print-shop/
+  prepress.pdfl
+  tests/
+    approved.pdf
+    approved.expected.json
+    heavy_ink.pdf
+    heavy_ink.expected.json
+```
+
+```bash
+# 第一次：把脚本现在查到的东西记录下来
+pdfl test prepress.pdfl --update
+
+# 此后
+pdfl test prepress.pdfl
+```
+
+```
+ok   approved.pdf
+FAIL heavy_ink.pdf
+     error_count: expected 1, got 0
+     missing:    PDFL-093751a2 [error] Ink coverage (line 12): page 7: 324% ink (limit 300%)
+1 passed, 1 failed
+```
+
+失败时给出的是变化本身——计数、结论，以及哪些发现出现了、哪些消失了——而不是把
+两份 JSON 并排打印出来。
+
+记录始终是一个有意的动作：会自动刷新自身基线的运行永远不会失败。先读差异，确认
+这正是你想要的改动，再用 `--update` 重新记录。
+
+预期报告就是 `pdfl run` 生成的那份，只是把 `input_file` 缩成文件名——会随调用目录
+变化的基线不算基线。打不开的 PDF 只让它自己的用例失败，其余照常运行。
+
+退出码：`0` 全部通过，`2` 至少一个失败，`10` 文件夹读不了或里面没有 PDF。
 
 ---
 

@@ -36,6 +36,10 @@ em silêncio.
 - `data::load_dataset` e `data::lookup_value` leem `.json` além de `.csv`: um
   array de arrays, ou um array de objetos cujo primeiro objeto nomeia as colunas
   na ordem em que o arquivo as escreve.
+- `pdfl test <script>` roda um script sobre uma pasta de PDFs e compara cada
+  relatório com o gravado ao lado, então um perfil que passa a achar outra coisa
+  quebra um teste em vez de surpreender alguém lá na frente. O `--update` grava
+  os relatórios esperados.
 
 ### Vale saber
 

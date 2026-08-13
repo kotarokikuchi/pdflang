@@ -2,8 +2,8 @@
 
 [← Standardbibliothek](10-stdlib.md) · [Inhalt](README.md) · [Weiter: Rezepte →](12-recipes.md)
 
-Elf Befehle: vier für PDFs, vier für Skripte, zwei für die Verteilung und einer
-für die Shell.
+Zwölf Befehle: vier für PDFs, fünf für Skripte, zwei für die Verteilung und
+einer für die Shell.
 
 | Befehl | Zweck |
 |---|---|
@@ -14,6 +14,7 @@ für die Shell.
 | [`inspect`](#pdfl-inspect) | Schneller Überblick über ein PDF |
 | [`lint`](#pdfl-lint) | Analysiert ein Skript, ohne es auszuführen |
 | [`fmt`](#pdfl-fmt) | Formatiert ein Skript |
+| [`test`](#pdfl-test) | Führt ein Skript über einen Ordner PDFs aus und vergleicht jeden Bericht |
 | [`doc`](#pdfl-doc) | Erzeugt die Dokumentation eines Skripts |
 | [`pack`](#pdfl-pack) | Packt Profile und Daten |
 | [`add`](#pdfl-add) | Installiert ein Paket |
@@ -410,6 +411,67 @@ ein beschädigtes oder verändertes Paket kommt nicht hinein.
 
 > Ferne Verzeichnisse und digitale Signaturen gehören nicht zu dieser Version:
 > `add` installiert aus einer lokalen Datei.
+
+---
+
+## `pdfl test`
+
+Führt ein Skript über jedes PDF eines Ordners aus und vergleicht jeden Bericht
+mit dem, der daneben aufgezeichnet ist. Ein Profil, das plötzlich etwas anderes
+findet, lässt einen Test scheitern, statt jemanden weiter hinten zu überraschen.
+
+```bash
+pdfl test <skript.pdfl> [--dir <ordner>] [--update]
+```
+
+| Option | Vorgabe | Zweck |
+|---|---|---|
+| `--dir <ordner>` | `tests/` neben dem Skript | Wo die Fall-PDFs liegen |
+| `--update` | — | Zeichnet die erwarteten Berichte auf, statt zu vergleichen |
+
+Ein Fall ist ein PDF und der von ihm erwartete Bericht, nebeneinander:
+
+```
+profile/druckerei/
+  vorstufe.pdfl
+  tests/
+    freigegeben.pdf
+    freigegeben.expected.json
+    viel_farbe.pdf
+    viel_farbe.expected.json
+```
+
+```bash
+# Beim ersten Mal: aufzeichnen, was das Skript heute findet
+pdfl test vorstufe.pdfl --update
+
+# Von da an
+pdfl test vorstufe.pdfl
+```
+
+```
+ok   freigegeben.pdf
+FAIL viel_farbe.pdf
+     error_count: expected 1, got 0
+     missing:    PDFL-093751a2 [error] Farbauftrag (line 12): Seite 7: 324% Farbe (Grenze 300%)
+1 passed, 1 failed
+```
+
+Der Fehlschlag benennt, was sich geändert hat — die Zähler, das Urteil und
+welche Befunde auftauchten oder verschwanden —, statt zwei JSON-Dateien
+nebeneinander zu drucken.
+
+Aufzeichnen ist immer eine bewusste Handlung: ein Lauf, der seine eigene
+Baseline auffrischt, könnte nie scheitern. Lesen Sie erst den Unterschied und
+zeichnen Sie mit `--update` neu auf, wenn die Änderung die gemeinte ist.
+
+Der erwartete Bericht ist der von `pdfl run`, mit `input_file` auf den Dateinamen
+verkürzt — eine Baseline, die sich je nach Aufrufverzeichnis ändert, ist keine.
+Ein PDF, das sich nicht öffnen lässt, lässt seinen eigenen Fall scheitern und die
+übrigen laufen.
+
+Exit-Codes: `0` alle bestanden, `2` mindestens einer scheiterte, `10` der Ordner
+war nicht lesbar oder enthält kein PDF.
 
 ---
 

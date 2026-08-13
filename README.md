@@ -160,11 +160,18 @@ metadata.
 Full example in [examples/images.pdfl](examples/images.pdfl).
 
 Comparing one document against another — SSIM, perceptual hash, pixel diff and
-the quality checks — has two worked examples:
-[examples/proof.pdfl](examples/proof.pdfl) checks a press file against the proof
-a client signed off, and [examples/reprint.pdfl](examples/reprint.pdfl) checks a
-reprint against the edition already on shelves, where one page is *supposed* to
-differ.
+the quality checks — has four worked examples:
+
+| Example | Question it answers |
+|---|---|
+| [proof.pdfl](examples/proof.pdfl) | did anything move since the client signed off? |
+| [reprint.pdfl](examples/reprint.pdfl) | is this reprint the same book, apart from the colophon that *must* differ? |
+| [scope.pdfl](examples/scope.pdfl) | did the correction stay within what was agreed — and did anything change at all? |
+| [intake.pdfl](examples/intake.pdfl) | reject or accept, and for which reason: reordered, rewritten, or degraded? |
+
+`scope.pdfl` and `intake.pdfl` are meant to run in that order: the first decides
+whether a resubmission is worth reviewing, the second says what is wrong with
+it.
 
 ## Namespace `prepress::`
 

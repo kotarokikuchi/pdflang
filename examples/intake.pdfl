@@ -1,0 +1,89 @@
+// intake.pdfl — receiving desk: why to reject a resubmitted file
+// Usage:
+// pdfl run examples/intake.pdfl resubmitted.pdf --var accepted=last-accepted.pdf
+// 
+// A supplier sends a corrected file. Before it goes into production someone has
+// to decide whether this is the same document with the fix in it, or something
+// else wearing the same name.
+// 
+// "Page 4 is different" is not a useful answer. The checks below separate the
+// reasons, because they lead to different conversations: a page that moved is a
+// layout slip, a page that was replaced is content nobody approved, and a page
+// that lost quality means the file was exported the wrong way.
+
+profile "intake-review" {
+
+  // Below this, the page is not the page that was accepted.
+  const SAME = 0.995
+
+  // A page that turns up at another position at this similarity was moved
+  // rather than rewritten.
+  const MOVED = 0.98
+
+  // Is this page where it was?
+  function in_place(n) {
+    visual::measure_ssim(n, vars.accepted, n) >= SAME
+  }
+
+  // Does it appear at some *other* position in the accepted file? That is what
+  // separates "moved" from "rewritten".
+  function found_elsewhere(n) {
+    doc.pages.any { |other|
+      other.number != n &&
+      visual::measure_ssim(n, vars.accepted, other.number) >= MOVED
+    }
+  }
+
+  check "Nothing was reordered" tags: ["intake", "rejection"] {
+    // Read it as: either the page is where it belongs, or it is not anywhere
+    // else either.
+    // 
+    // The first half matters. Without it, a file with two blank pages would
+    // report them as swapped forever, because blank pages are identical to one
+    // another — a false alarm, which this language treats as a defect.
+    doc.pages.each { |page|
+      assert in_place(page.number) || !found_elsewhere(page.number),
+      "page #{page.number} is not in its place but exists elsewhere in the accepted file — the pages were reordered"
+    }
+  }
+
+  check "Nothing was rewritten" tags: ["intake", "rejection"] {
+    // The complement: out of place *and* nowhere else means this page was not
+    // moved, it was replaced.
+    doc.pages.each { |page|
+      assert in_place(page.number) || found_elsewhere(page.number),
+      "page #{page.number} was rewritten — this was not in the correction request"
+    }
+  }
+
+  check "No image swapped" tags: ["intake", "rejection"] {
+    // Perceptual hash catches a replaced photo that structural similarity can
+    // average away on a busy page — a label, a price, a certification mark.
+    // 
+    // Skipped for a page that merely moved: the image there does differ from
+    // the image at that position, but the reordering check already said why,
+    // and repeating it buries the finding that matters.
+    doc.pages.each { |page|
+      assert !visual::detect_image_replacement(page.number, vars.accepted, page.number) ||
+      found_elsewhere(page.number),
+      "page #{page.number}: an image was replaced"
+    }
+  }
+
+  check "Quality survived the round trip" tags: ["intake", "rejection"] {
+    // A file re-saved instead of re-exported arrives visually similar and
+    // technically worse. Easiest rejection reason to miss by eye, most
+    // expensive to find on press.
+    doc.pages.each { |page|
+      assert !visual::detect_image_artifacts(page.number),
+      "page #{page.number}: compression artifacts — re-export from the source, do not re-save the PDF"
+    }
+  }
+
+  check "Flat areas still flat" tags: ["intake"] severity: warning {
+    doc.pages.each { |page|
+      assert !visual::detect_posterization(page.number),
+      "page #{page.number}: posterization in a flat tint or gradient"
+    }
+  }
+}

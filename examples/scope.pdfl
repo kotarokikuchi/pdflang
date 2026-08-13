@@ -1,0 +1,49 @@
+// scope.pdfl — did the correction stay inside what was asked for?
+// Usage:
+// pdfl run examples/scope.pdfl corrected.pdf --var previous=before-correction.pdf
+// 
+// A supplier was asked to fix a price on one page. The file comes back and
+// twelve pages are different. Whatever happened, this is no longer the change
+// that was approved, and nobody should be reading twelve diffs to find out why.
+// 
+// This is a gate, not a diagnosis: it decides whether the file is worth
+// reviewing at all. Run examples/intake.pdfl afterwards to find out what
+// actually changed on the pages it names.
+
+profile "scope-of-change" {
+
+  const SAME = 0.995
+
+  // A correction that touches more pages than this goes back for a new
+  // approval round instead of through the usual review.
+  const MAX_CHANGED = 2
+
+  check "Change stayed within scope" tags: ["scope", "rejection"] {
+    changed = doc.pages.filter { |page|
+      visual::measure_ssim(page.number, vars.previous, page.number) < SAME
+    }
+
+    assert changed.length <= MAX_CHANGED,
+    "#{changed.length} pages changed, at most #{MAX_CHANGED} was agreed — this needs a new approval round, not a review"
+  }
+
+  check "Something did change" tags: ["scope"] {
+    // The opposite failure, and the quieter one: a file resubmitted unchanged
+    // because the fix was made in the wrong copy. It passes every comparison,
+    // which is exactly why it slips through.
+    changed = doc.pages.filter { |page|
+      visual::measure_ssim(page.number, vars.previous, page.number) < SAME
+    }
+
+    assert changed.length > 0,
+    "nothing changed from the previous file — was the correction saved in another copy?"
+  }
+
+  check "Which pages moved" tags: ["scope"] {
+    // Reports, does not judge. Gives the reviewer the list to open.
+    doc.pages.each { |page|
+      similarity = visual::diff_pages(page.number, vars.previous)
+      print("page", page.number, "similarity", similarity)
+    }
+  }
+}

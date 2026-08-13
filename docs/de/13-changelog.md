@@ -12,6 +12,20 @@ nichts stillschweigend.
 
 ## Noch nicht veröffentlicht
 
+## 0.14.0
+
+### Behoben
+
+- `--var` erreicht jetzt auch `pdfl test` und `pdfl watch`, nicht nur `pdfl
+  run`. Keines der beiden reichte es an die gestarteten Kindprozesse weiter, ein
+  Skript, das `vars.*` liest, konnte also weder getestet noch beobachtet
+  werden: jeder Fall oder jede Datei scheiterte mit „was not provided",
+  unabhängig vom Inhalt.
+
+---
+
+## 0.13.0
+
 ### Bricht
 
 - **`pdfl pack` verpackt keine Tabellendateien mehr** (`.xlsx`, `.xls`, `.ods`)
@@ -86,11 +100,6 @@ nichts stillschweigend.
 - `pdfl watch` wacht jetzt auf, wenn die frischeste Datei fertig geschrieben
   ist, statt bis zu ein ganzes Intervall später. Mit `--debounce 3000` wird eine
   ankommende Datei nach etwa 3s gemeldet statt nach bis zu 6s.
-- `--var` erreicht jetzt auch `pdfl test` und `pdfl watch`, nicht nur `pdfl
-  run`. Keines der beiden reichte es an die gestarteten Kindprozesse weiter, ein
-  Skript, das `vars.*` liest, konnte also weder getestet noch beobachtet
-  werden: jeder Fall oder jede Datei scheiterte mit „was not provided",
-  unabhängig vom Inhalt.
 
 ---
 

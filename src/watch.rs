@@ -27,13 +27,13 @@ pub struct WatchOptions {
 pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &WatchOptions) -> u8 {
     let mut processed: HashMap<PathBuf, SystemTime> = HashMap::new();
     let mut worst: u8 = 0;
-    eprintln!(
+    crate::note(format!(
         "watching {} (pattern {}, debounce {}ms){}",
         folder.display(),
         opts.pattern,
         opts.debounce_ms,
         if opts.once { " — single pass" } else { "" }
-    );
+    ));
 
     loop {
         let mut files = Vec::new();
@@ -65,7 +65,7 @@ pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wat
             let exit = process_file(&file, program, script_name, opts);
             worst = worst.max(exit);
             if opts.fail_fast && exit >= 2 {
-                eprintln!("--fail-fast: stopping at the first error ({})", file.display());
+                crate::note(format!("--fail-fast: stopping at the first error ({})", file.display()));
                 return exit;
             }
         }
@@ -120,14 +120,14 @@ fn process_file(file: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wa
     }
 
     let exit = report.exit_code(false) as u8;
-    eprintln!(
+    crate::note(format!(
         "{} → {} ({}, {} error(s), {} warning(s))",
         file.display(),
         out_path.display(),
         report.status,
         report.error_count,
         report.warning_count
-    );
+    ));
     exit
 }
 

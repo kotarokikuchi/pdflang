@@ -21,6 +21,11 @@ em silêncio.
 - `--output sarif` e `--output junit`, onde quer que se escolha um formato de
   relatório — `run`, `compare`, `watch` e `fix`. SARIF é o que o GitHub code
   scanning lê; JUnit é o que o painel de testes de qualquer CI lê.
+- `pdfl completions <shell>` imprime o script de autocompletar para bash, zsh,
+  fish, elvish ou powershell.
+- `--quiet` em todos os comandos silencia progresso e confirmações no stderr. Os
+  erros continuam aparecendo, e o `print()` fica intacto — aquilo é a saída do
+  próprio script, e sumir com ela mudaria o que o script faz.
 
 ### Vale saber
 

@@ -21,6 +21,11 @@ adapter. Rien ne change ici en silence.
 - `--output sarif` et `--output junit`, partout où l'on choisit un format de
   rapport — `run`, `compare`, `watch` et `fix`. SARIF est ce que lit GitHub code
   scanning ; JUnit, ce que lit le panneau de tests de n'importe quelle CI.
+- `pdfl completions <shell>` imprime un script de complétion pour bash, zsh,
+  fish, elvish ou powershell.
+- `--quiet` sur chaque commande fait taire la progression et les confirmations
+  sur stderr. Les erreurs restent, et `print()` n'est pas touché — c'est la
+  sortie du script lui-même, et l'avaler changerait ce qu'il fait.
 
 ### Bon à savoir
 

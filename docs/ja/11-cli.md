@@ -2,7 +2,8 @@
 
 [← 標準ライブラリ](10-stdlib.md) · [目次](README.md) · [次：レシピ →](12-recipes.md)
 
-10のコマンド：PDF を扱うもの4つ、スクリプトを扱うもの4つ、配布用が2つ。
+11のコマンド：PDF を扱うもの4つ、スクリプトを扱うもの4つ、配布用が2つ、シェル用
+が1つ。
 
 | コマンド | 動作 |
 |---|---|
@@ -16,6 +17,7 @@
 | [`doc`](#pdfl-doc) | スクリプトからドキュメントを生成 |
 | [`pack`](#pdfl-pack) | プロファイルとデータを1つにまとめる |
 | [`add`](#pdfl-add) | パッケージをインストール |
+| [`completions`](#pdfl-completions) | シェル用の補完スクリプトを出力 |
 
 ---
 
@@ -40,6 +42,25 @@ case $? in
   3) echo "error in the validation script" ;;
 esac
 ```
+
+---
+
+## 全体オプション
+
+| オプション | 動作 |
+|---|---|
+| `--quiet` | stderr への進捗と確認メッセージを止める |
+
+`--quiet` はサブコマンドの前でも後ろでも効き、すべてのサブコマンドで使えます。
+人には要るがパイプラインには要らない行——`report saved to …`、`watching …`、
+`watch` のファイルごとの結果——を消します。エラーは**消しません**。静かな実行が
+失敗したときも、理由は表示されます。
+
+`print()` も止めません。あれはスクリプト自身の出力であり、握りつぶすとスクリプト
+の振る舞いが変わってしまいます。要らない場合は stderr をリダイレクトしてくださ
+い。
+
+`--quiet` は `--verbose` より優先されます。
 
 ---
 
@@ -394,6 +415,31 @@ pdfl run pdfl_profiles/print-profile@1.0.0/prepress.pdfl file.pdf
 
 > リモートリポジトリと電子署名はこのバージョンには含まれません。`add` は
 > ローカルファイルからインストールします。
+
+---
+
+## `pdfl completions`
+
+シェル用の補完スクリプトを標準出力に書き出します。
+
+```bash
+pdfl completions <bash|zsh|fish|elvish|powershell>
+```
+
+```bash
+# bash（現在のユーザー）
+pdfl completions bash > ~/.local/share/bash-completion/completions/pdfl
+
+# zsh — $fpath 上のどこでも
+pdfl completions zsh > ~/.zfunc/_pdfl
+
+# fish
+pdfl completions fish > ~/.config/fish/completions/pdfl.fish
+```
+
+標準出力にはこれ以外を書かないので、そのまま補完ディレクトリへリダイレクトできま
+す。アップグレード後は生成し直してください。スクリプトは、それを出力したバイナリ
+のコマンドとフラグから組み立てられます。
 
 ---
 

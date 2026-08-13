@@ -21,6 +21,11 @@
 - `--output sarif` と `--output junit`。レポート形式を選ぶところすべて——`run`、
   `compare`、`watch`、`fix`——で使えます。SARIF は GitHub code scanning が読む
   形式、JUnit はあらゆる CI のテストパネルが読む形式です。
+- `pdfl completions <shell>` が bash、zsh、fish、elvish、powershell 用の補完
+  スクリプトを出力します。
+- すべてのコマンドで使える `--quiet` が、stderr への進捗と確認メッセージを止め
+  ます。エラーは表示され、`print()` はそのままです——あれはスクリプト自身の出力
+  であり、握りつぶすとスクリプトの振る舞いが変わってしまいます。
 
 ### 知っておくこと
 

@@ -21,6 +21,12 @@ nichts stillschweigend.
 - `--output sarif` und `--output junit`, überall wo ein Berichtsformat gewählt
   wird — `run`, `compare`, `watch` und `fix`. SARIF liest GitHub code scanning;
   JUnit liest das Test-Panel jeder CI.
+- `pdfl completions <shell>` gibt ein Vervollständigungsskript für bash, zsh,
+  fish, elvish oder powershell aus.
+- `--quiet` bei jedem Befehl unterdrückt Fortschritt und Bestätigungen auf
+  stderr. Fehler erscheinen weiterhin, und `print()` bleibt unangetastet — das
+  ist die Ausgabe des Skripts selbst, und sie zu schlucken würde ändern, was das
+  Skript tut.
 
 ### Wissenswert
 

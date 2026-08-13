@@ -21,6 +21,11 @@ quietly.
 - `--output sarif` and `--output junit`, wherever a report format is chosen —
   `run`, `compare`, `watch` and `fix`. SARIF is what GitHub code scanning reads;
   JUnit is what the test panel of any CI reads.
+- `pdfl completions <shell>` prints a completion script for bash, zsh, fish,
+  elvish or powershell.
+- `--quiet` on every command silences progress and confirmations on stderr.
+  Errors still appear, and `print()` is untouched — that is the script's own
+  output, and dropping it would change what a script does.
 
 ### Worth knowing
 

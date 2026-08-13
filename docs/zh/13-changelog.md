@@ -20,6 +20,10 @@
 - `--output sarif` 与 `--output junit`，凡是可以选择报告格式的地方都支持——`run`、
   `compare`、`watch` 和 `fix`。SARIF 是 GitHub code scanning 读的格式，JUnit 是
   任何 CI 的测试面板读的格式。
+- `pdfl completions <shell>` 输出 bash、zsh、fish、elvish 或 powershell 的补全
+  脚本。
+- 每个命令都可用的 `--quiet`，关闭 stderr 上的进度与确认信息。错误照常显示，
+  `print()` 也不受影响——那是脚本自己的输出，吞掉它就改变了脚本的行为。
 
 ### 需要留意
 

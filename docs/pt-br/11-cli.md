@@ -2,8 +2,8 @@
 
 [← Biblioteca padrão](10-stdlib.md) · [Índice](README.md) · [Próximo: Receitas →](12-receitas.md)
 
-Dez comandos: quatro que trabalham com PDFs, quatro sobre os scripts e dois de
-distribuição.
+Onze comandos: quatro que trabalham com PDFs, quatro sobre os scripts, dois de
+distribuição e um para o shell.
 
 | Comando | O que faz |
 |---|---|
@@ -17,6 +17,7 @@ distribuição.
 | [`doc`](#pdfl-doc) | Gera documentação de um script |
 | [`pack`](#pdfl-pack) | Empacota perfis e bases |
 | [`add`](#pdfl-add) | Instala um pacote |
+| [`completions`](#pdfl-completions) | Imprime o script de autocompletar do seu shell |
 
 ---
 
@@ -43,6 +44,24 @@ case $? in
   3) echo "erro no script de validação" ;;
 esac
 ```
+
+---
+
+## Opções globais
+
+| Opção | O que faz |
+|---|---|
+| `--quiet` | Silencia progresso e confirmações no stderr |
+
+`--quiet` funciona antes ou depois do subcomando, e em todos eles. Tira as linhas
+que uma pessoa quer e uma pipeline não — `report saved to …`, `watching …`, o
+resultado por arquivo do `watch`. Ele **não** tira erros: uma execução silenciosa
+que falha continua dizendo por quê.
+
+Também não silencia o `print()`. Aquilo é a saída do próprio script, e sumir com
+ela mudaria o que o script faz. Redirecione o stderr se quiser se livrar dela.
+
+`--quiet` vence o `--verbose`.
 
 ---
 
@@ -409,6 +428,31 @@ Se algum arquivo tiver hash diferente do registrado, a instalação é **recusad
 
 > Repositório remoto e assinatura digital não fazem parte desta versão: o `add`
 > instala a partir de arquivos locais.
+
+---
+
+## `pdfl completions`
+
+Imprime no stdout o script de autocompletar do seu shell.
+
+```bash
+pdfl completions <bash|zsh|fish|elvish|powershell>
+```
+
+```bash
+# bash, para o usuário atual
+pdfl completions bash > ~/.local/share/bash-completion/completions/pdfl
+
+# zsh — em qualquer lugar do seu $fpath
+pdfl completions zsh > ~/.zfunc/_pdfl
+
+# fish
+pdfl completions fish > ~/.config/fish/completions/pdfl.fish
+```
+
+Nada mais vai para o stdout, então a saída pode ser redirecionada direto para a
+pasta de autocompletar. Gere de novo depois de atualizar: o script é construído a
+partir dos comandos e flags do binário que o imprimiu.
 
 ---
 

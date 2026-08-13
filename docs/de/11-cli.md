@@ -2,7 +2,8 @@
 
 [← Standardbibliothek](10-stdlib.md) · [Inhalt](README.md) · [Weiter: Rezepte →](12-recipes.md)
 
-Zehn Befehle: vier für PDFs, vier für Skripte und zwei für die Verteilung.
+Elf Befehle: vier für PDFs, vier für Skripte, zwei für die Verteilung und einer
+für die Shell.
 
 | Befehl | Zweck |
 |---|---|
@@ -16,6 +17,7 @@ Zehn Befehle: vier für PDFs, vier für Skripte und zwei für die Verteilung.
 | [`doc`](#pdfl-doc) | Erzeugt die Dokumentation eines Skripts |
 | [`pack`](#pdfl-pack) | Packt Profile und Daten |
 | [`add`](#pdfl-add) | Installiert ein Paket |
+| [`completions`](#pdfl-completions) | Gibt ein Vervollständigungsskript für Ihre Shell aus |
 
 ---
 
@@ -40,6 +42,25 @@ case $? in
   3) echo "error in the validation script" ;;
 esac
 ```
+
+---
+
+## Globale Optionen
+
+| Option | Zweck |
+|---|---|
+| `--quiet` | Unterdrückt Fortschritt und Bestätigungen auf stderr |
+
+`--quiet` wirkt vor wie nach dem Unterbefehl, und bei jedem von ihnen. Es nimmt
+die Zeilen weg, die ein Mensch will und eine Pipeline nicht — `report saved to
+…`, `watching …`, die Zeile je Datei von `watch`. Fehler nimmt es **nicht** weg:
+ein stiller Lauf, der scheitert, sagt weiterhin warum.
+
+Auch `print()` bleibt. Das ist die Ausgabe des Skripts selbst, und sie zu
+schlucken würde ändern, was das Skript tut. Leiten Sie stderr um, wenn Sie sie
+loswerden wollen.
+
+`--quiet` gewinnt gegen `--verbose`.
 
 ---
 
@@ -385,6 +406,31 @@ ein beschädigtes oder verändertes Paket kommt nicht hinein.
 
 > Ferne Verzeichnisse und digitale Signaturen gehören nicht zu dieser Version:
 > `add` installiert aus einer lokalen Datei.
+
+---
+
+## `pdfl completions`
+
+Gibt ein Vervollständigungsskript für Ihre Shell auf stdout aus.
+
+```bash
+pdfl completions <bash|zsh|fish|elvish|powershell>
+```
+
+```bash
+# bash, für den aktuellen Benutzer
+pdfl completions bash > ~/.local/share/bash-completion/completions/pdfl
+
+# zsh — irgendwo in Ihrem $fpath
+pdfl completions zsh > ~/.zfunc/_pdfl
+
+# fish
+pdfl completions fish > ~/.config/fish/completions/pdfl.fish
+```
+
+Sonst geht nichts nach stdout, die Ausgabe lässt sich also direkt in das
+Vervollständigungsverzeichnis umleiten. Nach einem Upgrade neu erzeugen: das
+Skript entsteht aus den Befehlen und Flags der Binärdatei, die es gedruckt hat.
 
 ---
 

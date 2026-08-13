@@ -20,6 +20,11 @@
 - `--output sarif` و`--output junit`، في كل موضع تُختار فيه صيغة تقرير — `run`
   و`compare` و`watch` و`fix`. فـ SARIF هي ما يقرأه GitHub code scanning، وJUnit
   هي ما تقرأه لوحة الاختبارات في أي تكامل مستمر.
+- `pdfl completions <shell>` يطبع نصّ الإكمال التلقائي لـ bash أو zsh أو fish أو
+  elvish أو powershell.
+- `--quiet` في كل الأوامر يُسكت رسائل التقدّم والتأكيد على stderr. أما الأخطاء
+  فتبقى ظاهرة، و`print()` لا يُمسّ — فتلك مخرجات النص البرمجي نفسه، وابتلاعها
+  يغيّر ما يفعله.
 
 ### ممّا يحسن معرفته
 

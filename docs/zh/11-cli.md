@@ -2,7 +2,7 @@
 
 [← 标准库](10-stdlib.md) · [目录](README.md) · [下一章：实用范例 →](12-recipes.md)
 
-共 10 个命令：4 个处理 PDF，4 个处理脚本，2 个用于分发。
+共 11 个命令：4 个处理 PDF，4 个处理脚本，2 个用于分发，1 个用于 shell。
 
 | 命令 | 功能 |
 |---|---|
@@ -16,6 +16,7 @@
 | [`doc`](#pdfl-doc) | 由脚本生成文档 |
 | [`pack`](#pdfl-pack) | 打包配置与数据 |
 | [`add`](#pdfl-add) | 安装软件包 |
+| [`completions`](#pdfl-completions) | 输出所用 shell 的补全脚本 |
 
 ---
 
@@ -40,6 +41,23 @@ case $? in
   3) echo "error in the validation script" ;;
 esac
 ```
+
+---
+
+## 全局选项
+
+| 选项 | 功能 |
+|---|---|
+| `--quiet` | 关闭 stderr 上的进度与确认信息 |
+
+`--quiet` 放在子命令之前或之后都有效，且对每个子命令都有效。它去掉的是人想看、
+流水线不想看的那些行——`report saved to …`、`watching …`、`watch` 的逐文件结果。
+它**不会**去掉错误：安静的一次运行若失败，仍然会说明原因。
+
+它也不会关闭 `print()`。那是脚本自己的输出，吞掉它就改变了脚本的行为。若不需要，
+请重定向 stderr。
+
+`--quiet` 优先于 `--verbose`。
 
 ---
 
@@ -365,6 +383,30 @@ pdfl run pdfl_profiles/print-profile@1.0.0/prepress.pdfl file.pdf
 若任一文件的哈希与记录不符，安装会被**拒绝** — 损坏或被篡改的包不会进入。
 
 > 远程仓库和数字签名不在本版本范围内：`add` 从本地文件安装。
+
+---
+
+## `pdfl completions`
+
+把所用 shell 的补全脚本输出到 stdout。
+
+```bash
+pdfl completions <bash|zsh|fish|elvish|powershell>
+```
+
+```bash
+# bash，当前用户
+pdfl completions bash > ~/.local/share/bash-completion/completions/pdfl
+
+# zsh —— 放在 $fpath 上的任意位置
+pdfl completions zsh > ~/.zfunc/_pdfl
+
+# fish
+pdfl completions fish > ~/.config/fish/completions/pdfl.fish
+```
+
+stdout 上不会有别的内容，因此可以直接重定向进补全目录。升级之后请重新生成：脚本
+是由输出它的那个可执行文件的命令与参数构建出来的。
 
 ---
 

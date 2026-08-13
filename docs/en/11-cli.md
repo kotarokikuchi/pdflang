@@ -2,7 +2,8 @@
 
 [← Standard library](10-stdlib.md) · [Index](README.md) · [Next: Recipes →](12-recipes.md)
 
-Ten commands: four that work on PDFs, four on scripts and two for distribution.
+Eleven commands: four that work on PDFs, four on scripts, two for
+distribution and one for the shell.
 
 | Command | What it does |
 |---|---|
@@ -16,6 +17,7 @@ Ten commands: four that work on PDFs, four on scripts and two for distribution.
 | [`doc`](#pdfl-doc) | Generates documentation from a script |
 | [`pack`](#pdfl-pack) | Packages profiles and data files |
 | [`add`](#pdfl-add) | Installs a package |
+| [`completions`](#pdfl-completions) | Prints a completion script for your shell |
 
 ---
 
@@ -42,6 +44,25 @@ case $? in
   3) echo "error in the validation script" ;;
 esac
 ```
+
+---
+
+## Global options
+
+| Option | What it does |
+|---|---|
+| `--quiet` | Silences progress and confirmations on stderr |
+
+`--quiet` works before or after the subcommand, and on every one of them. It
+removes the lines a person wants and a pipeline does not — `report saved to …`,
+`watching …`, the per-file result of `watch`. It does **not** remove errors: a
+quiet run that fails still says why.
+
+It does not silence `print()` either. That is the script's own output, and
+dropping it would change what the script does. Redirect stderr if you want it
+gone.
+
+`--quiet` wins over `--verbose`.
 
 ---
 
@@ -410,6 +431,31 @@ a corrupted or tampered package never lands.
 
 > A remote repository and digital signatures are not part of this version: `add`
 > installs from local files.
+
+---
+
+## `pdfl completions`
+
+Prints a completion script for your shell to stdout.
+
+```bash
+pdfl completions <bash|zsh|fish|elvish|powershell>
+```
+
+```bash
+# bash, for the current user
+pdfl completions bash > ~/.local/share/bash-completion/completions/pdfl
+
+# zsh — anywhere on your $fpath
+pdfl completions zsh > ~/.zfunc/_pdfl
+
+# fish
+pdfl completions fish > ~/.config/fish/completions/pdfl.fish
+```
+
+Nothing else is written to stdout, so the output can be redirected straight into
+the completion directory. Regenerate it after upgrading: the script is built
+from the commands and flags of the binary that printed it.
 
 ---
 

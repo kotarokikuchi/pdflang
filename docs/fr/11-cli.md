@@ -2,8 +2,8 @@
 
 [← Bibliothèque standard](10-stdlib.md) · [Sommaire](README.md) · [Suivant : recettes →](12-recipes.md)
 
-Dix commandes : quatre pour les PDF, quatre pour les scripts et deux pour la
-distribution.
+Onze commandes : quatre pour les PDF, quatre pour les scripts, deux pour la
+distribution et une pour le shell.
 
 | Commande | Rôle |
 |---|---|
@@ -17,6 +17,7 @@ distribution.
 | [`doc`](#pdfl-doc) | Génère la documentation d'un script |
 | [`pack`](#pdfl-pack) | Empaquette profils et données |
 | [`add`](#pdfl-add) | Installe un paquet |
+| [`completions`](#pdfl-completions) | Imprime un script de complétion pour votre shell |
 
 ---
 
@@ -41,6 +42,26 @@ case $? in
   3) echo "error in the validation script" ;;
 esac
 ```
+
+---
+
+## Options globales
+
+| Option | Rôle |
+|---|---|
+| `--quiet` | Fait taire la progression et les confirmations sur stderr |
+
+`--quiet` fonctionne avant comme après la sous-commande, et sur chacune d'elles.
+Il retire les lignes qu'une personne veut et qu'une chaîne d'intégration ne veut
+pas — `report saved to …`, `watching …`, le résultat par fichier de `watch`. Il
+ne retire **pas** les erreurs : une exécution silencieuse qui échoue dit toujours
+pourquoi.
+
+Il ne fait pas taire `print()` non plus. C'est la sortie du script lui-même, et
+l'avaler changerait ce que le script fait. Redirigez stderr si vous voulez vous
+en débarrasser.
+
+`--quiet` l'emporte sur `--verbose`.
 
 ---
 
@@ -382,6 +403,31 @@ un paquet corrompu ou altéré n'entre pas.
 
 > Dépôts distants et signatures numériques ne font pas partie de cette version :
 > `add` installe depuis un fichier local.
+
+---
+
+## `pdfl completions`
+
+Imprime sur stdout un script de complétion pour votre shell.
+
+```bash
+pdfl completions <bash|zsh|fish|elvish|powershell>
+```
+
+```bash
+# bash, pour l'utilisateur courant
+pdfl completions bash > ~/.local/share/bash-completion/completions/pdfl
+
+# zsh — n'importe où dans votre $fpath
+pdfl completions zsh > ~/.zfunc/_pdfl
+
+# fish
+pdfl completions fish > ~/.config/fish/completions/pdfl.fish
+```
+
+Rien d'autre ne part sur stdout : la sortie peut donc être redirigée directement
+dans le répertoire de complétion. Régénérez-la après une mise à jour — le script
+est construit à partir des commandes et des options du binaire qui l'a imprimé.
 
 ---
 

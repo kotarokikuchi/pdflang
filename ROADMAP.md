@@ -55,7 +55,7 @@ and `Cargo.toml`.
 | Typed script parameters and free variables | 🟧 partial | `--var name=value` reaches the script as `vars.name`; no typed `params` block that declares what a script requires |
 | Input by URL | 🟥 no | out of scope until a network namespace exists |
 | `--tags` | 🟩 yes | filters checks; a tag no check carries is an error rather than an empty pass |
-| `--quiet` / `--verbose` | 🟧 partial | `run` has `--verbose`; no `--quiet` anywhere |
+| `--quiet` / `--verbose` | 🟩 yes | `--quiet` is global and silences progress on stderr, never errors and never `print()`; `run` has `--verbose` |
 | Report language selection | 🟥 no | reports are English-only by decision |
 | `--dry-run` / execution plan | 🟧 partial | `fix --dry-run` exists; `run` has neither |
 | `--profile`, `--explain-skip` | 🟥 no | |
@@ -126,10 +126,11 @@ Six of the planned tooling subcommands exist in some form; eleven do not.
 | `pack` | 🟩 yes |
 | `add` | 🟩 yes |
 | `test`, `repl`, `debug`, `bench`, `explain`, `new`, `migrate`, `graph`, `doctor`, `capabilities`, `cache` | 🟥 no |
-| LSP, editor extension, shell completions, man pages, corpus runner | 🟥 no |
+| Shell completions | 🟩 yes — `pdfl completions <shell>`, via `clap_complete` |
+| LSP, editor extension, man pages, corpus runner | 🟥 no |
 
-`clap` gives shell completions almost free via `clap_complete`; that is the
-cheapest item here.
+Shell completions were the cheapest item here and are done; `clap_complete`
+generates them from the CLI definition, so they cannot drift from the binary.
 
 ### Packages and data
 
@@ -195,11 +196,13 @@ a finding lands on the pull request and in the CI's test panel. The JSON report
 gained `checks_run` along the way, because a format that counts tests has to know
 which checks passed, and the diagnostics only name the ones that failed.
 
+`pdfl completions <shell>` and a global `--quiet` followed. Completions cost one
+dependency, `clap_complete`, which is the only one Wave 2 added.
+
 ### Wave 2 — collect what is already paid for
 
-Each of these reuses structure that exists; none needs a new dependency.
+Each of these reuses structure that exists.
 
-6. **Shell completions** via `clap_complete`, and `--quiet`.
 7. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
    stop packaging formats it cannot open.
 

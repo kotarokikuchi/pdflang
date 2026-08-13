@@ -22,10 +22,11 @@ mod textns;
 mod visualns;
 mod watch;
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use report::{Diagnostic, Report, Severity};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Something went wrong that is not a verdict on the document: the PDF could not
 /// be read, a file could not be written, an operation failed.
@@ -35,11 +36,27 @@ use std::process::ExitCode;
 /// file failed the checks" — opposite situations needing opposite reactions.
 const EXIT_INFRASTRUCTURE: u8 = 10;
 
+/// Set once from --quiet, then only read. Informational stderr passes through
+/// `note()`; errors never do, so a quiet run still says why it failed.
+static QUIET: AtomicBool = AtomicBool::new(false);
+
+/// Progress and confirmations on stderr — the lines a person wants and a
+/// pipeline does not.
+pub fn note(message: String) {
+    if !QUIET.load(Ordering::Relaxed) {
+        eprintln!("{message}");
+    }
+}
+
 #[derive(Parser)]
 #[command(name = "pdfl", version, about = "Runs .pdfl scripts to validate and normalize PDFs")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
+    /// Silences progress and confirmations on stderr; errors still appear. Wins
+    /// over --verbose
+    #[arg(long, global = true)]
+    quiet: bool,
 }
 
 #[derive(Subcommand)]
@@ -196,6 +213,11 @@ enum Command {
         #[arg(long)]
         check: bool,
     },
+    /// Prints a completion script for a shell (bash, zsh, fish, elvish, powershell)
+    Completions {
+        /// The shell to generate for
+        shell: clap_complete::Shell,
+    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -232,7 +254,7 @@ fn emit_report(report: &Report, format: OutputFormat, file: Option<&PathBuf>, in
     };
     match target {
         Some(path) => match std::fs::write(&path, bytes) {
-            Ok(()) => eprintln!("report saved to {}", path.display()),
+            Ok(()) => note(format!("report saved to {}", path.display())),
             Err(e) => eprintln!("error writing {}: {e}", path.display()),
         },
         None => println!("{}", String::from_utf8_lossy(&bytes)),
@@ -300,7 +322,9 @@ fn file_name(p: &Path) -> String {
 }
 
 fn main() -> ExitCode {
-    match Cli::parse().command {
+    let cli = Cli::parse();
+    QUIET.store(cli.quiet, Ordering::Relaxed);
+    match cli.command {
         Command::Run { script, input, output, output_file, fail_on, verbose, vars, tags } => {
             run_cmd(&script, &input, output, output_file.as_ref(), fail_on, verbose, &vars, &tags)
         }
@@ -428,7 +452,7 @@ fn main() -> ExitCode {
                     println!("{}: warning: {w}", script.display());
                 }
                 if warnings.is_empty() {
-                    eprintln!("{}: no problems found", script.display());
+                    note(format!("{}: no problems found", script.display()));
                 }
             }
             if warnings.is_empty() {
@@ -460,15 +484,21 @@ fn main() -> ExitCode {
                     ExitCode::from(1)
                 }
             } else if formatted == source {
-                eprintln!("{}: already formatted", script.display());
+                note(format!("{}: already formatted", script.display()));
                 ExitCode::SUCCESS
             } else if let Err(e) = std::fs::write(&script, &formatted) {
                 eprintln!("error writing {}: {e}", script.display());
                 ExitCode::from(EXIT_INFRASTRUCTURE)
             } else {
-                eprintln!("{}: formatted", script.display());
+                note(format!("{}: formatted", script.display()));
                 ExitCode::SUCCESS
             }
+        }
+        Command::Completions { shell } => {
+            // stdout, so it can be piped straight into the shell's completion
+            // directory — which is why nothing else is printed here.
+            clap_complete::generate(shell, &mut Cli::command(), "pdfl", &mut std::io::stdout());
+            ExitCode::SUCCESS
         }
     }
 }
@@ -500,7 +530,7 @@ fn run_cmd(
         Err(code) => return code,
     };
     if verbose {
-        eprintln!("PDF loaded: {} page(s), {} font(s)", doc.pages.len(), doc.fonts.len());
+        note(format!("PDF loaded: {} page(s), {} font(s)", doc.pages.len(), doc.fonts.len()));
     }
 
     let mut interp = interpreter::Interpreter::new();
@@ -580,7 +610,7 @@ fn fix_cmd(
         }
     };
     if !dry_run && !fixes.is_empty() {
-        eprintln!("normalized PDF saved to {}", output.display());
+        note(format!("normalized PDF saved to {}", output.display()));
     }
 
     let mut report = Report::new(
@@ -623,4 +653,28 @@ fn compare_cmd(
     report.similarity = Some(result.similarity);
     emit_report(&report, format, output_file, v1);
     ExitCode::from(report.exit_code(false) as u8)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// clap's own consistency check: catches a flag that collides with another,
+    /// which is easy to introduce with `global = true`.
+    #[test]
+    fn the_cli_definition_is_consistent() {
+        Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn completions_are_generated_for_every_shell() {
+        for shell in clap_complete::Shell::value_variants() {
+            let mut out = Vec::new();
+            clap_complete::generate(*shell, &mut Cli::command(), "pdfl", &mut out);
+            let script = String::from_utf8(out).expect("a completion script is text");
+            // Naming a subcommand is the cheapest proof it walked the whole CLI
+            // rather than emitting a stub.
+            assert!(script.contains("inspect"), "{shell}: {script}");
+        }
+    }
 }

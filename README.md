@@ -339,6 +339,21 @@ prefix silences it), duplicate or empty checks, unknown namespace, `assert`
 outside a check, and use of `fix::` outside the `pdfl fix` command. The formatter
 preserves comments and the author's line breaks.
 
+## Command `pdfl completions`
+
+```bash
+pdfl completions bash > ~/.local/share/bash-completion/completions/pdfl
+pdfl completions zsh  > ~/.zfunc/_pdfl        # anywhere on your $fpath
+pdfl completions fish > ~/.config/fish/completions/pdfl.fish
+```
+
+Also `elvish` and `powershell`. Only the script goes to stdout, so it can be
+redirected straight into place; regenerate it after upgrading.
+
+`--quiet` works on every command and silences progress and confirmations on
+stderr. Errors still appear, and `print()` is untouched — that is the script's
+own output.
+
 ## Development
 
 ```bash

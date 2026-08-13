@@ -430,6 +430,29 @@ suivent cette convention.
 
 ---
 
+### Des valeurs venues de la ligne de commande
+
+`--var nom=valeur` sur `pdfl run` parvient au script sous la forme `vars.nom`,
+toujours en texte. C'est ce qui évite qu'un profil devienne cinq copies presque
+identiques :
+
+```pdfl
+check "Le travail correspond à la commande" {
+  assert doc.title.contains(vars.commande),
+    "le fichier dit \"#{doc.title}\", la commande est #{vars.commande}"
+}
+```
+
+```bash
+pdfl run reception.pdfl recu.pdf --var commande=SO-4471
+```
+
+Un nom non transmis est une **erreur qui nomme l'option censée le fournir**, et
+non une chaîne vide : un check comparant à rien passerait, et annoncerait un
+fichier que personne n'a validé.
+
+---
+
 ## 1.10 Des messages utiles à qui reçoit le fichier
 
 La qualité du rapport tient aux messages que vous écrivez. Comparez :

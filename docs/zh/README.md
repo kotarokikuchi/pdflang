@@ -24,7 +24,7 @@
 | [8. `fix::`](08-fix.md) | 规范化：页面框、页面、水印、合并/拆分、优化 |
 | [9. `data::`](09-data.md) | 外部数据：术语表、数据集、查询表 |
 | [10. 标准库](10-stdlib.md) | 列表和字符串方法、全局函数 |
-| [11. 命令行](11-cli.md) | `run`、`compare`、`watch`、`fix`、`inspect`、`lint`、`fmt`、`doc`、`pack`、`add` |
+| [11. 命令行](11-cli.md) | `run`、`compare`、`watch`、`fix`、`inspect`、`lint`、`fmt`、`doc`、`pack`、`add`、`test`、`completions` |
 | [12. 实用范例](12-recipes.md) | 完整案例：印刷厂、法律出版社、制药实验室、CI/CD |
 | [13. 变更记录](13-changelog.md) | 每个版本改了什么，以及可能破坏什么 |
 

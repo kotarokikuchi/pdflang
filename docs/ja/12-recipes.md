@@ -284,6 +284,18 @@ jobs:
         with:
           name: reports
           path: reports/
+
+      # アーティファクトは誰かが開きに行かないと見えません。プルリクエストへの
+      # 注釈はそうではありません。
+      - name: 所見をプルリクエストに出す
+        run: |
+          pdfl run profiles/offset.pdfl files/cover.pdf \
+            --output sarif --output-file pdfl.sarif
+        continue-on-error: true          # 終了コード 2 は不合格のファイル。アップロードは必要
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pdfl.sarif
 ```
 
 ---
@@ -366,6 +378,49 @@ pdfl run investigate.pdfl suspect.pdf > /dev/null
 # print() は標準エラー出力なので、レポートは捨てて
 # 調査結果だけを見られます
 ```
+
+## 12.9 誰かの刷り出しを台無しにする前にプロファイルをテストする
+
+**問題：** プロファイルはコードであり、誰かが手を入れます。しきい値が動き、check
+の名前が変わり、そして誰も気づかないまま、本来なら弾かれるべきファイルが刷版に
+回ってしまう。
+
+そのルールを教えてくれたファイルを取っておき、プロファイルがそれについて何と言う
+かを固定しましょう。
+
+```
+profiles/print-shop/
+  offset.pdfl
+  tests/
+    approved.pdf              # 通っていた。これからも通らなければならない
+    approved.expected.json
+    ink_324.pdf               # 3月に刷り直しを招いたファイル
+    ink_324.expected.json
+    fonts_not_embedded.pdf
+    fonts_not_embedded.expected.json
+```
+
+```bash
+# ケースが揃ったところで一度だけ
+pdfl test profiles/print-shop/offset.pdfl --update
+
+# 以後は CI で、そしてプロファイルへのコミットのたびに
+pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+弾かれるファイルは、通るファイルと同じくらい良いケースになります。記録されるのは
+レポート全体なので、プロファイルが 324% のインキについて何も言わなくなったときも、
+問題のないファイルに文句を言い始めたときも、同じ大きさでテストが落ちます。
+
+```yaml
+      - name: プロファイルはいまも同じものを見つけるか
+        run: pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+記録し直す前に、まず失敗の中身を読んでください。`--update` は新しい挙動を
+正しいと判断する瞬間そのものであり、その判断をする機会は他にありません。
+
+---
 
 ---
 

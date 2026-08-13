@@ -85,8 +85,9 @@ Comparison ignores case and spacing — "GENERAL  CONDITIONS" satisfies
 
 ### `data::load_dataset(file)`
 
-Loads a CSV as a list of rows; each row is a list of columns. Quotes follow the
-standard (a quoted field may contain commas).
+Loads a CSV or JSON file as a list of rows; each row is a list of columns. In
+CSV, quotes follow the standard (a quoted field may contain commas); JSON is
+described below.
 
 `data/batches.csv`:
 
@@ -141,7 +142,8 @@ Mixing the two shapes in one file is an error that names the row.
 
 ### `data::lookup_value(file, key)`
 
-Looks the key up in the first column and returns the **second** column's value.
+Looks the key up in the first column and returns the **second** column's value,
+in a CSV or a JSON file alike.
 Returns `null` when not found — and since `null` is falsy, you can test it
 directly.
 

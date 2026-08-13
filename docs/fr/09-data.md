@@ -43,7 +43,7 @@ distribuer les données avec le profil, utilisez `pdfl pack`
 |---|---|
 | `data::load_glossary(fichier)` | Liste de termes (un par ligne, `#` = commentaire) |
 | `data::validate_against_reference(fichier)` | Liste des termes **absents** du document |
-| `data::load_dataset(fichier)` | Lit un CSV comme une liste de lignes |
+| `data::load_dataset(fichier)` | Lit un CSV ou un JSON comme une liste de lignes |
 | `data::lookup_value(fichier, clé)` | 2e colonne de la ligne dont la 1re vaut la clé (`null` sinon) |
 
 La comparaison ignore la casse et les espaces.

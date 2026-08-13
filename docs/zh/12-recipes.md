@@ -276,6 +276,17 @@ jobs:
         with:
           name: reports
           path: reports/
+
+      # 制品要有人专门去打开才看得见，拉取请求上的注释不用。
+      - name: 把发现放到拉取请求上
+        run: |
+          pdfl run profiles/offset.pdfl files/cover.pdf \
+            --output sarif --output-file pdfl.sarif
+        continue-on-error: true          # 退出码 2 表示文件被拒；上传仍然要进行
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pdfl.sarif
 ```
 
 ---
@@ -356,6 +367,46 @@ EOF
 pdfl run investigate.pdfl suspect.pdf > /dev/null
 # print() 输出到标准错误，因此可以丢弃报告，只看调查结果
 ```
+
+## 12.9 在配置文件让人赔掉一次印刷之前测试它
+
+**问题：** 配置文件也是代码，而人会去改它。一个阈值挪动了，一个 check 改了名字，
+没有人察觉——直到一份本该被拒的文件上了印版。
+
+把教会你这条规则的文件留下来，并把配置文件对它们的判断固定下来：
+
+```
+profiles/print-shop/
+  offset.pdfl
+  tests/
+    approved.pdf              # 当时通过了，以后也必须通过
+    approved.expected.json
+    ink_324.pdf               # 三月里赔掉一次重印的那份文件
+    ink_324.expected.json
+    fonts_not_embedded.pdf
+    fonts_not_embedded.expected.json
+```
+
+```bash
+# 用例齐了以后，记录一次
+pdfl test profiles/print-shop/offset.pdfl --update
+
+# 此后——在 CI 里，以及每次改动配置文件之前
+pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+被拒的文件和通过的文件一样是好用例：记录下来的是整份报告，所以配置文件哪天不再
+对 324% 的墨量出声，测试失败的分量，和它开始挑剔一份好文件时一样重。
+
+```yaml
+      - name: 配置文件仍然查得出原来查得出的东西
+        run: pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+重新记录之前先读失败信息。`--update` 就是你判定新行为正确的那一刻，除此之外没有
+别的时刻。
+
+---
 
 ---
 

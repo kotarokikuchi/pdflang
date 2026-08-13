@@ -40,7 +40,7 @@ PDFL_DATA_DIR=/opt/databases pdfl run profile.pdfl document.pdf
 |---|---|
 | `data::load_glossary(file)` | 术语列表（每行一个，`#` 为注释） |
 | `data::validate_against_reference(file)` | 文档中**未出现**的术语列表 |
-| `data::load_dataset(file)` | 把 CSV 读为行的列表 |
+| `data::load_dataset(file)` | 把 CSV 或 JSON 读为行的列表 |
 | `data::lookup_value(file, key)` | 首列为该键的行的第二列（找不到为 `null`） |
 
 比较时忽略大小写和空白。

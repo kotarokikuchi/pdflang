@@ -285,6 +285,18 @@ jobs:
         with:
           name: berichte
           path: berichte/
+
+      # Ein Artefakt muss jemand öffnen gehen. Eine Anmerkung am Pull Request
+      # nicht.
+      - name: Befunde am Pull Request
+        run: |
+          pdfl run profile/offset.pdfl dateien/umschlag.pdf \
+            --output sarif --output-file pdfl.sarif
+        continue-on-error: true          # Exit 2 heißt abgelehnte Datei; der Upload muss trotzdem laufen
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pdfl.sarif
 ```
 
 ---
@@ -367,6 +379,51 @@ pdfl run untersuchung.pdfl verdaechtig.pdf > /dev/null
 # print() schreibt auf die Fehlerausgabe: Man wirft den Bericht weg
 # und behält nur die Ergebnisse der Untersuchung
 ```
+
+## 12.9 Ein Profil prüfen, bevor es jemanden eine Auflage kostet
+
+**Problem:** ein Profil ist Code, und jemand ändert es. Ein Grenzwert wandert,
+ein Check wird umbenannt, und niemand merkt es, bis eine Datei, die hätte
+abgelehnt werden müssen, auf die Platte ging.
+
+Behalten Sie die Dateien, die Ihnen die Regel beigebracht haben, und halten Sie
+fest, was das Profil über sie sagt:
+
+```
+profile/druckerei/
+  vorstufe.pdfl
+  tests/
+    freigegeben.pdf           # bestand, und muss weiter bestehen
+    freigegeben.expected.json
+    farbe_324.pdf             # die Datei, die im März einen Nachdruck kostete
+    farbe_324.expected.json
+    schriften_nicht_eingebettet.pdf
+    schriften_nicht_eingebettet.expected.json
+```
+
+```bash
+# Einmal, wenn die Fälle die richtigen sind
+pdfl test profile/druckerei/vorstufe.pdfl --update
+
+# Von da an — in der CI und vor jedem Commit am Profil
+pdfl test profile/druckerei/vorstufe.pdfl --jobs 0
+```
+
+Eine abgelehnte Datei ist ein ebenso guter Fall wie eine freigegebene:
+aufgezeichnet wird der ganze Bericht, der Test scheitert also genauso laut, wenn
+das Profil die 324% Farbauftrag nicht mehr bemängelt, wie wenn es eine
+einwandfreie Datei zu bemängeln beginnt.
+
+```yaml
+      - name: Die Profile finden noch, was sie fanden
+        run: pdfl test profile/druckerei/vorstufe.pdfl --jobs 0
+```
+
+Lesen Sie den Fehlschlag, bevor Sie neu aufzeichnen. `--update` ist der Moment,
+in dem Sie entscheiden, dass das neue Verhalten richtig ist — einen anderen gibt
+es nicht.
+
+---
 
 ---
 

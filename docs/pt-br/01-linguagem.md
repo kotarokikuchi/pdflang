@@ -423,6 +423,28 @@ obriga, mas os exemplos e perfis prontos seguem isso.
 
 ---
 
+### Valores vindos da linha de comando
+
+`--var nome=valor` no `pdfl run` chega ao script como `vars.nome`, sempre como
+texto. É o que evita que um perfil vire cinco cópias quase iguais:
+
+```pdfl
+check "Job confere com o pedido" {
+  assert doc.title.contains(vars.pedido),
+    "o arquivo diz \"#{doc.title}\", o pedido é #{vars.pedido}"
+}
+```
+
+```bash
+pdfl run entrada.pdfl recebido.pdf --var pedido=SO-4471
+```
+
+Um nome que não foi passado é **erro, e o erro nomeia a flag que o forneceria** —
+não string vazia: um check comparando contra nada passaria e reportaria um
+arquivo que ninguém validou.
+
+---
+
 ## 1.10 Mensagens que ajudam quem recebe o arquivo
 
 A qualidade do relatório depende das mensagens que você escreve. Compare:

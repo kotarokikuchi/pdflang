@@ -423,6 +423,28 @@ enforce it, but the examples and shipped profiles follow it.
 
 ---
 
+### Values from the command line
+
+`--var name=value` on `pdfl run` reaches the script as `vars.name`, always as
+text. It is what keeps one profile from becoming five near-identical copies:
+
+```pdfl
+check "Job matches the order" {
+  assert doc.title.contains(vars.order),
+    "the file says \"#{doc.title}\", the order is #{vars.order}"
+}
+```
+
+```bash
+pdfl run intake.pdfl received.pdf --var order=SO-4471
+```
+
+A name that was not passed is an **error naming the flag that would supply it**,
+not an empty string: a check comparing against nothing would otherwise pass and
+report a file nobody validated.
+
+---
+
 ## 1.10 Messages that help whoever gets the file
 
 The quality of the report depends on the messages you write. Compare:

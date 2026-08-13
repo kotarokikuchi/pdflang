@@ -411,6 +411,27 @@ check "Scope" {
 
 ---
 
+### 来自命令行的值
+
+`pdfl run` 的 `--var 名称=值` 会以 `vars.名称` 的形式抵达脚本，始终是文本。正是
+它让一个配置文件不必变成五份几乎一样的副本：
+
+```pdfl
+check "作业与订单相符" {
+  assert doc.title.contains(vars.order),
+    "文件写的是 \"#{doc.title}\"，订单是 #{vars.order}"
+}
+```
+
+```bash
+pdfl run intake.pdfl received.pdf --var order=SO-4471
+```
+
+没有传入的名称是**一个错误，并且错误会点出应当提供它的那个参数**，而不是空字符
+串：与空值比较的 check 会直接通过，报告出一份根本没人校验过的文件。
+
+---
+
 ## 1.10 让收件人受益的消息
 
 报告的质量取决于你写的消息。对比一下：

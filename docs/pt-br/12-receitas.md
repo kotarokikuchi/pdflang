@@ -307,6 +307,18 @@ jobs:
         with:
           name: laudos
           path: laudos/
+
+      # Um artefato é algo que alguém precisa ir lá abrir. Uma anotação no pull
+      # request, não.
+      - name: Achados no pull request
+        run: |
+          pdfl run perfis/offset.pdfl arquivos/capa.pdf \
+            --output sarif --output-file pdfl.sarif
+        continue-on-error: true          # exit 2 é arquivo recusado; o upload ainda tem que rodar
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pdfl.sarif
 ```
 
 Em shell puro, com controle por arquivo:
@@ -419,6 +431,49 @@ pdfl run investigar.pdfl suspeito.pdf > /dev/null
 # o print() sai no stderr, então o relatório vai para /dev/null
 # e você vê só a investigação
 ```
+
+## 12.9 Testando um perfil antes que ele custe uma tiragem
+
+**Problema:** um perfil é código, e alguém edita. Um limite muda, um check é
+renomeado, e ninguém percebe até um arquivo que devia ter sido recusado ir para
+a chapa.
+
+Guarde os arquivos que te ensinaram a regra e congele o que o perfil diz sobre
+eles:
+
+```
+perfis/grafica/
+  offset.pdfl
+  tests/
+    aprovado.pdf              # passou, e tem que continuar passando
+    aprovado.expected.json
+    tinta_324.pdf             # o arquivo que custou uma reimpressão em março
+    tinta_324.expected.json
+    fontes_nao_embutidas.pdf
+    fontes_nao_embutidas.expected.json
+```
+
+```bash
+# Uma vez, quando os casos forem os que você quer
+pdfl test perfis/grafica/offset.pdfl --update
+
+# Daí em diante — na CI, e antes de todo commit no perfil
+pdfl test perfis/grafica/offset.pdfl --jobs 0
+```
+
+Um arquivo recusado é um caso tão bom quanto um aprovado: o que fica gravado é o
+relatório inteiro, então o teste falha com a mesma força se o perfil parar de
+reclamar dos 324% de tinta ou se começar a reclamar de um arquivo que está bom.
+
+```yaml
+      - name: Os perfis ainda acham o que achavam
+        run: pdfl test perfis/grafica/offset.pdfl --jobs 0
+```
+
+Leia a falha antes de regravar. O `--update` é o momento em que você decide que
+o comportamento novo está certo — não existe outro momento.
+
+---
 
 ---
 

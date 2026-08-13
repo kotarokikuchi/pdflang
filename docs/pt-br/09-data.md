@@ -85,8 +85,9 @@ A comparação ignora maiúsculas e espaçamento — "CONDIÇÕES  GERAIS" satis
 
 ### `data::load_dataset(arquivo)`
 
-Carrega um CSV como lista de linhas; cada linha é uma lista de colunas. Aspas
-são tratadas conforme o padrão (campo entre aspas pode conter vírgula).
+Carrega um CSV ou um JSON como lista de linhas; cada linha é uma lista de
+colunas. No CSV as aspas são tratadas conforme o padrão (campo entre aspas pode
+conter vírgula); o JSON está descrito abaixo.
 
 `dados/lotes.csv`:
 
@@ -143,8 +144,9 @@ Misturar as duas formas no mesmo arquivo é erro, e o erro diz em qual linha.
 
 ### `data::lookup_value(arquivo, chave)`
 
-Procura a chave na primeira coluna e devolve o valor da **segunda**. Devolve
-`null` se não encontrar — e como `null` é falso, dá para testar direto.
+Procura a chave na primeira coluna e devolve o valor da **segunda**, tanto num
+CSV quanto num JSON. Devolve `null` se não encontrar — e como `null` é falso, dá
+para testar direto.
 
 ```pdfl
 check "Lote homologado" {

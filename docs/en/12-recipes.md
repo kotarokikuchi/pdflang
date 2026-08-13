@@ -305,6 +305,18 @@ jobs:
         with:
           name: reports
           path: reports/
+
+      # An artifact is something a person has to go and open. An annotation on
+      # the pull request is not.
+      - name: Findings on the pull request
+        run: |
+          pdfl run profiles/offset.pdfl files/cover.pdf \
+            --output sarif --output-file pdfl.sarif
+        continue-on-error: true          # exit 2 is a rejected file; the upload still runs
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pdfl.sarif
 ```
 
 In plain shell, with per-file control:
@@ -417,6 +429,50 @@ pdfl run investigate.pdfl suspect.pdf > /dev/null
 # print() goes to stderr, so the report is discarded
 # and you only see the investigation
 ```
+
+## 12.9 Testing a profile before it costs someone a print run
+
+**Problem:** a profile is code, and someone edits it. A threshold moves, a check
+is renamed, and nobody notices until a file that should have been rejected went
+to plate.
+
+Keep the files that taught you the rule, and lock in what the profile says about
+them:
+
+```
+profiles/print-shop/
+  offset.pdfl
+  tests/
+    approved.pdf              # passed, and must keep passing
+    approved.expected.json
+    ink_324.pdf               # the file that cost a reprint in March
+    ink_324.expected.json
+    fonts_not_embedded.pdf
+    fonts_not_embedded.expected.json
+```
+
+```bash
+# Once, when the cases are the ones you want
+pdfl test profiles/print-shop/offset.pdfl --update
+
+# From then on — in CI, and before every commit to the profile
+pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+A rejected file makes as good a case as an approved one: what is recorded is
+the whole report, so the test fails just as loudly if the profile stops
+complaining about 324% ink as if it starts complaining about a file that is
+fine.
+
+```yaml
+      - name: The profiles still find what they used to
+        run: pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+Read the failure before re-recording. `--update` is the moment you decide the
+new behaviour is correct — there is no other moment.
+
+---
 
 ---
 

@@ -279,6 +279,17 @@ jobs:
         with:
           name: reports
           path: reports/
+
+      # الأثر يحتاج من يذهب ليفتحه، أما التعليق على طلب السحب فلا.
+      - name: الملاحظات على طلب السحب
+        run: |
+          pdfl run profiles/offset.pdfl files/cover.pdf \
+            --output sarif --output-file pdfl.sarif
+        continue-on-error: true          # الرمز 2 يعني ملفًا مرفوضًا، والرفع يجب أن يتم
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pdfl.sarif
 ```
 
 ---
@@ -361,6 +372,47 @@ pdfl run investigate.pdfl suspect.pdf > /dev/null
 # print() يكتب على مخرج الأخطاء، فيمكن رمي التقرير
 # والاكتفاء بنتائج الاستقصاء
 ```
+
+## 12.9 اختبار ملف تعريفي قبل أن يكلّف أحدهم طبعة كاملة
+
+**المشكلة:** الملف التعريفي شيفرة، وأحدهم يعدّله. يتزحزح حدٌّ، ويتغيّر اسم فحص،
+ولا ينتبه أحد إلى أن ملفًا كان يجب أن يُرفض قد ذهب إلى اللوح.
+
+احتفظ بالملفات التي علّمتك القاعدة، وثبّت ما يقوله الملف التعريفي عنها:
+
+```
+profiles/print-shop/
+  offset.pdfl
+  tests/
+    approved.pdf              # نجح، وعليه أن يظل ناجحًا
+    approved.expected.json
+    ink_324.pdf               # الملف الذي كلّف إعادة طبع في مارس
+    ink_324.expected.json
+    fonts_not_embedded.pdf
+    fonts_not_embedded.expected.json
+```
+
+```bash
+# مرة واحدة، حين تكون الحالات هي التي تريدها
+pdfl test profiles/print-shop/offset.pdfl --update
+
+# وبعدها — في التكامل المستمر، وقبل كل تعديل على الملف التعريفي
+pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+والملف المرفوض حالةٌ لا تقلّ جودة عن الملف المقبول: فالمسجَّل هو التقرير كاملًا،
+ولذلك يُخفق الاختبار بالقوة نفسها إن كفّ الملف التعريفي عن الاعتراض على 324% من
+الحبر، أو إن بدأ يعترض على ملف سليم.
+
+```yaml
+      - name: هل ما زالت الملفات التعريفية تجد ما كانت تجده
+        run: pdfl test profiles/print-shop/offset.pdfl --jobs 0
+```
+
+اقرأ الإخفاق قبل أن تعيد التسجيل. فـ`--update` هو اللحظة التي تقرّر فيها أن
+السلوك الجديد صحيح — ولا لحظة غيرها.
+
+---
 
 ---
 

@@ -40,7 +40,7 @@ PDFL_DATA_DIR=/opt/databases pdfl run profile.pdfl document.pdf
 |---|---|
 | `data::load_glossary(file)` | قائمة مصطلحات (واحد في كل سطر، و`#` تعليق) |
 | `data::validate_against_reference(file)` | قائمة المصطلحات **الغائبة** عن المستند |
-| `data::load_dataset(file)` | يقرأ ملف CSV قائمةَ صفوف |
+| `data::load_dataset(file)` | يقرأ ملف CSV أو JSON قائمةَ صفوف |
 | `data::lookup_value(file, key)` | العمود الثاني من الصف الذي عموده الأول هو المفتاح (`null` إن لم يوجد) |
 
 المقارنة تتجاهل حالة الأحرف والمسافات.

@@ -41,7 +41,7 @@ Daten mit dem Profil zu verteilen, nehmen Sie `pdfl pack`
 |---|---|
 | `data::load_glossary(datei)` | Liste von Begriffen (einer je Zeile, `#` = Kommentar) |
 | `data::validate_against_reference(datei)` | Liste der im Dokument **fehlenden** Begriffe |
-| `data::load_dataset(datei)` | Liest eine CSV als Liste von Zeilen |
+| `data::load_dataset(datei)` | Liest eine CSV- oder JSON-Datei als Liste von Zeilen |
 | `data::lookup_value(datei, schlüssel)` | 2. Spalte der Zeile, deren 1. dem Schlüssel entspricht (sonst `null`) |
 
 Der Vergleich ignoriert Groß-/Kleinschreibung und Leerzeichen.

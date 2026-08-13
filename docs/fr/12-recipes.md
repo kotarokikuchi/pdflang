@@ -284,6 +284,18 @@ jobs:
         with:
           name: rapports
           path: rapports/
+
+      # Un artefact, il faut aller l'ouvrir. Une annotation sur la pull request,
+      # non.
+      - name: Constats sur la pull request
+        run: |
+          pdfl run profils/offset.pdfl fichiers/couverture.pdf \
+            --output sarif --output-file pdfl.sarif
+        continue-on-error: true          # le code 2 signale un fichier refusé ; l'envoi doit avoir lieu
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pdfl.sarif
 ```
 
 ---
@@ -366,6 +378,50 @@ pdfl run enquete.pdfl suspect.pdf > /dev/null
 # print() écrit sur la sortie d'erreur : on jette le rapport
 # et on ne garde que les résultats de l'enquête
 ```
+
+## 12.9 Tester un profil avant qu'il ne coûte un tirage
+
+**Problème :** un profil est du code, et quelqu'un le modifie. Un seuil bouge,
+un check est renommé, et personne ne s'en aperçoit avant qu'un fichier qui
+aurait dû être refusé passe à la plaque.
+
+Gardez les fichiers qui vous ont appris la règle, et figez ce que le profil en
+dit :
+
+```
+profils/imprimerie/
+  prepresse.pdfl
+  tests/
+    approuve.pdf              # passait, et doit continuer à passer
+    approuve.expected.json
+    encre_324.pdf             # le fichier qui a coûté un retirage en mars
+    encre_324.expected.json
+    polices_non_incorporees.pdf
+    polices_non_incorporees.expected.json
+```
+
+```bash
+# Une fois, quand les cas sont ceux que vous voulez
+pdfl test profils/imprimerie/prepresse.pdfl --update
+
+# Ensuite — en CI, et avant chaque commit sur le profil
+pdfl test profils/imprimerie/prepresse.pdfl --jobs 0
+```
+
+Un fichier refusé fait un cas aussi bon qu'un fichier approuvé : ce qui est
+enregistré, c'est le rapport entier. Le test échoue donc aussi fort si le profil
+cesse de signaler les 324% d'encre que s'il se met à signaler un fichier
+irréprochable.
+
+```yaml
+      - name: Les profils trouvent toujours ce qu'ils trouvaient
+        run: pdfl test profils/imprimerie/prepresse.pdfl --jobs 0
+```
+
+Lisez l'échec avant de réenregistrer. `--update` est le moment où vous décidez
+que le nouveau comportement est le bon — il n'y en a pas d'autre.
+
+---
 
 ---
 

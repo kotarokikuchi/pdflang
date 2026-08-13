@@ -40,7 +40,7 @@ PDFL_DATA_DIR=/opt/databases pdfl run profile.pdfl document.pdf
 |---|---|
 | `data::load_glossary(file)` | 用語のリスト（1行1語、`#` はコメント） |
 | `data::validate_against_reference(file)` | 文書に**現れない**用語のリスト |
-| `data::load_dataset(file)` | CSV を行のリストとして読み込む |
+| `data::load_dataset(file)` | CSV または JSON を行のリストとして読み込む |
 | `data::lookup_value(file, key)` | 1列目がキーの行の2列目（無ければ `null`） |
 
 比較は大文字小文字と空白を無視します。

@@ -431,6 +431,28 @@ halten sich daran.
 
 ---
 
+### Werte von der Kommandozeile
+
+`--var name=wert` bei `pdfl run` erreicht das Skript als `vars.name`, immer als
+Text. Das verhindert, dass aus einem Profil fünf fast gleiche Kopien werden:
+
+```pdfl
+check "Auftrag passt zur Bestellung" {
+  assert doc.title.contains(vars.auftrag),
+    "die Datei sagt \"#{doc.title}\", der Auftrag ist #{vars.auftrag}"
+}
+```
+
+```bash
+pdfl run eingang.pdfl erhalten.pdf --var auftrag=SO-4471
+```
+
+Ein nicht übergebener Name ist ein **Fehler, der das Flag nennt, das ihn liefern
+würde** — keine leere Zeichenkette: ein Check, der gegen nichts vergleicht,
+bestünde sonst und meldete eine Datei, die niemand geprüft hat.
+
+---
+
 ## 1.10 Meldungen, die dem Empfänger helfen
 
 Die Qualität des Berichts hängt an den Meldungen, die Sie schreiben. Vergleichen

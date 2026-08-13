@@ -54,6 +54,11 @@ adapter. Rien ne change ici en silence.
   inotify ne signale que ce qu'écrit la machine locale, un dossier réseau
   deviendrait donc muet. Si le surveillant ne peut pas être créé, watch le dit
   et revient à la minuterie.
+- `--journal <fichier>` sur `pdfl watch` : un journal en ajout seul de ce qui a
+  été validé, un objet JSON par fichier. Relancer avec le même journal saute les
+  fichiers qu'il couvre — un lot interrompu à quatre mille sur cinq mille finit
+  les mille restants — tout en rapportant leurs verdicts : un lot repris ne
+  prétend jamais qu'un dossier est propre.
 
 ### Bon à savoir
 

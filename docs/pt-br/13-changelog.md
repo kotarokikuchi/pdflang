@@ -51,6 +51,11 @@ em silêncio.
   vez de por tempo. É opt-in, não o padrão: o inotify num mount NFS ou SMB só
   reporta o que a máquina local escreve, então uma pasta de rede ficaria muda.
   Se o observador não puder ser criado, o watch avisa e volta para o tempo.
+- `--journal <arquivo>` no `pdfl watch`: registro append-only do que foi
+  validado, um objeto JSON por arquivo. Rodar de novo com o mesmo journal pula
+  os arquivos que ele cobre — um lote interrompido no quatro mil de cinco mil
+  termina os mil que faltam — sem deixar de reportar os veredictos, então um
+  lote retomado nunca diz que a pasta está limpa.
 
 ### Vale saber
 

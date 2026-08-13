@@ -285,12 +285,18 @@ to the file (or into `--output-dir`):
 pdfl watch input/ --script profile.pdfl [--pattern "*.pdf"] [--exclude "*_draft*"] \
   [--output-dir reports/] [--depth 1] [--debounce 1000] \
   [--report json|csv|html|pdf|sarif|junit] \
-  [--fail-fast] [--once] [--jobs 0] [--events]
+  [--fail-fast] [--once] [--jobs 0] [--events] [--journal batch.jsonl]
 ```
 
 `--jobs <n>` validates that many files at once, each in its own process (9.5s to
 1.2s on eight 41-page files); `0` means one per CPU. The report written is
 identical whatever `--jobs` says.
+
+`--journal <file>` records what was validated, one JSON object per file,
+appended as it goes. Re-running with the same journal skips the files it covers
+and still reports their verdicts, so a batch interrupted at four thousand of
+five thousand finishes the rest without ever claiming the folder is clean.
+Nothing is written without the flag: the tool keeps no state of its own.
 
 The folder is listed on a timer; `--events` waits on filesystem notifications
 instead. Not on a network share: inotify on an NFS or SMB mount reports only what

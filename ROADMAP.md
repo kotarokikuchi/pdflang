@@ -79,24 +79,35 @@ and `Cargo.toml`.
 
 ### Batch and queues
 
-Essentially **absent**. `watch --once` processes a folder and exits with the
-worst code, which covers the simplest case. Everything else — a job type, a
-declarative batch block, manifests, priorities, SLAs, dependency graphs, retry,
-quarantine, timeouts, incremental hash cache, journal, multi-machine
-coordination, queue status, metrics, routing, digests — is unwritten.
+`watch --once` processes a folder, `--jobs` decides how many at a time, and
+`--journal` makes an interrupted batch resumable. That covers the case a print
+shop actually has: a folder, a script, and a run that has to survive being
+interrupted.
+
+Unwritten, and mostly on purpose: a job type, a declarative batch block,
+manifests, priorities, SLAs, dependency graphs, retry, quarantine,
+multi-machine coordination, queue status, metrics, routing, digests. Those
+describe a queue product; this is a validator with a folder mode. Timeouts are
+the one item on that list worth building — a document that hangs the library
+currently hangs its batch.
 
 `pdfl test` has `--jobs`, and it works by spawning one process per case rather
 than by threading — pdfium serialises every call behind a single mutex, so
 threads inside one process buy nothing. Batch mode would take the same shape,
 but the queue around it is what is missing, not the parallelism.
 
-One design question is worth settling before any of this is built, because it
-decides the shape of the rest. A batch that survives a crash needs to remember
-what it already did, and this project holds that it keeps no writable state. The
-resolution: a journal written *because the user asked for it* — an explicit
-`--journal batch.jsonl`, append-only — is an artifact, exactly like the report,
-not hidden state the tool maintains behind the user's back. State as an artifact
-is in; state as a private database is out.
+The design question that decided the shape of this — a batch that survives a
+crash has to remember what it did, and this project keeps no writable state —
+was settled the way it was framed: a journal written *because the user asked for
+it*, an explicit `--journal batch.jsonl`, append-only, is an artifact exactly
+like the report. State as an artifact is in; state as a private database is out.
+Nothing is written without the flag.
+
+Two things fell out of building it. A file is matched by its bytes rather than
+its name or its timestamp, so a replaced file is validated again. And a skipped
+file still contributes its recorded verdict to the exit code — a resumed batch
+that stayed quiet about a rejection it had already seen would be the worst bug
+this tool could have.
 
 ### Watch mode
 

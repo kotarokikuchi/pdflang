@@ -221,6 +221,7 @@ pdfl watch <dossier> --script <script.pdfl> [options]
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format des rapports |
 | `--fail-fast` | — | S'arrête à la première erreur |
 | `--events` | — | Se réveille sur les notifications du système plutôt que sur une minuterie — pas sur un partage réseau |
+| `--journal <fichier>` | — | Journal en ajout seul de ce qui a été validé ; relancer saute ce qu'il couvre |
 | `--jobs <n>` | `1` | Fichiers validés en même temps ; `0` = un par CPU |
 | `--once` | — | Traite l'existant puis quitte |
 
@@ -263,6 +264,42 @@ revient à la minuterie plutôt que de se taire.
 
 Le **debounce** existe parce qu'un gros fichier arrive par morceaux : on ne
 traite qu'un fichier qui a cessé de changer, donc jamais un PDF à moitié écrit.
+
+### Le journal : finir un lot interrompu
+
+Cinq mille fichiers, et la machine redémarre au quatre millième. Sans trace, la
+prochaine exécution repart du premier.
+
+```bash
+pdfl watch entree/ --script offset.pdfl --once --journal lot.jsonl
+```
+
+Un objet JSON par fichier, ajouté au fur et à mesure :
+
+```json
+{"input":"entree/couverture.pdf","sha256":"9f2b…","status":"FAIL","errors":2,"warnings":0,"exit":2}
+```
+
+Relancez avec le même journal : les fichiers qu'il couvre sont sautés. Pas leurs
+verdicts — un lot repris qui saute un fichier refusé sort toujours en `2`, car le
+journal est la trace du lot et le code de sortie en est le verdict. Un lot
+annonçant « propre » parce qu'il avait déjà vu l'échec serait le pire bug que cet
+outil puisse avoir.
+
+Un fichier est reconnu **à ses octets**, ni à son nom ni à sa date. Remplacez
+`couverture.pdf` par un autre `couverture.pdf` et il est revalidé : son empreinte
+n'est pas celle enregistrée.
+
+Rien n'est écrit sans `--journal`. L'outil ne garde aucun état ; ceci est un
+fichier que vous avez demandé par son nom, exactement comme un rapport. Et il n'y
+a pas d'horodatage dans une ligne : le journal dit *si* un fichier a été validé
+et ce qu'il en est sorti, le rapport à côté dit *quoi*, et le système de fichiers
+dit *quand* — ce qui garde une réexécution identique octet pour octet à la
+première, comme tout le reste ici.
+
+Les lignes sont écrites une à une : ce qu'un plantage laisse est donc vrai
+jusque-là. Un journal illisible arrête l'exécution en nommant la ligne — sauter
+des fichiers sur un enregistrement mal lu serait pire que de tout reprendre.
 
 Les rapports s'écrivent en `<nom>.report.json` (ou `.csv`, `.html`, `.pdf`).
 

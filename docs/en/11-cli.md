@@ -235,6 +235,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Report format |
 | `--fail-fast` | — | Stops at the first error |
 | `--events` | — | Wake on filesystem notifications instead of a timer — not on network shares |
+| `--journal <file>` | — | Append-only record of what was validated; re-running skips what it covers |
 | `--jobs <n>` | `1` | Files to validate at the same time; `0` means one per CPU |
 | `--once` | — | Processes what is already there and exits |
 
@@ -279,6 +280,41 @@ would never be noticed — and the watcher would say nothing about it. Where it
 does pay is a machine watching many folders, or one where a directory listing is
 expensive. If the watcher cannot be created, watch says so and falls back to the
 timer rather than going quiet.
+
+### The journal: finishing a batch that was interrupted
+
+Five thousand files, and the machine reboots at four thousand. Without a record,
+the next run starts from the first file.
+
+```bash
+pdfl watch inbox/ --script offset.pdfl --once --journal batch.jsonl
+```
+
+One JSON object per file, appended as each one is validated:
+
+```json
+{"input":"inbox/cover.pdf","sha256":"9f2b…","status":"FAIL","errors":2,"warnings":0,"exit":2}
+```
+
+Run it again with the same journal and the files it covers are skipped. Their
+verdicts are not: a resumed batch that skips a rejected file still exits `2`,
+because the journal is the record of the batch and the exit code is its verdict.
+A batch that reported clean because it had already seen the failure would be the
+worst bug this tool could have.
+
+A file is matched **by its bytes**, not by its name or its timestamp. Replace
+`cover.pdf` with a different `cover.pdf` and it is validated again — its hash is
+not the one recorded.
+
+Nothing is written without `--journal`. The tool keeps no state of its own; this
+is a file you asked for by name, exactly like a report. And there is no
+timestamp in a line: the journal says *whether* a file was validated and what
+came of it, the report beside it says *what*, and the filesystem says *when* —
+which keeps a re-run byte-identical to the first, like everything else here.
+
+The lines are flushed one at a time, so what a crash leaves behind is true as
+far as it goes. A journal that cannot be parsed stops the run naming the line;
+skipping files on a misread record would be worse than starting over.
 
 Reports are written as `<name>.report.json` (or `.csv`, `.html`, `.pdf`).
 

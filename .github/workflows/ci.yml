@@ -85,3 +85,17 @@ jobs:
           ./target/debug/pdfl run examples/basic.pdfl /tmp/cases/minimal.pdf \
             --output html --output-file /tmp/direct.html || true
           cmp /tmp/w1/minimal.report.html /tmp/direct.html
+          # the journal: a resumed batch does the work once and keeps the verdict
+          mkdir -p /tmp/wj
+          ec=0
+          ./target/debug/pdfl watch /tmp/cases --script examples/basic.pdfl \
+            --output-dir /tmp/wj --once --journal /tmp/batch.jsonl || ec=$?
+          test "$ec" -eq 2                      # minimal.pdf is rejected
+          test "$(wc -l < /tmp/batch.jsonl)" -eq 5
+          rm -f /tmp/wj/*
+          ec=0
+          ./target/debug/pdfl watch /tmp/cases --script examples/basic.pdfl \
+            --output-dir /tmp/wj --once --journal /tmp/batch.jsonl || ec=$?
+          test "$ec" -eq 2                      # skipped, but still rejected
+          test -z "$(ls /tmp/wj)"               # and nothing was validated again
+          test "$(wc -l < /tmp/batch.jsonl)" -eq 5

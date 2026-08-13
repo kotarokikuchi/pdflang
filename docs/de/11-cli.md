@@ -222,6 +222,7 @@ pdfl watch <ordner> --script <skript.pdfl> [optionen]
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format der Berichte |
 | `--fail-fast` | — | Hält beim ersten Fehler an |
 | `--events` | — | Wacht auf Systembenachrichtigungen statt auf einen Zeitgeber — nicht auf Netzfreigaben |
+| `--journal <datei>` | — | Nur angehängtes Protokoll des Geprüften; ein erneuter Lauf überspringt, was darin steht |
 | `--jobs <n>` | `1` | Gleichzeitig geprüfte Dateien; `0` heißt eine je CPU |
 | `--once` | — | Verarbeitet den Bestand und beendet sich |
 
@@ -265,6 +266,44 @@ das und fällt auf den Zeitgeber zurück, statt zu verstummen.
 Das **debounce** gibt es, weil große Dateien in Stücken ankommen: Verarbeitet
 wird nur eine Datei, die sich nicht mehr ändert — also nie ein halb
 geschriebenes PDF.
+
+### Das Journal: einen unterbrochenen Stapel zu Ende bringen
+
+Fünftausend Dateien, und bei viertausend startet die Maschine neu. Ohne
+Aufzeichnung beginnt der nächste Lauf bei der ersten.
+
+```bash
+pdfl watch eingang/ --script offset.pdfl --once --journal stapel.jsonl
+```
+
+Ein JSON-Objekt je Datei, angehängt sobald sie geprüft ist:
+
+```json
+{"input":"eingang/umschlag.pdf","sha256":"9f2b…","status":"FAIL","errors":2,"warnings":0,"exit":2}
+```
+
+Beim nächsten Lauf mit demselben Journal werden die darin verzeichneten Dateien
+übersprungen. Ihre Urteile nicht: ein fortgesetzter Stapel, der eine abgelehnte
+Datei überspringt, endet weiterhin mit `2` — das Journal ist die Aufzeichnung des
+Stapels, der Exit-Code sein Urteil. Ein Stapel, der sauber meldet, weil er den
+Fehlschlag schon gesehen hat, wäre der schlimmste Fehler, den dieses Werkzeug
+haben könnte.
+
+Erkannt wird eine Datei **an ihren Bytes**, nicht am Namen und nicht am
+Zeitstempel. Ersetzen Sie `umschlag.pdf` durch ein anderes `umschlag.pdf`, wird
+sie erneut geprüft — ihr Hash ist nicht der aufgezeichnete.
+
+Ohne `--journal` wird nichts geschrieben. Das Werkzeug hält keinen eigenen
+Zustand; dies ist eine Datei, die Sie beim Namen verlangt haben, genau wie ein
+Bericht. Und in einer Zeile steht keine Zeit: das Journal sagt, *ob* eine Datei
+geprüft wurde und was dabei herauskam, der Bericht daneben sagt *was*, und das
+Dateisystem sagt *wann* — so bleibt ein erneuter Lauf Byte für Byte wie der
+erste, wie alles hier.
+
+Die Zeilen werden einzeln geschrieben, was ein Absturz hinterlässt, stimmt also
+so weit es reicht. Ein Journal, das sich nicht lesen lässt, hält den Lauf an und
+nennt die Zeile; Dateien aufgrund eines falsch gelesenen Eintrags zu überspringen
+wäre schlimmer, als von vorn zu beginnen.
 
 Die Berichte entstehen als `<name>.report.json` (oder `.csv`, `.html`, `.pdf`).
 

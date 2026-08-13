@@ -51,6 +51,11 @@ quietly.
   timer. Opt-in, not the default: inotify on an NFS or SMB mount reports only
   what the local machine writes, so a network hot folder would go quiet. If the
   watcher cannot be created, watch says so and falls back to the timer.
+- `--journal <file>` on `pdfl watch`: an append-only record of what was
+  validated, one JSON object per file. Re-running with the same journal skips
+  the files it covers — a batch interrupted at four thousand of five thousand
+  finishes the thousand that are left — while still reporting their verdicts, so
+  a resumed batch never claims a folder is clean.
 
 ### Worth knowing
 

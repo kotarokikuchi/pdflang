@@ -233,6 +233,7 @@ pdfl watch <pasta> --script <script.pdfl> [opções]
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Formato dos relatórios |
 | `--fail-fast` | — | Para no primeiro erro |
 | `--events` | — | Acorda com as notificações do sistema em vez de por tempo — não em pasta de rede |
+| `--journal <arquivo>` | — | Registro append-only do que foi validado; rodar de novo pula o que ele cobre |
 | `--jobs <n>` | `1` | Arquivos validados ao mesmo tempo; `0` é um por CPU |
 | `--once` | — | Processa o que já está lá e sai |
 
@@ -276,6 +277,42 @@ que a máquina local escreve e mais nada, então arquivo vindo de fora nunca ser
 notado — e o watch não diria nada a respeito. Onde compensa é numa máquina
 observando muitas pastas, ou onde listar o diretório é caro. Se o observador não
 puder ser criado, o watch avisa e volta para o tempo, em vez de ficar mudo.
+
+### O journal: terminar um lote que foi interrompido
+
+Cinco mil arquivos, e a máquina reinicia no quatro mil. Sem registro, a próxima
+rodada começa do primeiro.
+
+```bash
+pdfl watch entrada/ --script offset.pdfl --once --journal lote.jsonl
+```
+
+Um objeto JSON por arquivo, acrescentado conforme cada um é validado:
+
+```json
+{"input":"entrada/capa.pdf","sha256":"9f2b…","status":"FAIL","errors":2,"warnings":0,"exit":2}
+```
+
+Rode de novo com o mesmo journal e os arquivos que ele cobre são pulados. Os
+veredictos, não: um lote retomado que pula um arquivo reprovado ainda sai com
+`2`, porque o journal é o registro do lote e o código de saída é o veredicto
+dele. Um lote reportando limpo porque já tinha visto a falha seria o pior bug que
+esta ferramenta poderia ter.
+
+O arquivo é reconhecido **pelos bytes**, não pelo nome nem pela data. Troque
+`capa.pdf` por outro `capa.pdf` e ele é validado de novo — o hash não é o que
+está registrado.
+
+Nada é escrito sem `--journal`. A ferramenta não guarda estado próprio; este é um
+arquivo que você pediu pelo nome, igual a um laudo. E não há data na linha: o
+journal diz *se* o arquivo foi validado e no que deu, o laudo ao lado diz *o
+quê*, e o sistema de arquivos diz *quando* — o que mantém uma re-execução byte a
+byte igual à primeira, como todo o resto aqui.
+
+As linhas são gravadas uma a uma, então o que uma queda deixa para trás é verdade
+até onde vai. Um journal que não pode ser lido para a execução dizendo em qual
+linha; pular arquivos por causa de um registro mal lido seria pior do que começar
+de novo.
 
 Os relatórios saem como `<nome>.report.json` (ou `.csv`, `.html`, `.pdf`).
 

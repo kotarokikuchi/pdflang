@@ -167,6 +167,10 @@ enum Command {
         /// writes to an NFS or SMB mount
         #[arg(long)]
         events: bool,
+        /// Append-only record of what has been validated. Re-running with the
+        /// same journal skips the files it already covers
+        #[arg(long)]
+        journal: Option<PathBuf>,
     },
     /// Shows a quick summary of a PDF
     Inspect {
@@ -385,6 +389,7 @@ fn main() -> ExitCode {
             report_format,
             jobs,
             events,
+            journal,
         } => {
             // Parsed here only to fail fast: a syntax error is one message,
             // not one per file in the folder.
@@ -400,6 +405,7 @@ fn main() -> ExitCode {
                 depth,
                 debounce_ms: debounce,
                 fail_fast,
+                journal,
                 events,
                 once,
                 format: report_format,

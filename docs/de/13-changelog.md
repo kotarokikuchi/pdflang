@@ -55,6 +55,12 @@ nichts stillschweigend.
   SMB-Mount nur, was die lokale Maschine schreibt, ein Netz-Hot-Folder verstummte
   also. Lässt sich der Watcher nicht anlegen, sagt watch das und nimmt wieder den
   Zeitgeber.
+- `--journal <datei>` bei `pdfl watch`: ein nur angehängtes Protokoll des
+  Geprüften, ein JSON-Objekt je Datei. Ein erneuter Lauf mit demselben Journal
+  überspringt die darin verzeichneten Dateien — ein bei viertausend von
+  fünftausend unterbrochener Stapel erledigt die restlichen tausend — meldet
+  ihre Urteile aber weiterhin, ein fortgesetzter Stapel behauptet also nie, ein
+  Ordner sei sauber.
 
 ### Wissenswert
 

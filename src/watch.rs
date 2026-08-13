@@ -39,6 +39,9 @@ pub struct WatchOptions {
     pub depth: usize,
     pub debounce_ms: u64,
     pub fail_fast: bool,
+    /// Append-only record of what has been validated, and the only way a batch
+    /// survives being interrupted.
+    pub journal: Option<PathBuf>,
     /// Wake on filesystem notifications instead of listing the folder on a
     /// timer. Opt-in: see the note at the top of this file.
     pub events: bool,
@@ -56,6 +59,19 @@ pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
         }
     };
     let mut processed: HashMap<PathBuf, SystemTime> = HashMap::new();
+    // What a previous run already got through. Keyed by content, not by name or
+    // by time: a file replaced with different bytes under the same name has not
+    // been validated, whatever its timestamp says.
+    let mut journal = match Journal::open(opts.journal.as_deref()) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return crate::EXIT_INFRASTRUCTURE;
+        }
+    };
+    if let Some(done) = journal.resumed() {
+        crate::note(format!("journal: {done} file(s) already validated, skipping"));
+    }
     let mut worst: u8 = 0;
 
     // Kept alive as long as the loop runs: dropping the watcher ends the
@@ -102,6 +118,14 @@ pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
                     continue;
                 }
             }
+            if let Some(exit) = journal.verdict(&file) {
+                // Already validated, and its verdict still counts. --fail-fast
+                // is not triggered by it: nothing new failed, and there is no
+                // work to stop.
+                worst = worst.max(exit);
+                processed.insert(file.clone(), mtime);
+                continue;
+            }
             processed.insert(file.clone(), mtime);
             due.push(file);
         }
@@ -113,6 +137,10 @@ pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
         for (file, report) in due.iter().zip(analysed) {
             let Some(report) = report else { continue };
             let exit = write_report(file, &report, opts);
+            if let Err(e) = journal.record(file, &report, exit) {
+                eprintln!("error writing the journal: {e}");
+                return crate::EXIT_INFRASTRUCTURE;
+            }
             worst = worst.max(exit);
             if opts.fail_fast && exit >= 2 {
                 crate::note(format!("--fail-fast: stopping at the first error ({})", file.display()));
@@ -280,6 +308,114 @@ fn write_report(file: &Path, report: &Report, opts: &WatchOptions) -> u8 {
     report.exit_code(false) as u8
 }
 
+
+/// The batch journal: one JSON object per line, appended as each file is
+/// validated, and read back on the next run to skip what is already done.
+///
+/// It exists because a batch of five thousand files that dies at four thousand
+/// must not start over — and it is a file the user asked for by name, never
+/// state the tool keeps behind their back. Nothing is written without
+/// `--journal`.
+///
+/// There is no timestamp in a line. The journal answers *whether* a file was
+/// validated and what came of it; the report next to it answers *what*, and the
+/// filesystem answers *when*. Leaving time out keeps a re-run over the same
+/// inputs byte-identical to the first, which is the property everything else in
+/// this tool is held to.
+struct Journal {
+    file: Option<std::fs::File>,
+    /// path → the bytes that were validated, and the verdict they got.
+    done: HashMap<String, (String, u8)>,
+    resumed: Option<usize>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct JournalEntry {
+    input: String,
+    sha256: String,
+    status: String,
+    errors: usize,
+    warnings: usize,
+    exit: u8,
+}
+
+impl Journal {
+    fn open(path: Option<&Path>) -> Result<Self, String> {
+        let Some(path) = path else {
+            return Ok(Journal { file: None, done: HashMap::new(), resumed: None });
+        };
+        let mut done = HashMap::new();
+        let mut lines = 0;
+        if path.is_file() {
+            let text = std::fs::read_to_string(path)
+                .map_err(|e| format!("could not read the journal {}: {e}", path.display()))?;
+            for (n, line) in text.lines().enumerate() {
+                if line.trim().is_empty() {
+                    continue;
+                }
+                let entry: JournalEntry = serde_json::from_str(line).map_err(|e| {
+                    format!("{}: line {} is not a journal entry: {e}", path.display(), n + 1)
+                })?;
+                // Append-only, so a later line for the same file wins: that is
+                // what re-validating a changed file looks like.
+                done.insert(entry.input.clone(), (entry.sha256, entry.exit));
+                lines += 1;
+            }
+        }
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .map_err(|e| format!("could not open the journal {}: {e}", path.display()))?;
+        Ok(Journal { file: Some(file), done, resumed: (lines > 0).then_some(lines) })
+    }
+
+    fn resumed(&self) -> Option<usize> {
+        self.resumed
+    }
+
+    /// The verdict this exact file — same path, same bytes — already got, if it
+    /// is recorded.
+    ///
+    /// The caller folds it into the batch's exit code. A resumed run that
+    /// skipped a rejected file must not report a clean batch: the journal is
+    /// the record of the batch, and the exit code is its verdict.
+    fn verdict(&self, file: &Path) -> Option<u8> {
+        if self.file.is_none() || self.done.is_empty() {
+            return None;
+        }
+        let (recorded, exit) = self.done.get(&file.to_string_lossy().into_owned())?;
+        (sha256_of(file).as_ref() == Some(recorded)).then_some(*exit)
+    }
+
+    fn record(&mut self, file: &Path, report: &Report, exit: u8) -> std::io::Result<()> {
+        let Some(handle) = self.file.as_mut() else { return Ok(()) };
+        let entry = JournalEntry {
+            input: file.to_string_lossy().into_owned(),
+            // A file that could not be hashed is recorded with an empty hash,
+            // so the next run treats it as unvalidated rather than as done.
+            sha256: sha256_of(file).unwrap_or_default(),
+            status: report.status.clone(),
+            errors: report.error_count,
+            warnings: report.warning_count,
+            exit,
+        };
+        let line = serde_json::to_string(&entry).expect("an entry is always serializable");
+        // Flushed per line: what a crash leaves behind has to be true.
+        use std::io::Write;
+        writeln!(handle, "{line}")?;
+        handle.flush()?;
+        self.done.insert(entry.input, (entry.sha256, entry.exit));
+        Ok(())
+    }
+}
+
+fn sha256_of(file: &Path) -> Option<String> {
+    use sha2::{Digest, Sha256};
+    let bytes = std::fs::read(file).ok()?;
+    Some(format!("{:x}", Sha256::digest(&bytes)))
+}
+
 fn collect_files(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
     if depth == 0 {
         return;
@@ -337,5 +473,92 @@ mod tests {
         assert!(wildcard_match("*relatorio*", "meu_relatorio_final.txt"));
         assert!(wildcard_match("exato.pdf", "exato.pdf"));
         assert!(!wildcard_match("exato.pdf", "outro.pdf"));
+    }
+
+    fn tempdir(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("pdfl-journal-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn report(status: &str, errors: usize) -> Report {
+        let mut r = Report::new("p.pdfl".into(), "f.pdf".into(), None, 1, Vec::new());
+        r.status = status.into();
+        r.error_count = errors;
+        r
+    }
+
+    #[test]
+    fn a_recorded_file_keeps_its_verdict_across_runs() {
+        let dir = tempdir("resume");
+        let pdf = dir.join("a.pdf");
+        std::fs::write(&pdf, b"bytes").unwrap();
+        let path = dir.join("batch.jsonl");
+
+        let mut journal = Journal::open(Some(&path)).unwrap();
+        assert_eq!(journal.verdict(&pdf), None, "nothing is recorded yet");
+        journal.record(&pdf, &report("FAIL", 1), 2).unwrap();
+
+        // A second run reads the file back: the rejection still counts, or a
+        // resumed batch would report a clean folder.
+        let reopened = Journal::open(Some(&path)).unwrap();
+        assert_eq!(reopened.verdict(&pdf), Some(2));
+        assert_eq!(reopened.resumed(), Some(1));
+    }
+
+    /// Same name, different bytes: not the file that was validated.
+    #[test]
+    fn changed_bytes_are_not_done() {
+        let dir = tempdir("changed");
+        let pdf = dir.join("a.pdf");
+        std::fs::write(&pdf, b"first").unwrap();
+        let path = dir.join("batch.jsonl");
+        let mut journal = Journal::open(Some(&path)).unwrap();
+        journal.record(&pdf, &report("PASS", 0), 0).unwrap();
+
+        std::fs::write(&pdf, b"second").unwrap();
+        assert_eq!(Journal::open(Some(&path)).unwrap().verdict(&pdf), None);
+    }
+
+    /// Append-only: the last line for a file is the one that counts.
+    #[test]
+    fn the_last_entry_for_a_file_wins() {
+        let dir = tempdir("append");
+        let pdf = dir.join("a.pdf");
+        std::fs::write(&pdf, b"bytes").unwrap();
+        let path = dir.join("batch.jsonl");
+        let mut journal = Journal::open(Some(&path)).unwrap();
+        journal.record(&pdf, &report("FAIL", 1), 2).unwrap();
+        journal.record(&pdf, &report("PASS", 0), 0).unwrap();
+
+        assert_eq!(Journal::open(Some(&path)).unwrap().verdict(&pdf), Some(0));
+        let lines = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(lines.lines().count(), 2, "an entry is never rewritten");
+    }
+
+    #[test]
+    fn without_the_flag_nothing_is_written_or_remembered() {
+        let dir = tempdir("off");
+        let pdf = dir.join("a.pdf");
+        std::fs::write(&pdf, b"bytes").unwrap();
+        let mut journal = Journal::open(None).unwrap();
+        journal.record(&pdf, &report("FAIL", 1), 2).unwrap();
+        assert_eq!(journal.verdict(&pdf), None);
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "only the pdf");
+    }
+
+    /// A journal that cannot be trusted must not be treated as empty: skipping
+    /// files on a misread line is the one outcome worse than starting over.
+    #[test]
+    fn a_damaged_journal_names_the_line() {
+        let dir = tempdir("damaged");
+        let path = dir.join("batch.jsonl");
+        std::fs::write(&path, "{\"input\":\"a.pdf\",\"sha256\":\"x\",\"status\":\"PASS\",\"errors\":0,\"warnings\":0,\"exit\":0}\nnot json\n").unwrap();
+        let e = match Journal::open(Some(&path)) {
+            Err(e) => e,
+            Ok(_) => panic!("a damaged journal must not open"),
+        };
+        assert!(e.contains("line 2"), "{e}");
     }
 }

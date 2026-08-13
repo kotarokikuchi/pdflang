@@ -59,7 +59,7 @@ and `Cargo.toml`.
 | Report language selection | 🟥 no | reports are English-only by decision |
 | `--dry-run` / execution plan | 🟧 partial | `fix --dry-run` exists; `run` has neither |
 | `--profile`, `--explain-skip` | 🟥 no | |
-| `--json` on every subcommand | 🟧 partial | `run`/`compare`/`fix`/`watch` emit JSON; `inspect`, `lint`, `doc` print text only |
+| `--json` on every subcommand | 🟩 yes | `run`/`compare`/`fix`/`watch` via `--output`; `inspect` and `lint` via `--json`; `doc` via `--output json` |
 | Baseline runs, run-to-run diff | 🟥 no | unblocked: diagnostic identifiers are now stable |
 
 ### Outputs
@@ -193,13 +193,11 @@ finding range. Baseline runs are no longer blocked.
 
 Each of these reuses structure that exists; none needs a new dependency.
 
-5. **`--json` for `inspect`, `lint` and `doc`** — a fully scriptable CLI is three
-   subcommands away.
-6. **SARIF and JUnit output** — `src/report.rs` already models a diagnostic with
+5. **SARIF and JUnit output** — `src/report.rs` already models a diagnostic with
    id, severity, check name, message and line. Two more serializers, and they are
    what makes the tool visible inside GitHub and any CI.
-7. **Shell completions** via `clap_complete`, and `--quiet`.
-8. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
+6. **Shell completions** via `clap_complete`, and `--quiet`.
+7. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
    stop packaging formats it cannot open.
 
 ### Wave 3 — real cost, decided deliberately

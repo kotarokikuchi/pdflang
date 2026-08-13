@@ -189,6 +189,8 @@ pdfl fix original.pdf normalize.pdfl --output fixed.pdf          # 实际执行
 pdfl inspect <file.pdf>
 ```
 
+`--json` 以数据形式返回同样的摘要。
+
 ```
 File:     magazine.pdf
 Size:     26 KB (27284713 bytes)
@@ -224,6 +226,8 @@ Warnings:
 ```bash
 pdfl lint <script.pdfl>
 ```
+
+`--json` 以数据形式返回同样的警告。
 
 检出内容：
 
@@ -266,7 +270,7 @@ for f in profiles/*.pdfl; do pdfl fmt "$f" --check || exit 1; done
 由脚本自身生成文档。
 
 ```bash
-pdfl doc <script.pdfl> [--output markdown|html]
+pdfl doc <script.pdfl> [--output markdown|html|json]
 ```
 
 输出内容：配置名、常量表、函数、import，以及每个 check 的标签和校验内容

@@ -195,6 +195,8 @@ pdfl fix original.pdf normalisieren.pdfl --output korrigiert.pdf     # anwenden
 pdfl inspect <datei.pdf>
 ```
 
+`--json` liefert dieselbe Zusammenfassung als Daten.
+
 ```
 File:     magazine.pdf
 Size:     26 KB (27284713 bytes)
@@ -231,6 +233,8 @@ Analysiert ein Skript, ohne es auszuführen, und meldet Qualitätsprobleme.
 ```bash
 pdfl lint <skript.pdfl>
 ```
+
+`--json` liefert dieselben Warnungen als Daten.
 
 Was es findet:
 
@@ -275,7 +279,7 @@ for f in profile/*.pdfl; do pdfl fmt "$f" --check || exit 1; done
 Erzeugt die Dokumentation aus dem Skript selbst.
 
 ```bash
-pdfl doc <skript.pdfl> [--output markdown|html]
+pdfl doc <skript.pdfl> [--output markdown|html|json]
 ```
 
 Ausgegeben werden: das Profil, eine Tabelle der Konstanten, die Funktionen, die

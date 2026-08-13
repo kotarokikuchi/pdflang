@@ -46,8 +46,8 @@ pub struct BarcodeData {
 #[derive(Debug)]
 pub struct PageData {
     pub index: i64,
-    pub width: f64,  // pontos
-    pub height: f64, // pontos
+    pub width: f64,  // points
+    pub height: f64, // points
     pub text: String,
     pub images: Vec<Rc<ImageData>>,
     /// Approximate maximum TAC of the page, in % (0–400).

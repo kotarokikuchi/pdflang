@@ -146,6 +146,9 @@ enum Command {
     Inspect {
         /// Input PDF
         input: PathBuf,
+        /// Emit the summary as JSON instead of text
+        #[arg(long)]
+        json: bool,
     },
     /// Generates documentation for a .pdfl script
     Doc {
@@ -181,6 +184,9 @@ enum Command {
     Lint {
         /// The .pdfl script
         script: PathBuf,
+        /// Emit the warnings as JSON instead of text
+        #[arg(long)]
+        json: bool,
     },
     /// Formats a .pdfl script (2 spaces, consistent spacing)
     Fmt {
@@ -237,6 +243,7 @@ enum FailOn {
 enum DocFormat {
     Markdown,
     Html,
+    Json,
 }
 
 /// `--var NAME=VALUE`, split on the first `=` so a value may contain more.
@@ -330,10 +337,15 @@ fn main() -> ExitCode {
             };
             ExitCode::from(watch::watch(&folder, &program, &file_name(&script), &opts))
         }
-        Command::Inspect { input } => {
+        Command::Inspect { input, json } => {
             match pdf::load_document(&input) {
                 Ok(doc) => {
-                    print!("{}", inspect::inspect(&doc));
+                    let summary = inspect::summarize(&doc);
+                    if json {
+                        println!("{}", inspect::to_json(&summary));
+                    } else {
+                        print!("{}", inspect::to_text(&summary));
+                    }
                     ExitCode::SUCCESS
                 }
                 Err(e) => {
@@ -351,6 +363,7 @@ fn main() -> ExitCode {
             match output {
                 DocFormat::Markdown => print!("{}", doccmd::markdown(&name, &program)),
                 DocFormat::Html => print!("{}", doccmd::html(&name, &program)),
+                DocFormat::Json => println!("{}", doccmd::json(&name, &program)),
             }
             ExitCode::SUCCESS
         }
@@ -389,17 +402,30 @@ fn main() -> ExitCode {
                 ExitCode::from(EXIT_INFRASTRUCTURE)
             }
         },
-        Command::Lint { script } => {
+        Command::Lint { script, json } => {
             let program = match load_program(&script) {
                 Ok(p) => p,
                 Err(code) => return code,
             };
             let warnings = lint::lint(&program);
-            for w in &warnings {
-                println!("{}: warning: {w}", script.display());
+            if json {
+                // The script is named alongside the warnings so a caller
+                // linting a folder can merge the outputs without losing which
+                // file each came from.
+                let report = serde_json::json!({
+                    "script": script.display().to_string(),
+                    "warnings": warnings,
+                });
+                println!("{}", serde_json::to_string_pretty(&report).unwrap_or_default());
+            } else {
+                for w in &warnings {
+                    println!("{}: warning: {w}", script.display());
+                }
+                if warnings.is_empty() {
+                    eprintln!("{}: no problems found", script.display());
+                }
             }
             if warnings.is_empty() {
-                eprintln!("{}: no problems found", script.display());
                 ExitCode::SUCCESS
             } else {
                 ExitCode::from(1)

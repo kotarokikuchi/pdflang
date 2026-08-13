@@ -5,20 +5,32 @@
 //! messages and require expressions; comment docstrings are left for later.
 
 use crate::ast::{Expr, Stmt, StrPart};
+use serde::Serialize;
 
+#[derive(Serialize)]
 struct CheckDoc {
     name: String,
     tags: Vec<String>,
     validations: Vec<String>,
 }
 
+#[derive(Serialize)]
 struct ScriptDoc {
+    #[serde(skip_serializing_if = "Option::is_none")]
     profile: Option<String>,
     consts: Vec<(String, String)>,
     functions: Vec<String>,
     imports: Vec<String>,
     checks: Vec<CheckDoc>,
     uses_fix: bool,
+}
+
+/// The same structure the Markdown and HTML forms render, handed over as data
+/// so a tool can index a folder of profiles without parsing prose.
+pub fn json(script_name: &str, program: &[Stmt]) -> String {
+    let doc = collect(program);
+    let out = serde_json::json!({ "script": script_name, "documentation": doc });
+    serde_json::to_string_pretty(&out).unwrap_or_default()
 }
 
 pub fn markdown(script_name: &str, program: &[Stmt]) -> String {

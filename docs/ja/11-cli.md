@@ -209,6 +209,8 @@ pdfl fix original.pdf normalize.pdfl --output fixed.pdf
 pdfl inspect <file.pdf>
 ```
 
+`--json` は同じ要約をデータとして返します。
+
 ```
 File:     magazine.pdf
 Size:     26 KB (27284713 bytes)
@@ -245,6 +247,8 @@ Warnings:
 ```bash
 pdfl lint <script.pdfl>
 ```
+
+`--json` は同じ警告をデータとして返します。
 
 検出する内容：
 
@@ -288,7 +292,7 @@ for f in profiles/*.pdfl; do pdfl fmt "$f" --check || exit 1; done
 スクリプト自身からドキュメントを生成します。
 
 ```bash
-pdfl doc <script.pdfl> [--output markdown|html]
+pdfl doc <script.pdfl> [--output markdown|html|json]
 ```
 
 出力内容：プロファイル、定数の表、関数、import、そして各 check のタグと

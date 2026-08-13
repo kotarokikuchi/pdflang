@@ -227,6 +227,8 @@ Resumo rápido de um PDF, sem script.
 pdfl inspect <arquivo.pdf>
 ```
 
+`--json` devolve o mesmo resumo como dado.
+
 ```
 File:     revista.pdf
 Size:     26 KB (27284713 bytes)
@@ -263,6 +265,8 @@ Analisa um script sem executar, apontando problemas de qualidade.
 ```bash
 pdfl lint <script.pdfl>
 ```
+
+`--json` devolve os mesmos avisos como dado.
 
 Detecta:
 
@@ -306,7 +310,7 @@ for f in perfis/*.pdfl; do pdfl fmt "$f" --check || exit 1; done
 Gera a documentação de um script a partir do próprio código.
 
 ```bash
-pdfl doc <script.pdfl> [--output markdown|html]
+pdfl doc <script.pdfl> [--output markdown|html|json]
 ```
 
 Produz: perfil, tabela de constantes, functions, imports e — para cada check —

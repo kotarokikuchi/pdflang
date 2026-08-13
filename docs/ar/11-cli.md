@@ -190,6 +190,8 @@ pdfl fix original.pdf normalize.pdfl --output fixed.pdf          # للتطبي�
 pdfl inspect <file.pdf>
 ```
 
+يعطي `--json` الملخّص نفسه بصيغة بيانات.
+
 ```
 File:     magazine.pdf
 Size:     26 KB (27284713 bytes)
@@ -225,6 +227,8 @@ Warnings:
 ```bash
 pdfl lint <script.pdfl>
 ```
+
+يعطي `--json` التحذيرات نفسها بصيغة بيانات.
 
 ما يكشفه:
 
@@ -268,7 +272,7 @@ for f in profiles/*.pdfl; do pdfl fmt "$f" --check || exit 1; done
 يولّد التوثيق من النص البرمجي نفسه.
 
 ```bash
-pdfl doc <script.pdfl> [--output markdown|html]
+pdfl doc <script.pdfl> [--output markdown|html|json]
 ```
 
 ويُخرج: الملف التعريفي، وجدول الثوابت، والدوال، والاستيرادات، ولكل فحص وسومه

@@ -226,6 +226,8 @@ Quick summary of a PDF, no script needed.
 pdfl inspect <file.pdf>
 ```
 
+`--json` gives the same summary as data.
+
 ```
 File:     magazine.pdf
 Size:     26 KB (27284713 bytes)
@@ -262,6 +264,8 @@ Analyzes a script without running it, reporting quality issues.
 ```bash
 pdfl lint <script.pdfl>
 ```
+
+`--json` gives the same warnings as data.
 
 It detects:
 
@@ -305,7 +309,7 @@ for f in profiles/*.pdfl; do pdfl fmt "$f" --check || exit 1; done
 Generates documentation for a script from the code itself.
 
 ```bash
-pdfl doc <script.pdfl> [--output markdown|html]
+pdfl doc <script.pdfl> [--output markdown|html|json]
 ```
 
 It produces: the profile, a table of constants, functions, imports and — for each

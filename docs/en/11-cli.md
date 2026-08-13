@@ -27,8 +27,9 @@ Every validating command uses the same convention:
 |---|---|
 | `0` | Everything passed |
 | `1` | Warnings only |
-| `2` | Validation errors, or unreadable PDF |
+| `2` | Validation errors |
 | `3` | Syntax error in the script |
+| `10` | The document could not be read, or a file could not be written — no verdict was reached |
 
 In shell scripts:
 

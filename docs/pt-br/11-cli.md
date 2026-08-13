@@ -28,8 +28,9 @@ Todos os comandos que validam usam a mesma convenção:
 |---|---|
 | `0` | Tudo passou |
 | `1` | Apenas avisos |
-| `2` | Erros de validação, ou PDF ilegível |
+| `2` | Erros de validação |
 | `3` | Erro de sintaxe no script |
+| `10` | O documento não pôde ser lido, ou um arquivo não pôde ser escrito — nenhum veredito foi dado |
 
 Em scripts de shell:
 

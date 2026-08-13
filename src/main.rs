@@ -27,6 +27,14 @@ use report::{Diagnostic, Report, Severity};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+/// Something went wrong that is not a verdict on the document: the PDF could not
+/// be read, a file could not be written, an operation failed.
+///
+/// Kept out of the 0–2 range on purpose. A corrupt input and a rejected input
+/// both used to exit 2, so CI could not tell "this file is broken" from "this
+/// file failed the checks" — opposite situations needing opposite reactions.
+const EXIT_INFRASTRUCTURE: u8 = 10;
+
 #[derive(Parser)]
 #[command(name = "pdfl", version, about = "Runs .pdfl scripts to validate and normalize PDFs")]
 struct Cli {
@@ -237,7 +245,8 @@ fn load_program(script: &Path) -> Result<Vec<ast::Stmt>, ExitCode> {
     })
 }
 
-/// Loads the PDF; a failure becomes a FAIL report with exit 2.
+/// Loads the PDF; a failure still prints a report, but exits in the
+/// infrastructure range — the document was never judged.
 fn load_doc(
     input: &Path,
     script_name: &str,
@@ -253,7 +262,7 @@ fn load_doc(
         let report =
             Report::new(script_name.into(), input.to_string_lossy().into_owned(), None, 0, vec![diag]);
         println!("{}", report.to_json());
-        ExitCode::from(2)
+        ExitCode::from(EXIT_INFRASTRUCTURE)
     })
 }
 
@@ -313,7 +322,7 @@ fn main() -> ExitCode {
                 }
                 Err(e) => {
                     eprintln!("error: {e:#}");
-                    ExitCode::from(2)
+                    ExitCode::from(EXIT_INFRASTRUCTURE)
                 }
             }
         }
@@ -345,7 +354,7 @@ fn main() -> ExitCode {
                 }
                 Err(e) => {
                     eprintln!("error: {e:#}");
-                    ExitCode::from(2)
+                    ExitCode::from(EXIT_INFRASTRUCTURE)
                 }
             }
         }
@@ -361,7 +370,7 @@ fn main() -> ExitCode {
             }
             Err(e) => {
                 eprintln!("error: {e:#}");
-                ExitCode::from(2)
+                ExitCode::from(EXIT_INFRASTRUCTURE)
             }
         },
         Command::Lint { script } => {
@@ -407,7 +416,7 @@ fn main() -> ExitCode {
                 ExitCode::SUCCESS
             } else if let Err(e) = std::fs::write(&script, &formatted) {
                 eprintln!("error writing {}: {e}", script.display());
-                ExitCode::from(2)
+                ExitCode::from(EXIT_INFRASTRUCTURE)
             } else {
                 eprintln!("{}: formatted", script.display());
                 ExitCode::SUCCESS
@@ -496,7 +505,7 @@ fn fix_cmd(
             Ok(applied) => applied,
             Err(e) => {
                 eprintln!("error applying fixes: {e:#}");
-                return ExitCode::from(2);
+                return ExitCode::from(EXIT_INFRASTRUCTURE);
             }
         }
     };

@@ -27,8 +27,9 @@ Gelten für alle Befehle, die prüfen.
 |---|---|
 | `0` | Alles bestanden |
 | `1` | Nur Warnungen |
-| `2` | Prüffehler oder PDF nicht lesbar |
+| `2` | Prüffehler |
 | `3` | Syntaxfehler im Skript |
+| `10` | Das Dokument war nicht lesbar oder eine Datei nicht schreibbar — es gab kein Urteil |
 
 ```bash
 pdfl run profil.pdfl datei.pdf > bericht.json

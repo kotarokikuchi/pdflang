@@ -46,7 +46,7 @@ and `Cargo.toml`.
 |---|---|---|
 | Basic invocation, exit by worst severity | 🟩 yes | `src/main.rs`, `src/report.rs` |
 | Exit codes 0/1/2 | 🟩 yes | 0 OK, 1 warnings, 2 validation, 3 syntax |
-| Infrastructure errors in a separate range (10+) | 🟥 **no** | infra errors reuse 2 and 3 — CI cannot tell "the file is corrupt" from "the file failed" |
+| Infrastructure errors in a separate range (10+) | 🟩 yes | an unreadable document or unwritable file exits 10; findings keep 0–2 |
 | `--fail-on warning` | 🟩 yes | `src/main.rs`; checks declare `severity: warning` |
 | Custom exit mapping declared in the script | 🟥 no | |
 | `--fail-fast` | 🟧 partial | exists in `watch`, not in `run` |
@@ -183,10 +183,11 @@ same thing as a published action other people can use.
 
 ## 3. Order of work
 
-### Wave 1 — unblock
+### Wave 1 — done
 
-1. **Move infrastructure errors out of the finding range.** Today a corrupt file
-   and a failed validation both exit 2, so CI cannot tell them apart.
+Diagnostic identifiers are stable, checks declare their severity, the JSON
+report carries a schema version, and infrastructure failures exit outside the
+finding range. Baseline runs are no longer blocked.
 
 ### Wave 2 — collect what is already paid for
 

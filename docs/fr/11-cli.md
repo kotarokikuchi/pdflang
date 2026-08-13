@@ -28,8 +28,9 @@ Communs à toutes les commandes qui valident.
 |---|---|
 | `0` | Tout est passé |
 | `1` | Avertissements seulement |
-| `2` | Erreurs de validation, ou PDF illisible |
+| `2` | Erreurs de validation |
 | `3` | Erreur de syntaxe dans le script |
+| `10` | Document illisible, ou fichier non écrit — aucun verdict n'a été rendu |
 
 ```bash
 pdfl run profil.pdfl fichier.pdf > rapport.json

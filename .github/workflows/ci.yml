@@ -50,6 +50,12 @@ jobs:
           ec=0
           ./target/debug/pdfl run examples/basic.pdfl tests/fixtures/minimal.pdf --output json > /dev/null || ec=$?
           test "$ec" -eq 2
+          # a broken input is not a verdict: it exits in the infrastructure
+          # range, so CI can tell it apart from the failure just above
+          printf 'not a pdf' > /tmp/broken.pdf
+          ec=0
+          ./target/debug/pdfl run examples/basic.pdfl /tmp/broken.pdf --output json > /dev/null || ec=$?
+          test "$ec" -eq 10
           # report determinism
           ./target/debug/pdfl run examples/images.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r1.json || true
           ./target/debug/pdfl run examples/images.pdfl tests/fixtures/imagem.pdf --output json > /tmp/r2.json || true

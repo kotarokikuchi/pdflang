@@ -69,7 +69,9 @@ cargo build --release
 ./target/release/pdfl run examples/basic.pdfl document.pdf --output json
 ```
 
-Exit codes: `0` = OK, `1` = warnings, `2` = validation errors, `3` = syntax error.
+Exit codes: `0` = OK, `1` = warnings, `2` = validation errors, `3` = syntax
+error, `10` = the document could not be read or a file could not be written —
+kept out of the 0–2 range so CI can tell a broken input from a rejected one.
 
 Output formats (`--output` on `run`/`compare`, `--report` on `fix`/`watch`):
 `json` (default), `csv` (one line per diagnostic), `html` (self-contained) and

@@ -182,7 +182,7 @@ same thing as a published action other people can use.
 | Core and inspection | 🟩 **yes** — domain types, `check`/`rule`, imports, metadata, SHA-256, normalized text extraction, glossaries, region masks, personal data with valid check digits |
 | Diagnostics in more than one language | 🟥 no — output is English-only |
 | Comparison | 🟧 partial — text diff with LCS page alignment, pHash, SSIM, pixel diff, Delta-E; **no** typography/table/vector diff, no anchor alignment, no moved-vs-changed semantics, no accept/reject/review triage |
-| Preflight | **largely yes** — exact TAC from real separations, hairlines, overprint, bleed, spot colors, rich black, output intent, font details |
+| Preflight | 🟩 **largely yes** — exact TAC from real separations, hairlines, overprint, bleed, spot colors, rich black, output intent, font details |
 | PDF/A/X/UA conformance, signature validation, Braille, OCR, spell check | 🟥 no — signatures are detected as present, never validated |
 | `fix::` normalization | 🟧 partial — boxes, rotate, delete, duplicate, reorder, watermark, page numbers, split, merge, image downsample/recompress; **no** RGB→CMYK, font embedding, flattening, Bates numbering, redaction, imposition |
 | Vertical niches (packaging, regulatory, legal, fiscal) | 🟥 no — beyond the Brazilian pieces already present: CPF/CNPJ, GTIN, postal codes |

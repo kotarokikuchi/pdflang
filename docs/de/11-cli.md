@@ -224,6 +224,17 @@ Wendet die `fix::`-Operationen an und speichert ein neues PDF. Einzelheiten in
 [Kapitel 8](08-fix.md).
 
 ```bash
+pdfl fix <eingabe.pdf> <skript.pdfl> --output <ausgabe.pdf> [optionen]
+```
+
+| Option | Vorgabe | Zweck |
+|---|---|---|
+| `--output <Datei>` | — | Ausgabe-PDF (erforderlich) |
+| `--dry-run` | — | Listet die Operationen, ohne zu speichern |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format des Berichts |
+| `--report-file <Datei>` | — | Schreibt den Bericht in eine Datei |
+
+```bash
 pdfl fix original.pdf normalisieren.pdfl --output out.pdf --dry-run  # nur ansehen
 pdfl fix original.pdf normalisieren.pdfl --output korrigiert.pdf     # anwenden
 ```

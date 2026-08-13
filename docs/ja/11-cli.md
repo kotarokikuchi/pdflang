@@ -232,6 +232,13 @@ echo "result: $?"
 pdfl fix <input.pdf> <script.pdfl> --output <output.pdf> [options]
 ```
 
+| オプション | 既定 | 動作 |
+|---|---|---|
+| `--output <ファイル>` | — | 出力する PDF（必須） |
+| `--dry-run` | — | 保存せずに操作を一覧表示する |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | レポート形式 |
+| `--report-file <ファイル>` | — | レポートをファイルに書き出す |
+
 ```bash
 # 何が行われるかだけ確認（保存しない）
 pdfl fix original.pdf normalize.pdfl --output out.pdf --dry-run

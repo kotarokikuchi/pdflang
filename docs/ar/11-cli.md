@@ -214,6 +214,17 @@ echo "result: $?"
 يطبّق عمليات `fix::` ويحفظ ملف PDF جديدًا. التفاصيل في [الفصل 8](08-fix.md).
 
 ```bash
+pdfl fix <input.pdf> <script.pdfl> --output <output.pdf> [options]
+```
+
+| الخيار | الافتراضي | الغرض |
+|---|---|---|
+| `--output <ملف>` | — | ملف PDF الناتج (إلزامي) |
+| `--dry-run` | — | يسرد العمليات دون أن يحفظ |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | صيغة التقرير |
+| `--report-file <ملف>` | — | يكتب التقرير في ملف |
+
+```bash
 pdfl fix original.pdf normalize.pdfl --output out.pdf --dry-run  # للمعاينة فقط
 pdfl fix original.pdf normalize.pdfl --output fixed.pdf          # للتطبيق
 ```

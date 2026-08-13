@@ -212,6 +212,17 @@ echo "result: $?"
 应用 `fix::` 操作并保存新的 PDF。详见[第 8 章](08-fix.md)。
 
 ```bash
+pdfl fix <input.pdf> <script.pdfl> --output <output.pdf> [options]
+```
+
+| 选项 | 默认 | 功能 |
+|---|---|---|
+| `--output <文件>` | — | 输出的 PDF（必填） |
+| `--dry-run` | — | 只列出将执行的操作，不保存 |
+| `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | 报告格式 |
+| `--report-file <文件>` | — | 把报告写入文件 |
+
+```bash
 pdfl fix original.pdf normalize.pdfl --output out.pdf --dry-run  # 只看会做什么
 pdfl fix original.pdf normalize.pdfl --output fixed.pdf          # 实际执行
 ```

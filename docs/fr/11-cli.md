@@ -220,6 +220,7 @@ pdfl watch <dossier> --script <script.pdfl> [options]
 | `--debounce <ms>` | `1000` | Attente que le fichier se stabilise |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format des rapports |
 | `--fail-fast` | — | S'arrête à la première erreur |
+| `--events` | — | Se réveille sur les notifications du système plutôt que sur une minuterie — pas sur un partage réseau |
 | `--jobs <n>` | `1` | Fichiers validés en même temps ; `0` = un par CPU |
 | `--once` | — | Traite l'existant puis quitte |
 
@@ -242,6 +243,23 @@ Avec `--fail-fast`, aucun nouveau fichier n'est lancé dès qu'un échec est
 constaté ; ceux déjà en cours vont au bout, car les tuer laisserait des rapports
 à moitié écrits. Les rapports sont écrits dans l'ordre où les fichiers ont été
 trouvés : un lot imprime les mêmes lignes quel qu'ait été le parallélisme.
+
+L'attente se termine exactement quand le fichier le plus récent a fini
+d'arriver : un fichier qui arrive pendant une attente n'est donc pas retenu un
+intervalle complet de plus.
+
+Par défaut, le dossier est listé sur une minuterie ; avec `--events`, watch
+attend les notifications du système. Le défaut est la minuterie, et c'est
+mesuré : lister 10 000 fichiers toutes les 200ms ne coûte pas de CPU mesurable,
+et le temps de stabilisation domine la latence de toute façon — sur un dossier
+local, les deux modes terminent à un centième de seconde près.
+
+N'utilisez pas `--events` sur un partage réseau. Sur un montage NFS ou SMB,
+inotify ne signale que ce qu'écrit la machine locale : les fichiers venus
+d'ailleurs ne seraient jamais vus, et watch n'en dirait rien. Là où l'option
+paie, c'est sur une machine qui surveille beaucoup de dossiers, ou dont le
+listage est coûteux. Si le surveillant ne peut pas être créé, watch le dit et
+revient à la minuterie plutôt que de se taire.
 
 Le **debounce** existe parce qu'un gros fichier arrive par morceaux : on ne
 traite qu'un fichier qui a cessé de changer, donc jamais un PDF à moitié écrit.

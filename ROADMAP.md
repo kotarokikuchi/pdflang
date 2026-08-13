@@ -105,7 +105,8 @@ is in; state as a private database is out.
 | Invocation with `--script` | 🟩 yes |
 | Multiple folders, each with its own script | 🟥 no |
 | Debounce / settle | 🟩 yes — polling with debounce, `src/watch.rs` |
-| Sentinel file, manifest trigger, event coalescing, rename detection, double-processing lock | 🟥 no |
+| Filesystem notifications | 🟩 yes — `--events`, opt-in; polling stays the default because inotify does not see a network share |
+| Sentinel file, manifest trigger, rename detection, double-processing lock | 🟥 no — though a burst of events coalesces into one pass |
 | Include/exclude globs, depth limit | 🟩 yes — `--pattern`, `--exclude`, `--depth` |
 | Symlink policy, network-share fallback | 🟥 no — though polling is the only mode, so network shares work by accident |
 | `--once` | 🟩 yes |
@@ -113,8 +114,20 @@ is in; state as a private database is out.
 | `--status`, hot reload, catch-up scan, log rotation, disk guard, status artifact | 🟥 no |
 | Service unit generation, watchdog integration, cron overlap lock, jitter, calendar awareness | 🟥 no |
 
-`notify` is not a dependency; the watcher polls. `src/watch.rs:3` records this as
-a deliberate choice — portable, no new dependency — with the upgrade path noted.
+`notify` is a dependency, and `--events` opts into it. Polling stays the default,
+which the measurement argues for: a folder of 10,000 files listed every 200ms
+costs no measurable CPU, and the settle time dominates the latency so completely
+that the two modes finish within a hundredth of a second of each other on a
+local folder. Where notifications would win — a hot folder fed over the network
+— is where they are broken, since inotify on an NFS or SMB mount reports what
+the local machine writes and nothing else. A watcher that goes quiet without
+saying so is the failure this project exists to avoid, so that behaviour is not
+something a default should be able to reach. A watcher that cannot be created
+says so and falls back.
+
+The measurement also found the latency that was really there: the loop waited a
+whole interval before looking again. It now sleeps only until the freshest file
+has settled.
 
 ### Developer tooling
 
@@ -229,7 +242,6 @@ renders every format from the JSON that comes back. One code path for all six
 formats and every value of `--jobs` — CI checks that a report rendered from a
 child is byte-identical to one rendered in place.
 
-12. **Event-based watch**, keeping polling as the fallback for network shares.
 13. **Batch as runtime semantics** — the largest single block of work. Worth
     starting only once 10–12 exist.
 

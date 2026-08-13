@@ -232,6 +232,7 @@ pdfl watch <pasta> --script <script.pdfl> [opções]
 | `--debounce <ms>` | `1000` | Espera o arquivo parar de ser copiado |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Formato dos relatórios |
 | `--fail-fast` | — | Para no primeiro erro |
+| `--events` | — | Acorda com as notificações do sistema em vez de por tempo — não em pasta de rede |
 | `--jobs <n>` | `1` | Arquivos validados ao mesmo tempo; `0` é um por CPU |
 | `--once` | — | Processa o que já está lá e sai |
 
@@ -260,7 +261,21 @@ são escritos na ordem em que os arquivos foram encontrados, então um lote impr
 as mesmas linhas não importa quantos rodaram juntos.
 
 O **debounce** existe porque arquivos grandes chegam aos poucos: o watch só
-processa quando o arquivo para de mudar, evitando ler um PDF pela metade.
+processa quando o arquivo para de mudar, evitando ler um PDF pela metade. A
+espera termina exatamente quando o arquivo mais novo assentou, então um arquivo
+que chega durante uma espera não fica retido um intervalo inteiro a mais.
+
+Por padrão a pasta é listada por tempo; com `--events` o watch espera pelas
+notificações do sistema operacional. O padrão é o tempo, e isso foi medido:
+listar 10.000 arquivos a cada 200ms não custa CPU mensurável, e o tempo de
+assentamento domina a latência dos dois jeitos — numa pasta local, os dois modos
+terminam com centésimos de segundo de diferença.
+
+Não use `--events` em pasta de rede. O inotify num mount NFS ou SMB reporta o
+que a máquina local escreve e mais nada, então arquivo vindo de fora nunca seria
+notado — e o watch não diria nada a respeito. Onde compensa é numa máquina
+observando muitas pastas, ou onde listar o diretório é caro. Se o observador não
+puder ser criado, o watch avisa e volta para o tempo, em vez de ficar mudo.
 
 Os relatórios saem como `<nome>.report.json` (ou `.csv`, `.html`, `.pdf`).
 

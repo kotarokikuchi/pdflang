@@ -49,6 +49,11 @@ adapter. Rien ne change ici en silence.
   processus enfants, une passe en lot passe donc à l'échelle de la même façon
   (9,5s à 1,2s sur huit fichiers de 41 pages). Le rapport écrit est identique
   quel que soit `--jobs`.
+- `--events` sur `pdfl watch` attend les notifications du système de fichiers au
+  lieu d'une minuterie. Sur demande, pas par défaut : sur un montage NFS ou SMB,
+  inotify ne signale que ce qu'écrit la machine locale, un dossier réseau
+  deviendrait donc muet. Si le surveillant ne peut pas être créé, watch le dit
+  et revient à la minuterie.
 
 ### Bon à savoir
 
@@ -62,6 +67,13 @@ adapter. Rien ne change ici en silence.
   inconnus y survit. JUnit en a besoin — les diagnostics ne nomment que les
   checks ayant trouvé quelque chose, et une exécution propre annoncée comme zéro
   test est, pour une CI, une exécution qui n'a jamais eu lieu.
+
+### Corrigé
+
+- `pdfl watch` se réveille désormais quand le fichier le plus récent a fini
+  d'arriver, et non jusqu'à un intervalle complet plus tard. Avec
+  `--debounce 3000`, un fichier qui arrive est signalé après environ 3s au lieu
+  de jusqu'à 6s.
 
 ---
 

@@ -47,6 +47,10 @@ em silêncio.
 - `--jobs <n>` também no `pdfl watch`: os arquivos são validados por processos
   filhos, então a passada em lote escala igual (9,5s para 1,2s em oito arquivos
   de 41 páginas). O laudo escrito é idêntico independente do `--jobs`.
+- `--events` no `pdfl watch` espera pelas notificações do sistema de arquivos em
+  vez de por tempo. É opt-in, não o padrão: o inotify num mount NFS ou SMB só
+  reporta o que a máquina local escreve, então uma pasta de rede ficaria muda.
+  Se o observador não puder ser criado, o watch avisa e volta para o tempo.
 
 ### Vale saber
 
@@ -60,6 +64,12 @@ em silêncio.
   isso. O JUnit precisa dele: os diagnósticos só nomeiam os checks que acharam
   algo, e uma execução limpa reportada como zero testes é, para uma CI, uma
   execução que não aconteceu.
+
+### Corrigido
+
+- O `pdfl watch` agora acorda quando o arquivo mais novo terminou de assentar,
+  em vez de até um intervalo inteiro depois. Com `--debounce 3000`, um arquivo
+  que chega é reportado uns 3s depois, e não até 6s.
 
 ---
 

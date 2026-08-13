@@ -50,6 +50,11 @@ nichts stillschweigend.
   geprüft, ein Stapeldurchlauf skaliert also genauso (9,5s auf 1,2s bei acht
   Dateien à 41 Seiten). Der geschriebene Bericht ist unabhängig von `--jobs`
   identisch.
+- `--events` bei `pdfl watch` wartet auf Dateisystem-Benachrichtigungen statt
+  auf einen Zeitgeber. Opt-in, nicht Vorgabe: inotify meldet auf einem NFS- oder
+  SMB-Mount nur, was die lokale Maschine schreibt, ein Netz-Hot-Folder verstummte
+  also. Lässt sich der Watcher nicht anlegen, sagt watch das und nimmt wieder den
+  Zeitgeber.
 
 ### Wissenswert
 
@@ -63,6 +68,12 @@ nichts stillschweigend.
   Felder ignoriert, übersteht es. JUnit braucht es: die Diagnosen nennen nur die
   Checks, die etwas gefunden haben, und ein sauberer Lauf, der als null Tests
   gemeldet wird, ist für eine CI ein Lauf, der nie stattfand.
+
+### Behoben
+
+- `pdfl watch` wacht jetzt auf, wenn die frischeste Datei fertig geschrieben
+  ist, statt bis zu ein ganzes Intervall später. Mit `--debounce 3000` wird eine
+  ankommende Datei nach etwa 3s gemeldet statt nach bis zu 6s.
 
 ---
 

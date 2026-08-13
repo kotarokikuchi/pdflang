@@ -234,6 +234,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--debounce <ms>` | `1000` | Waits for the file to stop being copied |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Report format |
 | `--fail-fast` | — | Stops at the first error |
+| `--events` | — | Wake on filesystem notifications instead of a timer — not on network shares |
 | `--jobs <n>` | `1` | Files to validate at the same time; `0` means one per CPU |
 | `--once` | — | Processes what is already there and exits |
 
@@ -262,7 +263,22 @@ reports are written in the order the files were found, so a batch prints the
 same lines however many ran at once.
 
 **Debounce** exists because large files arrive in pieces: watch only processes a
-file once it stops changing, so it never reads half a PDF.
+file once it stops changing, so it never reads half a PDF. The wait ends exactly
+when the freshest file has settled, so a file that arrives during a wait is not
+held for a whole extra interval.
+
+The folder is listed on a timer by default; `--events` waits on the operating
+system's notifications instead. The default is the timer, and that was measured:
+listing 10,000 files every 200ms costs no measurable CPU, and the settle time
+dominates the latency either way, so on a local folder the two modes finish
+within a hundredth of a second of each other.
+
+Do not use `--events` on a network share. inotify on an NFS or SMB mount reports
+what the local machine writes and nothing else, so files arriving from elsewhere
+would never be noticed — and the watcher would say nothing about it. Where it
+does pay is a machine watching many folders, or one where a directory listing is
+expensive. If the watcher cannot be created, watch says so and falls back to the
+timer rather than going quiet.
 
 Reports are written as `<name>.report.json` (or `.csv`, `.html`, `.pdf`).
 

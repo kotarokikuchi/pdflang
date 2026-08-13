@@ -221,6 +221,7 @@ pdfl watch <ordner> --script <skript.pdfl> [optionen]
 | `--debounce <ms>` | `1000` | Wartezeit, bis die Datei stabil ist |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format der Berichte |
 | `--fail-fast` | — | Hält beim ersten Fehler an |
+| `--events` | — | Wacht auf Systembenachrichtigungen statt auf einen Zeitgeber — nicht auf Netzfreigaben |
 | `--jobs <n>` | `1` | Gleichzeitig geprüfte Dateien; `0` heißt eine je CPU |
 | `--once` | — | Verarbeitet den Bestand und beendet sich |
 
@@ -243,6 +244,23 @@ Mit `--fail-fast` wird keine neue Datei mehr begonnen, sobald eine gescheitert
 ist; die laufenden werden fertig, denn sie abzubrechen hinterließe halb
 geschriebene Berichte. Die Berichte entstehen in der Fundreihenfolge, ein Stapel
 druckt also dieselben Zeilen, wie viele auch gleichzeitig liefen.
+
+Die Wartezeit endet genau dann, wenn die frischeste Datei fertig ist, eine
+während des Wartens ankommende Datei wird also kein ganzes Intervall länger
+gehalten.
+
+Der Ordner wird standardmäßig auf einem Zeitgeber gelistet; mit `--events`
+wartet watch stattdessen auf die Benachrichtigungen des Betriebssystems. Die
+Vorgabe ist der Zeitgeber, und das wurde gemessen: 10.000 Dateien alle 200ms zu
+listen kostet keine messbare CPU, und die Setzzeit dominiert die Latenz ohnehin
+— auf einem lokalen Ordner liegen beide Modi Hundertstelsekunden auseinander.
+
+Verwenden Sie `--events` nicht auf einer Netzfreigabe. inotify meldet auf einem
+NFS- oder SMB-Mount nur, was die lokale Maschine schreibt; von anderswo
+eintreffende Dateien würden nie bemerkt — und watch sagte nichts dazu. Es lohnt
+sich auf einer Maschine, die viele Ordner beobachtet, oder wo ein
+Verzeichnislisting teuer ist. Lässt sich der Watcher nicht anlegen, sagt watch
+das und fällt auf den Zeitgeber zurück, statt zu verstummen.
 
 Das **debounce** gibt es, weil große Dateien in Stücken ankommen: Verarbeitet
 wird nur eine Datei, die sich nicht mehr ändert — also nie ein halb

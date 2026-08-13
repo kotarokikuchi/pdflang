@@ -162,6 +162,11 @@ enum Command {
         /// Files to validate at the same time (0 = one per CPU)
         #[arg(long, default_value_t = 1)]
         jobs: usize,
+        /// Wake on filesystem events instead of listing the folder on a timer.
+        /// Not for network shares: inotify does not see what another machine
+        /// writes to an NFS or SMB mount
+        #[arg(long)]
+        events: bool,
     },
     /// Shows a quick summary of a PDF
     Inspect {
@@ -379,6 +384,7 @@ fn main() -> ExitCode {
             once,
             report_format,
             jobs,
+            events,
         } => {
             // Parsed here only to fail fast: a syntax error is one message,
             // not one per file in the folder.
@@ -394,6 +400,7 @@ fn main() -> ExitCode {
                 depth,
                 debounce_ms: debounce,
                 fail_fast,
+                events,
                 once,
                 format: report_format,
             };

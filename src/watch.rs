@@ -1,7 +1,19 @@
 //! The `pdfl watch` command — watches a folder and validates each new or
 //! changed file.
-//! ponytail: polling with debounce instead of inotify — portable, no new
-//! dependency; swap for the `notify` crate if latency starts to matter.
+//! Polling is the default and `--events` opts into the operating system's
+//! notifications. That way round on purpose: inotify on an NFS or SMB mount
+//! reports what this machine writes and nothing else, so a hot folder fed over
+//! the network would go quiet without ever saying so — and going quiet is the
+//! failure this project exists to avoid. Measured before choosing: listing
+//! 10,000 files every 200ms costs no measurable CPU, and the settle time
+//! dominates the latency, so on a local folder the two modes finish within a
+//! hundredth of a second of each other.
+//!
+//! Events never replace the settle logic — a large file arrives in pieces and
+//! fires its first event on its first byte. They only decide when to look
+//! again, which is why the loop below is the same in both modes. It wakes when
+//! the freshest file has settled, not a whole interval later, which is where
+//! the latency actually was.
 //! Out of scope here: --paired (waiting for a v1+v2 pair) — not implemented yet.
 //!
 //! Each file is analysed by a child `pdfl run`, and this process renders the
@@ -27,6 +39,9 @@ pub struct WatchOptions {
     pub depth: usize,
     pub debounce_ms: u64,
     pub fail_fast: bool,
+    /// Wake on filesystem notifications instead of listing the folder on a
+    /// timer. Opt-in: see the note at the top of this file.
+    pub events: bool,
     /// Processes the files already present and exits (useful for batches and CI).
     pub once: bool,
     pub format: crate::OutputFormat,
@@ -42,10 +57,15 @@ pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
     };
     let mut processed: HashMap<PathBuf, SystemTime> = HashMap::new();
     let mut worst: u8 = 0;
+
+    // Kept alive as long as the loop runs: dropping the watcher ends the
+    // notifications.
+    let (_watcher, events) = if opts.events && !opts.once { subscribe(folder) } else { (None, None) };
     crate::note(format!(
-        "watching {} (pattern {}, debounce {}ms){}",
+        "watching {} (pattern {}, {}, settle {}ms){}",
         folder.display(),
         opts.pattern,
+        if events.is_some() { "events" } else { "polling" },
         opts.debounce_ms,
         if opts.once { " — single pass" } else { "" }
     ));
@@ -55,6 +75,9 @@ pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
         collect_files(folder, opts.depth, &mut files);
 
         let mut due = Vec::new();
+        // How long until the freshest file seen has settled, so the wait below
+        // ends exactly then rather than a whole interval later.
+        let mut settles_in: Option<Duration> = None;
         for file in files {
             let name = file.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
             if !wildcard_match(&opts.pattern, &name) {
@@ -72,7 +95,10 @@ pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
             // Debounce: only processes once the file has stopped being written.
             if !opts.once {
                 let age = SystemTime::now().duration_since(mtime).unwrap_or_default();
-                if age < Duration::from_millis(opts.debounce_ms) {
+                let settle = Duration::from_millis(opts.debounce_ms);
+                if age < settle {
+                    let remaining = settle - age;
+                    settles_in = Some(settles_in.map_or(remaining, |s: Duration| s.min(remaining)));
                     continue;
                 }
             }
@@ -97,8 +123,56 @@ pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
         if opts.once {
             return worst;
         }
-        std::thread::sleep(Duration::from_millis(opts.debounce_ms.max(200)));
+        // Nothing settling: wait a full interval. Otherwise wake exactly when
+        // the freshest file is ready — a shorter sleep, never a longer one.
+        let idle = Duration::from_millis(opts.debounce_ms.max(200));
+        let wait = settles_in.map_or(idle, |s| s.min(idle).max(Duration::from_millis(20)));
+        match &events {
+            // Nothing settling and nothing to poll for: sleep until the folder
+            // moves. This is the whole of what --events buys.
+            Some(rx) if settles_in.is_none() => {
+                let _ = rx.recv();
+                while rx.try_recv().is_ok() {}
+            }
+            // A file is still being written. Its last write already fired its
+            // event, so this wait has to end by itself.
+            Some(rx) => {
+                let _ = rx.recv_timeout(wait);
+                while rx.try_recv().is_ok() {}
+            }
+            None => std::thread::sleep(wait),
+        }
     }
+}
+
+/// Subscribes to the folder's notifications, or says why it could not and
+/// leaves the caller polling. A watcher that fails falls back out loud: silence
+/// is the one outcome this must not have.
+fn subscribe(
+    folder: &Path,
+) -> (Option<notify::RecommendedWatcher>, Option<std::sync::mpsc::Receiver<()>>) {
+    use notify::Watcher;
+    let (tx, rx) = std::sync::mpsc::channel();
+    let watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+        // The event's contents are not used: it says something moved, and the
+        // loop re-reads the folder to find out what. Coalescing a burst into
+        // one pass is the point.
+        if res.is_ok() {
+            let _ = tx.send(());
+        }
+    });
+    let mut watcher = match watcher {
+        Ok(w) => w,
+        Err(e) => {
+            crate::note(format!("--events unavailable ({e}) — polling instead"));
+            return (None, None);
+        }
+    };
+    if let Err(e) = watcher.watch(folder, notify::RecursiveMode::Recursive) {
+        crate::note(format!("--events unavailable on {} ({e}) — polling instead", folder.display()));
+        return (None, None);
+    }
+    (Some(watcher), Some(rx))
 }
 
 /// Analyses one file in a child `pdfl run` and returns its report.

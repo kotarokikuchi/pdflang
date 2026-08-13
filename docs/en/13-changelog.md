@@ -47,6 +47,10 @@ quietly.
 - `--jobs <n>` on `pdfl watch` too: files are validated by child processes, so a
   batch pass scales the same way (9.5s to 1.2s on eight 41-page files). The
   report written is identical whatever `--jobs` says.
+- `--events` on `pdfl watch` waits on filesystem notifications instead of a
+  timer. Opt-in, not the default: inotify on an NFS or SMB mount reports only
+  what the local machine writes, so a network hot folder would go quiet. If the
+  watcher cannot be created, watch says so and falls back to the timer.
 
 ### Worth knowing
 
@@ -60,6 +64,12 @@ quietly.
   survives it. JUnit needs it: the diagnostics only name the checks that found
   something, and a clean run reported as zero tests is a run a CI thinks never
   happened.
+
+### Fixed
+
+- `pdfl watch` now wakes when the freshest file has settled, instead of up to
+  one full interval later. With `--debounce 3000`, a file that arrives is
+  reported about 3s later rather than up to 6s.
 
 ---
 

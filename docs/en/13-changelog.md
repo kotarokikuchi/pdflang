@@ -40,6 +40,10 @@ quietly.
   report to the one recorded beside it, so a profile that starts finding
   something different fails a test instead of surprising someone downstream.
   `--update` records the expected reports.
+- `--jobs <n>` on `pdfl test` runs that many cases at once, each as its own
+  process. Eight 41-page files: 8.9s at `--jobs 1`, 1.1s at `--jobs 8`. The
+  default stays `1`, since each job holds a document in memory; `--jobs 0` gives
+  one per CPU.
 
 ### Worth knowing
 

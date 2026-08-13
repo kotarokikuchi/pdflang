@@ -450,6 +450,7 @@ pdfl test <script.pdfl> [--dir <pasta>] [--update]
 |---|---|---|
 | `--dir <pasta>` | `tests/` ao lado do script | Onde estão os PDFs dos casos |
 | `--update` | — | Grava os relatórios esperados em vez de comparar |
+| `--jobs <n>` | `1` | Casos rodando ao mesmo tempo; `0` é um por CPU |
 
 Um caso é um PDF e o relatório esperado dele, lado a lado:
 
@@ -493,6 +494,26 @@ deixa os outros rodarem.
 
 Códigos de saída: `0` todos passaram, `2` pelo menos um falhou, `10` a pasta não
 pôde ser lida ou não tem PDF.
+
+### Rodando casos ao mesmo tempo
+
+Cada caso roda como um processo `pdfl` próprio, então o `--jobs` transforma a
+suíte em trabalho paralelo de verdade: em oito arquivos de 41 páginas, `--jobs 1`
+levou 8,9s e `--jobs 8` levou 1,1s. Threads dentro de um processo não dariam
+conta — o pdfium serializa toda chamada atrás de um único mutex, e a versão com
+threads mediu *mais lenta* que a sequencial.
+
+O padrão é `1` porque cada job é um processo segurando um documento na memória, e
+esta ferramenta existe para arquivos que podem ser enormes. Aumente quando os
+casos forem comuns: `--jobs 0` dá um por CPU.
+
+A ordem da saída nunca muda com o `--jobs`: os casos são julgados na ordem em que
+foram encontrados, não importa qual filho terminou primeiro.
+
+Um caso cujo PDF não abre é julgado como qualquer outro — o relatório dele traz o
+motivo como achado, então "este arquivo tem que ser recusado como ilegível"
+também pode ser um teste. Esse relatório nomeia o arquivo como ele foi passado,
+então grave as linhas de base com `--dir` **relativo** se elas forem versionadas.
 
 ---
 

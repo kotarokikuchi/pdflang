@@ -453,6 +453,7 @@ pdfl test <script.pdfl> [--dir <folder>] [--update]
 |---|---|---|
 | `--dir <folder>` | `tests/` next to the script | Where the case PDFs live |
 | `--update` | — | Records the expected reports instead of comparing them |
+| `--jobs <n>` | `1` | Cases to run at the same time; `0` means one per CPU |
 
 A case is a PDF and the report expected of it, side by side:
 
@@ -496,6 +497,26 @@ leaves the others to run.
 
 Exit codes: `0` all passed, `2` at least one failed, `10` the folder could not
 be read or holds no PDF.
+
+### Running cases at the same time
+
+Each case runs as its own `pdfl` process, so `--jobs` turns a suite into real
+parallel work: on eight 41-page files, `--jobs 1` took 8.9s and `--jobs 8` took
+1.1s. Threads inside one process would not have done it — pdfium serialises
+every call behind a single mutex, and the threaded version measured *slower*
+than sequential.
+
+The default is `1` because each job is a process holding one document in
+memory, and this tool exists for files that can be very large. Raise it when
+your cases are ordinary: `--jobs 0` gives one per CPU.
+
+The order of the output never changes with `--jobs`; the cases are judged in
+the order they were found, whichever child finished first.
+
+A case whose PDF cannot be read is judged like any other — its report carries
+the reason as a finding, so "this file must be rejected as unreadable" can
+itself be a test. That report names the file as it was passed, so record
+baselines with a **relative** `--dir` if they are going to be committed.
 
 ---
 

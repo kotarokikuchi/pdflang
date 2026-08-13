@@ -225,6 +225,9 @@ enum Command {
         /// Records the expected reports instead of comparing them
         #[arg(long)]
         update: bool,
+        /// Cases to run at the same time (0 = one per CPU)
+        #[arg(long, default_value_t = 1)]
+        jobs: usize,
     },
     /// Prints a completion script for a shell (bash, zsh, fish, elvish, powershell)
     Completions {
@@ -328,6 +331,16 @@ fn load_doc(
         println!("{}", report.to_json());
         ExitCode::from(EXIT_INFRASTRUCTURE)
     })
+}
+
+/// `--jobs 0` means "one per CPU". Anything else is taken as written: a person
+/// who says 2 on a 32-core machine is asking for 2, usually because something
+/// else is running.
+fn resolve_jobs(requested: usize) -> usize {
+    if requested > 0 {
+        return requested;
+    }
+    std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
 }
 
 fn file_name(p: &Path) -> String {
@@ -507,15 +520,16 @@ fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
         }
-        Command::Test { script, dir, update } => {
-            let program = match load_program(&script) {
-                Ok(p) => p,
-                Err(code) => return code,
-            };
+        Command::Test { script, dir, update, jobs } => {
+            // Parsed here only to fail fast: a syntax error is one message, not
+            // one per case.
+            if let Err(code) = load_program(&script) {
+                return code;
+            }
             let dir = dir.unwrap_or_else(|| {
                 script.parent().unwrap_or(Path::new(".")).join("tests")
             });
-            ExitCode::from(testcmd::test(&script, &program, &dir, update))
+            ExitCode::from(testcmd::test(&script, &dir, update, resolve_jobs(jobs)))
         }
         Command::Completions { shell } => {
             // stdout, so it can be piped straight into the shell's completion

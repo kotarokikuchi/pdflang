@@ -8,36 +8,71 @@
 //! `--update` writes the expected files. Recording is a deliberate act: a run
 //! that silently refreshed its own baseline would never fail.
 
-use crate::interpreter;
-use crate::pdf;
-use crate::report::Report;
-use crate::{ast, note};
+use crate::note;
 use std::path::{Path, PathBuf};
 
-/// A case's report is the one `pdfl run` produces, with `input_file` reduced to
-/// the file's name. The full path depends on the directory the runner was
-/// invoked from, and a baseline that changes with the caller's shell is not a
-/// baseline.
-fn report_for(program: &[ast::Stmt], script: &Path, pdf_path: &Path) -> Result<Report, String> {
-    let doc = pdf::load_document(pdf_path).map_err(|e| format!("{e:#}"))?;
-    let total_pages = doc.pages.len() as i64;
-    let mut interp = interpreter::Interpreter::new();
-    if let Some(dir) = script.parent() {
-        interp.script_dir = dir.to_path_buf();
-    }
-    interp.run(program, doc).map_err(|e| e.to_string())?;
-    let mut report = Report::new(
-        crate::file_name(script),
-        crate::file_name(pdf_path),
-        interp.profile_name.clone(),
-        total_pages,
-        interp.diagnostics,
-    );
-    report.checks_run = interp.checks_run;
-    Ok(report)
+/// Runs one case as a child `pdfl run` and returns its JSON report.
+///
+/// A child rather than a call, for two reasons. pdfium serialises every call
+/// behind one mutex, so threads sharing this process cannot run two documents
+/// at once — measured on eight 41-page files, threads were *slower* than
+/// sequential (12.2s against 8.3s) while separate processes finished in 1.2s.
+/// And a document that kills the library takes only its own case down.
+///
+/// `input_file` is reduced to the file's name: the full path depends on the
+/// directory the runner was invoked from, and a baseline that changes with the
+/// caller's shell is not a baseline.
+fn run_case(exe: &Path, script: &Path, pdf_path: &Path) -> Result<String, String> {
+    let output = std::process::Command::new(exe)
+        .arg("run")
+        .arg(script)
+        .arg(pdf_path)
+        .args(["--output", "json", "--quiet"])
+        .output()
+        .map_err(|e| format!("could not run {}: {e}", exe.display()))?;
+
+    // A verdict of any severity still prints a report; so does an unreadable
+    // input, whose report carries the reason as a finding. Only the absence of
+    // a report is a case that could not be judged.
+    let mut value: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|_| {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let reason = stderr.split_whitespace().collect::<Vec<_>>().join(" ");
+        if reason.is_empty() {
+            format!("no report ({})", output.status)
+        } else {
+            reason
+        }
+    })?;
+    value["input_file"] = serde_json::Value::String(crate::file_name(pdf_path));
+    Ok(serde_json::to_string_pretty(&value).expect("a parsed report serialises"))
 }
 
-pub fn test(script: &Path, program: &[ast::Stmt], dir: &Path, update: bool) -> u8 {
+/// Runs the cases `jobs` at a time and returns the reports in the order the
+/// cases were given, so what is printed never depends on which child finished
+/// first.
+fn run_cases(exe: &Path, script: &Path, pdfs: &[PathBuf], jobs: usize) -> Vec<Result<String, String>> {
+    if jobs <= 1 || pdfs.len() <= 1 {
+        return pdfs.iter().map(|p| run_case(exe, script, p)).collect();
+    }
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let done: std::sync::Mutex<Vec<(usize, Result<String, String>)>> =
+        std::sync::Mutex::new(Vec::with_capacity(pdfs.len()));
+    std::thread::scope(|scope| {
+        for _ in 0..jobs.min(pdfs.len()) {
+            scope.spawn(|| loop {
+                let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let Some(pdf_path) = pdfs.get(i) else { return };
+                let result = run_case(exe, script, pdf_path);
+                done.lock().expect("no panic holds this lock").push((i, result));
+            });
+        }
+    });
+    let mut results = done.into_inner().expect("the threads are joined");
+    results.sort_by_key(|(i, _)| *i);
+    results.into_iter().map(|(_, r)| r).collect()
+}
+
+pub fn test(script: &Path, dir: &Path, update: bool, jobs: usize) -> u8 {
     let mut pdfs: Vec<PathBuf> = match std::fs::read_dir(dir) {
         Ok(entries) => entries
             .flatten()
@@ -57,24 +92,33 @@ pub fn test(script: &Path, program: &[ast::Stmt], dir: &Path, update: bool) -> u
         return crate::EXIT_INFRASTRUCTURE;
     }
 
+    let exe = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: could not find the pdfl binary to run the cases with: {e}");
+            return crate::EXIT_INFRASTRUCTURE;
+        }
+    };
+
     let mut failed = 0;
     let mut written = 0;
-    for pdf_path in &pdfs {
+    // The cases run first and are judged afterwards, in order: what a run
+    // prints must not depend on which child happened to finish first.
+    let reports = run_cases(&exe, script, &pdfs, jobs);
+    for (pdf_path, result) in pdfs.iter().zip(reports) {
         let name = crate::file_name(pdf_path);
         let expected_path = expected_path(pdf_path);
-        let report = match report_for(program, script, pdf_path) {
+        let actual = match result {
             Ok(r) => r,
             Err(e) => {
-                // The script or the PDF is broken. That is a failing case, not
-                // a crashed run: the other cases still have something to say.
-                // Onto one line, so the column of results stays readable.
+                // A case that could not be judged is a failing case, not a
+                // crashed run: the others still have something to say.
                 println!("FAIL {name}");
-                println!("     {}", e.split_whitespace().collect::<Vec<_>>().join(" "));
+                println!("     {e}");
                 failed += 1;
                 continue;
             }
         };
-        let actual = report.to_json();
 
         if update {
             match std::fs::write(&expected_path, format!("{actual}\n")) {

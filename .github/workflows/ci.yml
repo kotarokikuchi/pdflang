@@ -64,6 +64,10 @@ jobs:
           mkdir -p /tmp/cases && cp tests/fixtures/*.pdf /tmp/cases/
           ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases --update
           ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases
+          # one case per CPU has to reach the same verdict, in the same order
+          ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases --jobs 0 > /tmp/par.txt
+          ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases --jobs 1 > /tmp/seq.txt
+          cmp /tmp/par.txt /tmp/seq.txt
           # a changed expectation has to fail, or the runner proves nothing
           sed -i 's/"total_pages_analyzed": [0-9]*/"total_pages_analyzed": 999/' /tmp/cases/minimal.expected.json
           ec=0

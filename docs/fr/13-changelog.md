@@ -41,6 +41,10 @@ adapter. Rien ne change ici en silence.
   rapport à celui enregistré à côté : un profil qui se met à trouver autre chose
   fait échouer un test au lieu de surprendre quelqu'un plus loin. `--update`
   enregistre les rapports attendus.
+- `--jobs <n>` sur `pdfl test` exécute autant de cas en même temps, chacun dans
+  son processus. Huit fichiers de 41 pages : 8,9s avec `--jobs 1`, 1,1s avec
+  `--jobs 8`. La valeur par défaut reste `1`, chaque tâche tenant un document en
+  mémoire ; `--jobs 0` en donne un par CPU.
 
 ### Bon à savoir
 

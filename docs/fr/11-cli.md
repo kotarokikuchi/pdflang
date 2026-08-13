@@ -426,6 +426,7 @@ pdfl test <script.pdfl> [--dir <dossier>] [--update]
 |---|---|---|
 | `--dir <dossier>` | `tests/` à côté du script | Où se trouvent les PDF des cas |
 | `--update` | — | Enregistre les rapports attendus au lieu de comparer |
+| `--jobs <n>` | `1` | Cas exécutés en même temps ; `0` = un par CPU |
 
 Un cas, c'est un PDF et le rapport qu'on en attend, côte à côte :
 
@@ -470,6 +471,28 @@ s'exécuter.
 
 Codes de sortie : `0` tous passés, `2` au moins un échec, `10` dossier illisible
 ou sans PDF.
+
+### Exécuter les cas en même temps
+
+Chaque cas s'exécute dans son propre processus `pdfl` : `--jobs` transforme donc
+une suite en vrai travail parallèle. Sur huit fichiers de 41 pages, `--jobs 1` a
+pris 8,9s et `--jobs 8` 1,1s. Des threads dans un seul processus n'y seraient pas
+parvenus — pdfium sérialise chaque appel derrière un unique mutex, et la version
+threadée s'est mesurée *plus lente* que la séquentielle.
+
+La valeur par défaut est `1`, car chaque tâche est un processus qui tient un
+document en mémoire, et cet outil existe pour des fichiers qui peuvent être
+énormes. Augmentez-la quand les cas sont ordinaires : `--jobs 0` en donne un par
+CPU.
+
+L'ordre de la sortie ne change jamais avec `--jobs` : les cas sont jugés dans
+l'ordre où ils ont été trouvés, quel que soit l'enfant terminé le premier.
+
+Un cas dont le PDF est illisible est jugé comme les autres — son rapport porte la
+raison sous forme de constat, donc « ce fichier doit être refusé comme illisible »
+peut être un test à part entière. Ce rapport nomme le fichier tel qu'il a été
+passé : enregistrez les références avec un `--dir` **relatif** si elles doivent
+être versionnées.
 
 ---
 

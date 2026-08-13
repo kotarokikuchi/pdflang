@@ -42,6 +42,10 @@ nichts stillschweigend.
   vergleicht jeden Bericht mit dem daneben aufgezeichneten. Ein Profil, das
   plötzlich etwas anderes findet, lässt so einen Test scheitern, statt jemanden
   weiter hinten zu überraschen. `--update` zeichnet die erwarteten Berichte auf.
+- `--jobs <n>` bei `pdfl test` lässt so viele Fälle gleichzeitig laufen, jeden
+  als eigenen Prozess. Acht Dateien à 41 Seiten: 8,9s bei `--jobs 1`, 1,1s bei
+  `--jobs 8`. Die Vorgabe bleibt `1`, da jeder Job ein Dokument im Speicher
+  hält; `--jobs 0` gibt einen je CPU.
 
 ### Wissenswert
 

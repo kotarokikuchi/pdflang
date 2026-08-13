@@ -428,6 +428,7 @@ pdfl test <skript.pdfl> [--dir <ordner>] [--update]
 |---|---|---|
 | `--dir <ordner>` | `tests/` neben dem Skript | Wo die Fall-PDFs liegen |
 | `--update` | — | Zeichnet die erwarteten Berichte auf, statt zu vergleichen |
+| `--jobs <n>` | `1` | Gleichzeitig laufende Fälle; `0` heißt einer je CPU |
 
 Ein Fall ist ein PDF und der von ihm erwartete Bericht, nebeneinander:
 
@@ -472,6 +473,28 @@ Ein PDF, das sich nicht öffnen lässt, lässt seinen eigenen Fall scheitern und
 
 Exit-Codes: `0` alle bestanden, `2` mindestens einer scheiterte, `10` der Ordner
 war nicht lesbar oder enthält kein PDF.
+
+### Fälle gleichzeitig laufen lassen
+
+Jeder Fall läuft als eigener `pdfl`-Prozess, `--jobs` macht aus einer Suite also
+echte Parallelarbeit: bei acht Dateien à 41 Seiten brauchte `--jobs 1` 8,9s und
+`--jobs 8` 1,1s. Threads innerhalb eines Prozesses hätten es nicht geschafft —
+pdfium serialisiert jeden Aufruf hinter einem einzigen Mutex, und die Variante
+mit Threads maß sich *langsamer* als die sequentielle.
+
+Die Vorgabe ist `1`, denn jeder Job ist ein Prozess, der ein Dokument im
+Speicher hält, und dieses Werkzeug existiert für Dateien, die sehr groß sein
+können. Erhöhen Sie den Wert bei gewöhnlichen Fällen: `--jobs 0` gibt einen je
+CPU.
+
+Die Reihenfolge der Ausgabe ändert sich mit `--jobs` nie: die Fälle werden in
+der Fundreihenfolge beurteilt, gleich welches Kind zuerst fertig war.
+
+Ein Fall, dessen PDF sich nicht lesen lässt, wird wie jeder andere beurteilt —
+sein Bericht führt den Grund als Befund, „diese Datei muss als unlesbar
+abgelehnt werden" kann also selbst ein Test sein. Dieser Bericht nennt die Datei
+so, wie sie übergeben wurde: zeichnen Sie Baselines mit einem **relativen**
+`--dir` auf, wenn sie eingecheckt werden sollen.
 
 ---
 

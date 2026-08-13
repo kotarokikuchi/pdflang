@@ -85,8 +85,10 @@ declarative batch block, manifests, priorities, SLAs, dependency graphs, retry,
 quarantine, timeouts, incremental hash cache, journal, multi-machine
 coordination, queue status, metrics, routing, digests — is unwritten.
 
-`rayon` is not a dependency: there is no parallelism at all, so a `--jobs N` flag
-is not one flag away.
+`pdfl test` has `--jobs`, and it works by spawning one process per case rather
+than by threading — pdfium serialises every call behind a single mutex, so
+threads inside one process buy nothing. Batch mode would take the same shape,
+but the queue around it is what is missing, not the parallelism.
 
 One design question is worth settling before any of this is built, because it
 decides the shape of the rest. A batch that survives a crash needs to remember
@@ -162,7 +164,8 @@ same thing as a published action other people can use.
 | Feature | State |
 |---|---|
 | Same script + same PDF = same bytes | 🟩 yes — CI asserts it on every push |
-| Seeded sampling, deterministic parallel output, reproducible builds | n/a — no sampling and no parallelism yet |
+| Deterministic parallel output | 🟩 yes — `pdfl test --jobs` judges cases in the order they were found, whichever child finished first; CI compares the parallel and sequential runs |
+| Seeded sampling, reproducible builds | 🟥 no — there is no sampling |
 | Strict vs lenient parsing, repair diagnostics | 🟥 no — a corrupt PDF fails with one error |
 | Partial result on timeout | 🟥 no — there are no timeouts |
 | Memory/time limits, recursion limit, path sandbox, large-file guard | 🟧 partial — recursion is bounded and tested; nothing else |
@@ -213,7 +216,14 @@ Each adds a dependency and a support surface. Waves 1 and 2 are done, and
 `pdfl test` needed no dependency in the end — it reuses the interpreter and the
 report, and compares the JSON it already knows how to produce.
 
-11. **Parallelism** — needed before batch means anything.
+Parallelism needed none either, but not for the expected reason. Threads inside
+one process do not help: pdfium serialises every call behind a single mutex, and
+a threaded run of eight 41-page files measured *slower* than sequential (12.2s
+against 8.3s). Separate processes finished the same work in 1.2s. So `--jobs` on
+`pdfl test` spawns children rather than threads, and `rayon` never came up.
+
+11. **Parallelism in `watch --once`** — `pdfl test` already runs its cases as
+    separate processes; batch mode still walks its folder one file at a time.
 12. **Event-based watch**, keeping polling as the fallback for network shares.
 13. **Batch as runtime semantics** — the largest single block of work. Worth
     starting only once 10–12 exist.

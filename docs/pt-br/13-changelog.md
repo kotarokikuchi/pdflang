@@ -40,6 +40,10 @@ em silêncio.
   relatório com o gravado ao lado, então um perfil que passa a achar outra coisa
   quebra um teste em vez de surpreender alguém lá na frente. O `--update` grava
   os relatórios esperados.
+- `--jobs <n>` no `pdfl test` roda essa quantidade de casos ao mesmo tempo, cada
+  um em seu processo. Oito arquivos de 41 páginas: 8,9s com `--jobs 1`, 1,1s com
+  `--jobs 8`. O padrão segue `1`, já que cada job segura um documento na
+  memória; `--jobs 0` dá um por CPU.
 
 ### Vale saber
 

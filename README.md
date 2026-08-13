@@ -352,7 +352,9 @@ pdfl test prepress.pdfl             # from then on; exit 2 if anything changed
 ```
 
 Cases live in `tests/` next to the script (or `--dir`), as `case.pdf` +
-`case.expected.json`. A failure names what changed — the counts, the verdict,
+`case.expected.json`. `--jobs <n>` runs that many at once, each as its own
+process (8.9s to 1.1s on eight 41-page files); the default is `1` because each
+job holds a document in memory, and `--jobs 0` gives one per CPU. A failure names what changed — the counts, the verdict,
 and which findings appeared or vanished. Recording is always deliberate: a run
 that refreshed its own baseline could never fail.
 

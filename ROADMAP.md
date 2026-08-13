@@ -79,17 +79,24 @@ and `Cargo.toml`.
 
 ### Batch and queues
 
-`watch --once` processes a folder, `--jobs` decides how many at a time, and
-`--journal` makes an interrupted batch resumable. That covers the case a print
-shop actually has: a folder, a script, and a run that has to survive being
-interrupted.
+`watch --once` processes a folder, `--jobs` decides how many at a time,
+`--journal` makes an interrupted batch resumable, and `--timeout` kills a file
+that runs too long instead of letting it hang the rest. That covers the case a
+print shop actually has: a folder, a script, and a run that has to survive both
+a crash and one adversarial file.
 
 Unwritten, and mostly on purpose: a job type, a declarative batch block,
 manifests, priorities, SLAs, dependency graphs, retry, quarantine,
 multi-machine coordination, queue status, metrics, routing, digests. Those
-describe a queue product; this is a validator with a folder mode. Timeouts are
-the one item on that list worth building — a document that hangs the library
-currently hangs its batch.
+describe a queue product; this is a validator with a folder mode.
+
+A timed-out file is reported exactly like an unreadable one — one finding,
+`check_name: "timeout"` — so it flows through `write_report` and the journal
+with no special case: same exit-code path, same "a resumed batch must still see
+the rejection" guarantee. There is nothing in `.pdfl` a script can use to hang
+the interpreter on purpose (recursion is depth-limited), so the flag exists for
+what a script cannot cause — pdfium looping or blocking on a malformed or
+adversarial PDF.
 
 `pdfl test` has `--jobs`, and it works by spawning one process per case rather
 than by threading — pdfium serialises every call behind a single mutex, so
@@ -122,6 +129,8 @@ this tool could have.
 | Symlink policy, network-share fallback | 🟥 no — though polling is the only mode, so network shares work by accident |
 | `--once` | 🟩 yes |
 | Parallel batch | 🟩 yes — `--jobs`, one child process per file; the reports are written in the order the files were found |
+| Resumable batch | 🟩 yes — `--journal`, append-only, matched by content hash; a skipped file still counts its recorded verdict |
+| Per-file timeout | 🟩 yes — `--timeout`, kills the child and reports the file as rejected rather than stalling the batch |
 | `--status`, hot reload, catch-up scan, log rotation, disk guard, status artifact | 🟥 no |
 | Service unit generation, watchdog integration, cron overlap lock, jitter, calendar awareness | 🟥 no |
 
@@ -192,7 +201,7 @@ same thing as a published action other people can use.
 | Deterministic parallel output | 🟩 yes — `pdfl test --jobs` judges cases in the order they were found, whichever child finished first; CI compares the parallel and sequential runs |
 | Seeded sampling, reproducible builds | 🟥 no — there is no sampling |
 | Strict vs lenient parsing, repair diagnostics | 🟥 no — a corrupt PDF fails with one error |
-| Partial result on timeout | 🟥 no — there are no timeouts |
+| Partial result on timeout | 🟧 partial — `watch --timeout` kills a hung file and substitutes a "timeout" finding for it; `pdfl run` alone has no timeout, and there is no version that keeps whatever diagnostics ran before the hang |
 | Memory/time limits, recursion limit, path sandbox, large-file guard | 🟧 partial — recursion is bounded and tested; nothing else |
 | Memory-mapped reads, page streaming, lazy images | 🟥 no — `visual::` renders on demand and caches, which bounds cost in practice but is not streaming |
 | Structured logging, resource report, SBOM, dependency audit | 🟥 no |

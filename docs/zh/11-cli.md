@@ -210,6 +210,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--fail-fast` | — | 遇到第一个错误即停止 |
 | `--events` | — | 用系统通知唤醒，而不是定时器——不适用于网络共享 |
 | `--journal <文件>` | — | 只追加的已校验记录；再次运行会跳过它覆盖的文件 |
+| `--timeout <秒>` | — | 超过这个秒数就杀掉该文件的分析，并报告为被拒 |
 | `--jobs <n>` | `1` | 同时校验的文件数；`0` 表示每个 CPU 一个 |
 | `--once` | — | 处理现有文件后退出 |
 
@@ -274,6 +275,25 @@ pdfl watch inbox/ --script offset.pdfl --once --journal batch.jsonl
 
 每行都是逐条写入的，所以崩溃留下的内容在它覆盖的范围内是真的。读不懂的 journal
 会指出是第几行并停止运行：根据读错的记录去跳过文件，比从头再来更糟。
+
+### `--timeout`：一个坏文件不能拖住整批
+
+```bash
+pdfl watch inbox/ --script offset.pdfl --once --timeout 60
+```
+
+分析超过 `60` 秒的文件会被杀掉，报告方式和无法读取的 PDF 一样——带一条发现的报告，
+`check_name: "timeout"`——因此它会打印、写入磁盘，并像其他任何结论一样进入
+journal。没有什么会被悄悄跳过，批处理会转向下一个文件，而不是卡在这一个上。
+
+```json
+{"input":"inbox/adversarial.pdf","sha256":"7a1c…","status":"FAIL","errors":1,"warnings":0,"exit":2}
+```
+
+`.pdfl` 语言里没有任何东西能让脚本故意卡死解释器——递归有深度限制——所以
+`--timeout` 是为脚本造不成的情况而存在的：pdfium 在畸形或恶意的 PDF 上死循环或
+卡住。不加这个参数，一个文件的分析会一直等下去，这也是这个选项出现之前唯一的
+行为。
 
 报告写为 `<name>.report.json`（或 `.csv`、`.html`、`.pdf`）。
 

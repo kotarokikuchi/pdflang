@@ -236,6 +236,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--fail-fast` | — | Stops at the first error |
 | `--events` | — | Wake on filesystem notifications instead of a timer — not on network shares |
 | `--journal <file>` | — | Append-only record of what was validated; re-running skips what it covers |
+| `--timeout <s>` | — | Kills a file's analysis past this many seconds and reports it as rejected |
 | `--jobs <n>` | `1` | Files to validate at the same time; `0` means one per CPU |
 | `--once` | — | Processes what is already there and exits |
 
@@ -315,6 +316,28 @@ which keeps a re-run byte-identical to the first, like everything else here.
 The lines are flushed one at a time, so what a crash leaves behind is true as
 far as it goes. A journal that cannot be parsed stops the run naming the line;
 skipping files on a misread record would be worse than starting over.
+
+### `--timeout`: one bad file must not stall the batch
+
+```bash
+pdfl watch inbox/ --script offset.pdfl --once --timeout 60
+```
+
+A file whose analysis runs past `60` seconds is killed and reported the same way
+an unreadable PDF is — a report with one finding, `check_name: "timeout"` — so it
+prints, writes to disk and enters the journal exactly like any other verdict.
+Nothing is silently skipped, and the batch moves on to the next file instead of
+hanging on this one.
+
+```json
+{"input":"inbox/adversarial.pdf","sha256":"7a1c…","status":"FAIL","errors":1,"warnings":0,"exit":2}
+```
+
+There is nothing in the `.pdfl` language a script can use to hang the
+interpreter on purpose — recursion is depth-limited — so `--timeout` exists for
+what a script cannot cause: pdfium looping or blocking on a malformed or
+adversarial PDF. Unset, a file's analysis waits as long as it takes, which was
+the only behaviour before this flag existed.
 
 Reports are written as `<name>.report.json` (or `.csv`, `.html`, `.pdf`).
 

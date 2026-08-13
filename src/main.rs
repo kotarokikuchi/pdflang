@@ -171,6 +171,10 @@ enum Command {
         /// same journal skips the files it already covers
         #[arg(long)]
         journal: Option<PathBuf>,
+        /// Kills a file's analysis past this many seconds and reports it as
+        /// rejected instead of leaving the batch stuck. Unset waits forever
+        #[arg(long)]
+        timeout: Option<u64>,
     },
     /// Shows a quick summary of a PDF
     Inspect {
@@ -390,6 +394,7 @@ fn main() -> ExitCode {
             jobs,
             events,
             journal,
+            timeout,
         } => {
             // Parsed here only to fail fast: a syntax error is one message,
             // not one per file in the folder.
@@ -405,6 +410,7 @@ fn main() -> ExitCode {
                 depth,
                 debounce_ms: debounce,
                 fail_fast,
+                timeout: timeout.map(std::time::Duration::from_secs),
                 journal,
                 events,
                 once,

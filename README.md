@@ -285,7 +285,8 @@ to the file (or into `--output-dir`):
 pdfl watch input/ --script profile.pdfl [--pattern "*.pdf"] [--exclude "*_draft*"] \
   [--output-dir reports/] [--depth 1] [--debounce 1000] \
   [--report json|csv|html|pdf|sarif|junit] \
-  [--fail-fast] [--once] [--jobs 0] [--events] [--journal batch.jsonl]
+  [--fail-fast] [--once] [--jobs 0] [--events] [--journal batch.jsonl] \
+  [--timeout 60]
 ```
 
 `--jobs <n>` validates that many files at once, each in its own process (9.5s to
@@ -297,6 +298,12 @@ appended as it goes. Re-running with the same journal skips the files it covers
 and still reports their verdicts, so a batch interrupted at four thousand of
 five thousand finishes the rest without ever claiming the folder is clean.
 Nothing is written without the flag: the tool keeps no state of its own.
+
+`--timeout <s>` kills a file's analysis past that many seconds and reports it as
+rejected — one finding, `check_name: "timeout"` — instead of leaving the batch
+stuck on it. Recursion in a `.pdfl` script is already depth-limited, so this is
+for what a script cannot cause: pdfium looping or blocking on a malformed or
+adversarial PDF.
 
 The folder is listed on a timer; `--events` waits on filesystem notifications
 instead. Not on a network share: inotify on an NFS or SMB mount reports only what

@@ -99,3 +99,12 @@ jobs:
           test "$ec" -eq 2                      # skipped, but still rejected
           test -z "$(ls /tmp/wj)"               # and nothing was validated again
           test "$(wc -l < /tmp/batch.jsonl)" -eq 5
+          # --timeout composes with the rest without changing a normal batch;
+          # the kill itself is proven in cargo test against a real slow process
+          rm -f /tmp/wj/* /tmp/batch.jsonl
+          ec=0
+          ./target/debug/pdfl watch /tmp/cases --script examples/basic.pdfl \
+            --output-dir /tmp/wj --once --timeout 30 --journal /tmp/batch.jsonl \
+            --jobs 0 || ec=$?
+          test "$ec" -eq 2
+          test "$(wc -l < /tmp/batch.jsonl)" -eq 5

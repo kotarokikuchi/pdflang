@@ -59,6 +59,12 @@ adapter. Rien ne change ici en silence.
   fichiers qu'il couvre — un lot interrompu à quatre mille sur cinq mille finit
   les mille restants — tout en rapportant leurs verdicts : un lot repris ne
   prétend jamais qu'un dossier est propre.
+- `--timeout <s>` sur `pdfl watch` tue l'analyse d'un fichier au-delà de ce
+  nombre de secondes et le signale comme refusé — un constat,
+  `check_name: "timeout"` — plutôt que de laisser le lot bloqué. La récursion
+  dans un script `.pdfl` est déjà limitée en profondeur : ce drapeau est donc
+  pour ce qu'un script ne peut pas causer — pdfium qui boucle ou se bloque sur
+  un PDF malformé ou hostile.
 
 ### Bon à savoir
 

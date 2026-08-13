@@ -222,6 +222,7 @@ pdfl watch <dossier> --script <script.pdfl> [options]
 | `--fail-fast` | — | S'arrête à la première erreur |
 | `--events` | — | Se réveille sur les notifications du système plutôt que sur une minuterie — pas sur un partage réseau |
 | `--journal <fichier>` | — | Journal en ajout seul de ce qui a été validé ; relancer saute ce qu'il couvre |
+| `--timeout <s>` | — | Tue l'analyse d'un fichier après ce nombre de secondes et le signale comme refusé |
 | `--jobs <n>` | `1` | Fichiers validés en même temps ; `0` = un par CPU |
 | `--once` | — | Traite l'existant puis quitte |
 
@@ -300,6 +301,28 @@ première, comme tout le reste ici.
 Les lignes sont écrites une à une : ce qu'un plantage laisse est donc vrai
 jusque-là. Un journal illisible arrête l'exécution en nommant la ligne — sauter
 des fichiers sur un enregistrement mal lu serait pire que de tout reprendre.
+
+### `--timeout` : un mauvais fichier ne doit pas bloquer le lot
+
+```bash
+pdfl watch entree/ --script offset.pdfl --once --timeout 60
+```
+
+Un fichier dont l'analyse dépasse `60` secondes est tué et signalé de la même
+façon qu'un PDF illisible — un rapport avec un constat, `check_name: "timeout"` —
+il s'imprime donc, s'écrit sur disque et entre dans le journal exactement comme
+n'importe quel autre verdict. Rien n'est sauté en silence, et le lot passe au
+fichier suivant plutôt que de rester bloqué sur celui-là.
+
+```json
+{"input":"entree/adversarial.pdf","sha256":"7a1c…","status":"FAIL","errors":1,"warnings":0,"exit":2}
+```
+
+Rien dans le langage `.pdfl` ne permet à un script de bloquer l'interpréteur
+exprès — la récursion est limitée en profondeur — `--timeout` existe donc pour ce
+qu'un script ne peut pas causer : pdfium qui boucle ou se bloque sur un PDF
+malformé ou hostile. Sans le drapeau, l'analyse d'un fichier attend aussi
+longtemps que nécessaire, le seul comportement avant l'existence de cette option.
 
 Les rapports s'écrivent en `<nom>.report.json` (ou `.csv`, `.html`, `.pdf`).
 

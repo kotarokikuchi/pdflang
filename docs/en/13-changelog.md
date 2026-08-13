@@ -56,6 +56,11 @@ quietly.
   the files it covers — a batch interrupted at four thousand of five thousand
   finishes the thousand that are left — while still reporting their verdicts, so
   a resumed batch never claims a folder is clean.
+- `--timeout <s>` on `pdfl watch` kills a file's analysis past that many
+  seconds and reports it as rejected — one finding, `check_name: "timeout"` —
+  instead of leaving the batch stuck. Recursion in a `.pdfl` script is already
+  depth-limited, so this is for what a script cannot cause: pdfium looping or
+  blocking on a malformed or adversarial PDF.
 
 ### Worth knowing
 

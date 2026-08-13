@@ -223,6 +223,7 @@ pdfl watch <ordner> --script <skript.pdfl> [optionen]
 | `--fail-fast` | — | Hält beim ersten Fehler an |
 | `--events` | — | Wacht auf Systembenachrichtigungen statt auf einen Zeitgeber — nicht auf Netzfreigaben |
 | `--journal <datei>` | — | Nur angehängtes Protokoll des Geprüften; ein erneuter Lauf überspringt, was darin steht |
+| `--timeout <s>` | — | Bricht die Prüfung einer Datei nach so vielen Sekunden ab und meldet sie als abgelehnt |
 | `--jobs <n>` | `1` | Gleichzeitig geprüfte Dateien; `0` heißt eine je CPU |
 | `--once` | — | Verarbeitet den Bestand und beendet sich |
 
@@ -304,6 +305,29 @@ Die Zeilen werden einzeln geschrieben, was ein Absturz hinterlässt, stimmt also
 so weit es reicht. Ein Journal, das sich nicht lesen lässt, hält den Lauf an und
 nennt die Zeile; Dateien aufgrund eines falsch gelesenen Eintrags zu überspringen
 wäre schlimmer, als von vorn zu beginnen.
+
+### `--timeout`: eine schlechte Datei darf den Stapel nicht aufhalten
+
+```bash
+pdfl watch eingang/ --script offset.pdfl --once --timeout 60
+```
+
+Eine Datei, deren Prüfung länger als `60` Sekunden dauert, wird beendet und
+genauso gemeldet wie ein unlesbares PDF — ein Bericht mit einem Befund,
+`check_name: "timeout"` — er wird also gedruckt, auf die Platte geschrieben und
+geht ins Journal ein wie jedes andere Urteil. Nichts wird still übersprungen,
+und der Stapel geht zur nächsten Datei über, statt an dieser hängenzubleiben.
+
+```json
+{"input":"eingang/adversarial.pdf","sha256":"7a1c…","status":"FAIL","errors":1,"warnings":0,"exit":2}
+```
+
+In der Sprache `.pdfl` gibt es nichts, womit ein Skript den Interpreter absichtlich
+aufhängen könnte — Rekursion ist tiefenbegrenzt — `--timeout` existiert also für
+das, was ein Skript nicht verursachen kann: pdfium, das bei einem fehlerhaften
+oder feindseligen PDF in eine Schleife gerät oder blockiert. Ohne das Flag wartet
+die Prüfung einer Datei so lange wie nötig, das einzige Verhalten, bevor es dieses
+Flag gab.
 
 Die Berichte entstehen als `<name>.report.json` (oder `.csv`, `.html`, `.pdf`).
 

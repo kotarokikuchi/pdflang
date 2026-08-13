@@ -56,6 +56,12 @@ em silêncio.
   os arquivos que ele cobre — um lote interrompido no quatro mil de cinco mil
   termina os mil que faltam — sem deixar de reportar os veredictos, então um
   lote retomado nunca diz que a pasta está limpa.
+- `--timeout <s>` no `pdfl watch` mata a análise de um arquivo depois desse
+  tanto de segundos e o reporta como recusado — um achado,
+  `check_name: "timeout"` — em vez de deixar o lote travado. A recursão num
+  script `.pdfl` já tem limite de profundidade, então isto é para o que um
+  script não pode causar: o pdfium entrando em loop ou travando num PDF
+  malformado ou adversário.
 
 ### Vale saber
 

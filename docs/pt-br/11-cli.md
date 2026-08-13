@@ -234,6 +234,7 @@ pdfl watch <pasta> --script <script.pdfl> [opções]
 | `--fail-fast` | — | Para no primeiro erro |
 | `--events` | — | Acorda com as notificações do sistema em vez de por tempo — não em pasta de rede |
 | `--journal <arquivo>` | — | Registro append-only do que foi validado; rodar de novo pula o que ele cobre |
+| `--timeout <s>` | — | Mata a análise de um arquivo depois desse tanto de segundos e o reporta como recusado |
 | `--jobs <n>` | `1` | Arquivos validados ao mesmo tempo; `0` é um por CPU |
 | `--once` | — | Processa o que já está lá e sai |
 
@@ -313,6 +314,29 @@ As linhas são gravadas uma a uma, então o que uma queda deixa para trás é ve
 até onde vai. Um journal que não pode ser lido para a execução dizendo em qual
 linha; pular arquivos por causa de um registro mal lido seria pior do que começar
 de novo.
+
+### `--timeout`: um arquivo ruim não pode travar o lote
+
+```bash
+pdfl watch entrada/ --script offset.pdfl --once --timeout 60
+```
+
+Um arquivo cuja análise passa de `60` segundos é morto e reportado do mesmo jeito
+que um PDF ilegível — um laudo com um achado, `check_name: "timeout"` — então ele
+imprime, grava em disco e entra no journal exatamente como qualquer outro
+veredicto. Nada é pulado em silêncio, e o lote segue para o próximo arquivo em
+vez de travar nesse.
+
+```json
+{"input":"entrada/adversario.pdf","sha256":"7a1c…","status":"FAIL","errors":1,"warnings":0,"exit":2}
+```
+
+Não existe nada na linguagem `.pdfl` que um script possa usar para travar o
+interpretador de propósito — a recursão tem limite de profundidade — então o
+`--timeout` existe para o que um script não pode causar: o pdfium entrando em
+loop ou travando num PDF malformado ou adversário. Sem a flag, a análise de um
+arquivo espera o tempo que precisar, que era o único comportamento antes dela
+existir.
 
 Os relatórios saem como `<nome>.report.json` (ou `.csv`, `.html`, `.pdf`).
 

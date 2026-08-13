@@ -22,11 +22,12 @@
 //! The parent doing the rendering keeps one code path for every format and
 //! every value of --jobs.
 
-use crate::report::Report;
+use crate::report::{Diagnostic, Report, Severity};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 pub struct WatchOptions {
     /// The script under which every file is validated.
@@ -39,6 +40,10 @@ pub struct WatchOptions {
     pub depth: usize,
     pub debounce_ms: u64,
     pub fail_fast: bool,
+    /// Kills a file's analysis if it runs longer than this and reports the
+    /// file as rejected instead. `None` waits forever — the behaviour before
+    /// this flag existed.
+    pub timeout: Option<Duration>,
     /// Append-only record of what has been validated, and the only way a batch
     /// survives being interrupted.
     pub journal: Option<PathBuf>,
@@ -207,43 +212,133 @@ fn subscribe(
 ///
 /// A verdict of any severity still prints a report, and so does an unreadable
 /// input — its report carries the reason as a finding, which is exactly what
-/// belongs in the file written for that document. Only the absence of a report
-/// leaves nothing to write.
-fn analyse(exe: &Path, script: &Path, file: &Path) -> Option<Report> {
-    let output = std::process::Command::new(exe)
-        .arg("run")
-        .arg(script)
-        .arg(file)
-        .args(["--output", "json", "--quiet"])
-        .output();
-    let output = match output {
-        Ok(o) => o,
-        Err(e) => {
+/// belongs in the file written for that document. A file whose analysis was
+/// killed for running past `timeout` gets the same treatment: a report with a
+/// finding, so a hung document is a rejection the batch can act on rather than
+/// a silence that leaves the file unwritten and the batch stuck. Only a child
+/// that could not be started at all leaves nothing to write.
+fn analyse(exe: &Path, script: &Path, file: &Path, timeout: Option<Duration>) -> Option<Report> {
+    match run_bounded(exe, script, file, timeout) {
+        RunOutcome::SpawnFailed(e) => {
             eprintln!("error: could not run {}: {e}", exe.display());
-            return None;
-        }
-    };
-    match serde_json::from_slice(&output.stdout) {
-        Ok(report) => Some(report),
-        Err(_) => {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let reason = stderr.split_whitespace().collect::<Vec<_>>().join(" ");
-            eprintln!(
-                "error: {} produced no report ({}){}{}",
-                file.display(),
-                output.status,
-                if reason.is_empty() { "" } else { ": " },
-                reason
-            );
             None
         }
+        RunOutcome::TimedOut => {
+            Some(timeout_report(script, file, timeout.expect("only reachable with a timeout set")))
+        }
+        RunOutcome::Finished(status, stdout, stderr) => match serde_json::from_slice(&stdout) {
+            Ok(report) => Some(report),
+            Err(_) => {
+                let stderr = String::from_utf8_lossy(&stderr);
+                let reason = stderr.split_whitespace().collect::<Vec<_>>().join(" ");
+                eprintln!(
+                    "error: {} produced no report ({status}){}{}",
+                    file.display(),
+                    if reason.is_empty() { "" } else { ": " },
+                    reason
+                );
+                None
+            }
+        },
     }
+}
+
+enum RunOutcome {
+    Finished(std::process::ExitStatus, Vec<u8>, Vec<u8>),
+    TimedOut,
+    SpawnFailed(std::io::Error),
+}
+
+/// Builds the `pdfl run` command for one file and hands it to `spawn_bounded`.
+/// A malformed PDF is what `--timeout` exists for — pdfium can loop or block
+/// on adversarial input — not the script: recursion in a `.pdfl` function is
+/// already depth-limited by the interpreter, so there is no hang to defend
+/// against on that side.
+fn run_bounded(exe: &Path, script: &Path, file: &Path, timeout: Option<Duration>) -> RunOutcome {
+    let mut cmd = std::process::Command::new(exe);
+    cmd.arg("run").arg(script).arg(file).args(["--output", "json", "--quiet"]);
+    spawn_bounded(cmd, timeout)
+}
+
+/// Runs `cmd`, killing it if it outlives `timeout`.
+///
+/// `Command::output()` cannot be bounded — it blocks until the child exits,
+/// which is exactly what a hung child defeats. This spawns the child instead
+/// and polls `try_wait` on an interval, so a deadline can cut in. stdout and
+/// stderr are drained on their own threads throughout, the same way `output()`
+/// does it internally: a child that fills its pipe buffer before anyone reads
+/// it deadlocks against a parent that is only polling for exit.
+fn spawn_bounded(mut cmd: std::process::Command, timeout: Option<Duration>) -> RunOutcome {
+    let mut child = match cmd.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
+        Ok(c) => c,
+        Err(e) => return RunOutcome::SpawnFailed(e),
+    };
+
+    let mut child_stdout = child.stdout.take().expect("stdout was piped");
+    let mut child_stderr = child.stderr.take().expect("stderr was piped");
+    let stdout_thread = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = std::io::Read::read_to_end(&mut child_stdout, &mut buf);
+        buf
+    });
+    let stderr_thread = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = std::io::Read::read_to_end(&mut child_stderr, &mut buf);
+        buf
+    });
+
+    let deadline = timeout.map(|t| Instant::now() + t);
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let stdout = stdout_thread.join().unwrap_or_default();
+                let stderr = stderr_thread.join().unwrap_or_default();
+                return RunOutcome::Finished(status, stdout, stderr);
+            }
+            Ok(None) => {
+                if deadline.is_some_and(|d| Instant::now() >= d) {
+                    // Best-effort: the child may have exited in the instant
+                    // between the check above and this kill, in which case its
+                    // real report is discarded in favour of the timeout one.
+                    // Losing one verdict at the exact deadline is a fair price
+                    // for never blocking a batch forever.
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _ = stdout_thread.join();
+                    let _ = stderr_thread.join();
+                    return RunOutcome::TimedOut;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            Err(e) => {
+                let _ = stdout_thread.join();
+                let _ = stderr_thread.join();
+                return RunOutcome::SpawnFailed(e);
+            }
+        }
+    }
+}
+
+/// A report for a file whose analysis was killed for running past `timeout`,
+/// shaped exactly like the "could not open" report `pdfl run` builds when a
+/// PDF cannot be loaded at all — one finding, so it prints, writes and journals
+/// through the same path as every other verdict.
+fn timeout_report(script: &Path, file: &Path, timeout: Duration) -> Report {
+    let message = format!("analysis did not finish within {}s and was killed", timeout.as_secs());
+    let diag = Diagnostic {
+        id: crate::report::fingerprint("timeout", &message, 1),
+        severity: Severity::Error,
+        check_name: "timeout".into(),
+        message,
+        line: None,
+    };
+    Report::new(crate::file_name(script), file.to_string_lossy().into_owned(), None, 0, vec![diag])
 }
 
 /// Runs the batch `jobs` at a time, keeping the order of `files`.
 fn analyse_all(exe: &Path, files: &[PathBuf], opts: &WatchOptions) -> Vec<Option<Report>> {
     if opts.jobs <= 1 || files.len() <= 1 {
-        return files.iter().map(|f| analyse(exe, &opts.script, f)).collect();
+        return files.iter().map(|f| analyse(exe, &opts.script, f, opts.timeout)).collect();
     }
     let next = AtomicUsize::new(0);
     // With --fail-fast, no new file is started once one has failed. The ones
@@ -259,7 +354,7 @@ fn analyse_all(exe: &Path, files: &[PathBuf], opts: &WatchOptions) -> Vec<Option
                 }
                 let i = next.fetch_add(1, Ordering::Relaxed);
                 let Some(file) = files.get(i) else { return };
-                let report = analyse(exe, &opts.script, file);
+                let report = analyse(exe, &opts.script, file, opts.timeout);
                 if opts.fail_fast && report.as_ref().is_some_and(|r| r.exit_code(false) >= 2) {
                     stop.store(true, Ordering::Relaxed);
                 }
@@ -560,5 +655,83 @@ mod tests {
             Ok(_) => panic!("a damaged journal must not open"),
         };
         assert!(e.contains("line 2"), "{e}");
+    }
+
+    /// The real kill path, exercised against `sleep` rather than a hung `pdfl
+    /// run` — nothing in the language can hang the interpreter on purpose
+    /// (recursion is depth-limited), so a slow *process* is the honest stand-in
+    /// for what actually hangs: pdfium on adversarial input.
+    #[test]
+    fn a_slow_child_is_killed_at_the_deadline() {
+        let mut cmd = std::process::Command::new("sleep");
+        cmd.arg("5");
+        let start = Instant::now();
+        let outcome = spawn_bounded(cmd, Some(Duration::from_millis(200)));
+        let elapsed = start.elapsed();
+        assert!(matches!(outcome, RunOutcome::TimedOut));
+        // Loose bound: proves it was killed near the deadline, not that it ran
+        // the full 5s (a timing assertion tight enough to be exact would be
+        // flaky under CI load).
+        assert!(elapsed < Duration::from_secs(2), "{elapsed:?}");
+    }
+
+    #[test]
+    fn a_child_finishing_before_the_deadline_is_not_killed() {
+        let mut cmd = std::process::Command::new("sh");
+        cmd.args(["-c", "echo hi"]);
+        let outcome = spawn_bounded(cmd, Some(Duration::from_secs(5)));
+        match outcome {
+            RunOutcome::Finished(status, stdout, _) => {
+                assert!(status.success());
+                assert_eq!(stdout, b"hi\n");
+            }
+            _ => panic!("expected the child to finish"),
+        }
+    }
+
+    #[test]
+    fn no_timeout_waits_for_a_slow_child_to_finish() {
+        let mut cmd = std::process::Command::new("sh");
+        cmd.args(["-c", "sleep 0.2; echo done"]);
+        let outcome = spawn_bounded(cmd, None);
+        match outcome {
+            RunOutcome::Finished(status, stdout, _) => {
+                assert!(status.success());
+                assert_eq!(stdout, b"done\n");
+            }
+            _ => panic!("expected the child to finish"),
+        }
+    }
+
+    #[test]
+    fn the_timeout_report_is_a_rejection_naming_the_deadline() {
+        let report = timeout_report(Path::new("p.pdfl"), Path::new("huge.pdf"), Duration::from_secs(120));
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.error_count, 1);
+        assert_eq!(report.diagnostics[0].check_name, "timeout");
+        assert!(report.diagnostics[0].message.contains("120s"), "{}", report.diagnostics[0].message);
+        // Flows through the same exit-code path as every other verdict: no
+        // special case in write_report or the journal for a timeout.
+        assert_eq!(report.exit_code(false), 2);
+    }
+
+    /// A resumed batch that skips a timed-out file must not forget it was
+    /// rejected — the same contract already held for an ordinary failure, now
+    /// checked for the timeout path specifically.
+    #[test]
+    fn a_timed_out_file_is_journaled_as_rejected() {
+        let dir = tempdir("timeout-journal");
+        let pdf = dir.join("huge.pdf");
+        std::fs::write(&pdf, b"bytes").unwrap();
+        let path = dir.join("batch.jsonl");
+
+        let report = timeout_report(Path::new("p.pdfl"), &pdf, Duration::from_secs(60));
+        let exit = report.exit_code(false) as u8;
+        assert_eq!(exit, 2);
+        let mut journal = Journal::open(Some(&path)).unwrap();
+        journal.record(&pdf, &report, exit).unwrap();
+
+        let resumed = Journal::open(Some(&path)).unwrap();
+        assert_eq!(resumed.verdict(&pdf), Some(2), "a resumed batch must still see the rejection");
     }
 }

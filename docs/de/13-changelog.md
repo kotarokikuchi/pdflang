@@ -61,6 +61,12 @@ nichts stillschweigend.
   fünftausend unterbrochener Stapel erledigt die restlichen tausend — meldet
   ihre Urteile aber weiterhin, ein fortgesetzter Stapel behauptet also nie, ein
   Ordner sei sauber.
+- `--timeout <s>` bei `pdfl watch` beendet die Prüfung einer Datei nach so
+  vielen Sekunden und meldet sie als abgelehnt — ein Befund,
+  `check_name: "timeout"` — statt den Stapel hängen zu lassen. Rekursion in
+  einem `.pdfl`-Skript ist bereits tiefenbegrenzt, das Flag ist also für das,
+  was ein Skript nicht verursachen kann: pdfium, das bei einem fehlerhaften
+  oder feindseligen PDF in eine Schleife gerät oder blockiert.
 
 ### Wissenswert
 

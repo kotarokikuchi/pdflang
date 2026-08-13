@@ -359,9 +359,12 @@ pdfl doc prepress.pdfl --output html > profile.html
 pdfl pack <folder> [--name <name>] [--version <version>] [--output <file>]
 ```
 
-递归收集文件夹中的 `.pdfl`、`.csv`、`.txt`、`.json`、`.xlsx`，并附带记录了
-各文件 SHA-256 的 `manifest.json`。打包是确定性的：同一文件夹生成完全相同的
-字节。
+递归收集文件夹中的 `.pdfl`、`.csv`、`.txt`、`.json`，并附带记录了各文件
+SHA-256 的 `manifest.json`。打包是确定性的：同一文件夹生成完全相同的字节。
+
+电子表格（`.xlsx`、`.xls`、`.ods`）**不会**打包，`pack` 会说明留下了哪个文件。
+没有任何 `data::` 函数能打开它们，装进去只会得到一个安装顺利、却在第一次查询时
+失败的软件包。
 
 ```bash
 pdfl pack profiles/print-shop --name print-profile --version 1.0.0

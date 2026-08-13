@@ -379,10 +379,14 @@ Packt Skripte und Daten in ein verteilbares `.pdflpkg`.
 pdfl pack <ordner> [--name <name>] [--version <version>] [--output <datei>]
 ```
 
-Es sammelt rekursiv die `.pdfl`-, `.csv`-, `.txt`-, `.json`- und
-`.xlsx`-Dateien des Ordners und legt ein `manifest.json` bei, das den SHA-256
-jeder Datei notiert. Das Packen ist deterministisch: Derselbe Ordner ergibt
-dieselben Bytes.
+Es sammelt rekursiv die `.pdfl`-, `.csv`-, `.txt`- und `.json`-Dateien des
+Ordners und legt ein `manifest.json` bei, das den SHA-256 jeder Datei notiert.
+Das Packen ist deterministisch: Derselbe Ordner ergibt dieselben Bytes.
+
+Eine Tabellendatei (`.xlsx`, `.xls`, `.ods`) wird **nicht** verpackt, und `pack`
+sagt, welche Datei draußen blieb. Keine `data::`-Funktion kann eine öffnen; sie
+mitzugeben hieße, ein Paket auszuliefern, das sauber installiert und beim ersten
+Nachschlagen scheitert.
 
 ```bash
 pdfl pack profile/druckerei --name druckprofil --version 1.0.0

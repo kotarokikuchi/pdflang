@@ -12,6 +12,14 @@ nichts stillschweigend.
 
 ## Noch nicht veröffentlicht
 
+### Bricht
+
+- **`pdfl pack` verpackt keine Tabellendateien mehr** (`.xlsx`, `.xls`, `.ods`)
+  und nennt die Datei, die draußen blieb. Keine `data::`-Funktion kann eine
+  öffnen; ein Paket, das sie mitführte, installierte sauber und scheiterte beim
+  ersten Nachschlagen. Wer eine Tabelle paketierte, exportiert sie vorher nach
+  `.csv` oder `.json`.
+
 ### Neu
 
 - `--tags TAG` bei `run` filtert, welche Checks laufen. Wiederholbar; ein Check
@@ -27,6 +35,9 @@ nichts stillschweigend.
   stderr. Fehler erscheinen weiterhin, und `print()` bleibt unangetastet — das
   ist die Ausgabe des Skripts selbst, und sie zu schlucken würde ändern, was das
   Skript tut.
+- `data::load_dataset` und `data::lookup_value` lesen neben `.csv` auch `.json`:
+  ein Array von Arrays, oder ein Array von Objekten, dessen erstes Objekt die
+  Spalten in der Reihenfolge der Datei benennt.
 
 ### Wissenswert
 

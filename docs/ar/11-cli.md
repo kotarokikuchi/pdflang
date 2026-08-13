@@ -365,9 +365,13 @@ pdfl doc prepress.pdfl --output html > profile.html
 pdfl pack <folder> [--name <name>] [--version <version>] [--output <file>]
 ```
 
-يجمع تكراريًا ملفات `.pdfl` و`.csv` و`.txt` و`.json` و`.xlsx` من المجلد، ويرفق
+يجمع تكراريًا ملفات `.pdfl` و`.csv` و`.txt` و`.json` من المجلد، ويرفق
 `manifest.json` يسجّل بصمة SHA-256 لكل ملف. والحزم حتمي: المجلد نفسه يُنتج
 البايتات نفسها.
+
+أما ملفات الجداول (`.xlsx` و`.xls` و`.ods`) فلا تُحزم، و`pack` يقول أي ملف ترك.
+إذ لا تفتحها أي دالة في `data::`، فحزمها يعني تسليم حزمة تُثبَّت بلا مشكلة ثم
+تخفق عند أول بحث.
 
 ```bash
 pdfl pack profiles/print-shop --name print-profile --version 1.0.0

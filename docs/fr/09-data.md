@@ -78,6 +78,36 @@ check "Glossary and dataset" {
 }
 ```
 
+### Jeux de données en JSON
+
+Un fichier terminé par `.json` est lu comme du JSON — par `load_dataset` comme
+par `lookup_value`. Deux formes sont acceptées, car ce sont les deux dans
+lesquelles un jeu de données s'écrit réellement.
+
+Un tableau de tableaux, ce sont les lignes telles quelles :
+
+```json
+[["lot", "description"],
+ ["L2026-08", "Lot approuvé août/2026"]]
+```
+
+Un tableau d'objets devient une ligne d'en-tête plus une ligne par objet. Les
+colonnes suivent l'ordre du **premier** objet, non l'ordre alphabétique : la
+première clé reste donc celle que `lookup_value` recherche.
+
+```json
+[{"lot": "L2026-08", "description": "Lot approuvé août/2026"},
+ {"lot": "L2026-09", "description": "Lot approuvé septembre/2026"}]
+```
+
+Une clé absente d'un objet suivant laisse une **cellule vide**, jamais une ligne
+décalée : un trou se voit dans le rapport, un décalage non. Les nombres gardent
+les chiffres avec lesquels ils ont été écrits, et `null` est une cellule vide —
+ce que signifie déjà un champ CSV vide.
+
+Mélanger les deux formes dans un même fichier est une erreur, qui nomme la
+ligne.
+
 ---
 
 ## 9.3 Tables de consultation

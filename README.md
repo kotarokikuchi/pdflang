@@ -307,8 +307,10 @@ pdfl run pdfl_profiles/printshop-profile@1.0.0/prepress.pdfl file.pdf
 ```
 
 The package is a deterministic tar.gz; `add` checks each file's hash against the
-manifest (a tampered package is refused). A remote repository and digital
-signatures are not implemented yet.
+manifest (a tampered package is refused). It carries `.pdfl`, `.csv`, `.txt` and
+`.json`; a spreadsheet is left behind with a note saying so, because no `data::`
+function can open one. A remote repository and digital signatures are not
+implemented yet.
 
 ## Commands `pdfl inspect` and `pdfl doc`
 

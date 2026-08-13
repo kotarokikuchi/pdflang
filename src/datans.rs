@@ -187,7 +187,9 @@ fn glossary(path: &str) -> Result<Rc<Vec<String>>, RuntimeError> {
     })
 }
 
-/// CSV dataset with standard quoting (a quoted field may contain commas/newlines).
+/// A dataset is rows of cells, whatever the file format. CSV uses standard
+/// quoting (a quoted field may contain commas/newlines); `.json` is read as
+/// JSON, chosen by extension.
 fn dataset(path: &str) -> Result<Rc<Vec<Vec<String>>>, RuntimeError> {
     DATASETS.with(|cache| {
         if let Some(d) = cache.borrow().get(path) {
@@ -195,10 +197,100 @@ fn dataset(path: &str) -> Result<Rc<Vec<Vec<String>>>, RuntimeError> {
         }
         let content = std::fs::read_to_string(path)
             .map_err(|e| err(format!("could not read dataset {path}: {e}")))?;
-        let rc = Rc::new(parse_csv(&content));
+        let rows = if path.rsplit('.').next().is_some_and(|e| e.eq_ignore_ascii_case("json")) {
+            parse_json(&content, path)?
+        } else {
+            parse_csv(&content)
+        };
+        let rc = Rc::new(rows);
         cache.borrow_mut().insert(path.to_string(), rc.clone());
         Ok(rc)
     })
+}
+
+/// JSON dataset, in either of the two shapes a dataset is actually written in:
+///
+/// - an array of arrays — the rows, as they are;
+/// - an array of objects — the keys of the **first** object become a header
+///   row, and every object contributes one row in that order.
+///
+/// The column order of the object form is the order written in the file, not
+/// alphabetical, which is why serde_json is built with `preserve_order`. A key
+/// missing from a later object yields an empty cell rather than a shifted row —
+/// a hole is visible, a shift is not.
+fn parse_json(content: &str, path: &str) -> Result<Vec<Vec<String>>, RuntimeError> {
+    let value: serde_json::Value = serde_json::from_str(content)
+        .map_err(|e| err(format!("could not read dataset {path}: {e}")))?;
+    let items = match value.as_array() {
+        Some(items) => items,
+        None => {
+            return Err(err(format!(
+                "dataset {path}: expected an array of rows or of objects, got {}",
+                json_kind(&value)
+            )))
+        }
+    };
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut columns: Vec<String> = Vec::new();
+    for (i, item) in items.iter().enumerate() {
+        match item {
+            serde_json::Value::Array(cells) => {
+                if !columns.is_empty() {
+                    return Err(err(format!(
+                        "dataset {path}: row {} is an array, but the first row was an object — \
+                         a dataset is one shape or the other",
+                        i + 1
+                    )));
+                }
+                rows.push(cells.iter().map(cell).collect());
+            }
+            serde_json::Value::Object(fields) => {
+                if columns.is_empty() {
+                    if !rows.is_empty() {
+                        return Err(err(format!(
+                            "dataset {path}: row {} is an object, but the first row was an array — \
+                             a dataset is one shape or the other",
+                            i + 1
+                        )));
+                    }
+                    columns = fields.keys().cloned().collect();
+                    rows.push(columns.clone());
+                }
+                rows.push(
+                    columns.iter().map(|c| fields.get(c).map(cell).unwrap_or_default()).collect(),
+                );
+            }
+            other => {
+                return Err(err(format!(
+                    "dataset {path}: row {} is {}, expected an array or an object",
+                    i + 1,
+                    json_kind(other)
+                )))
+            }
+        }
+    }
+    Ok(rows)
+}
+
+/// A cell is text. A number keeps the digits it was written with, and null is
+/// an empty cell — the same thing an empty CSV field means.
+fn cell(v: &serde_json::Value) -> String {
+    match v {
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Null => String::new(),
+        other => other.to_string(),
+    }
+}
+
+fn json_kind(v: &serde_json::Value) -> &'static str {
+    match v {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "a boolean",
+        serde_json::Value::Number(_) => "a number",
+        serde_json::Value::String(_) => "a string",
+        serde_json::Value::Array(_) => "an array",
+        serde_json::Value::Object(_) => "an object",
+    }
 }
 
 fn parse_csv(content: &str) -> Vec<Vec<String>> {
@@ -247,5 +339,45 @@ mod tests {
         assert_eq!(rows.len(), 3);
         assert_eq!(rows[1], vec!["x, y", "com \"aspas\""]);
         assert_eq!(rows[2], vec!["fim", "1"]);
+    }
+
+    #[test]
+    fn json_array_of_arrays_is_the_rows() {
+        let rows = parse_json(r#"[["a","b"],["1",2],["x",null]]"#, "t.json").unwrap();
+        assert_eq!(rows, vec![vec!["a", "b"], vec!["1", "2"], vec!["x", ""]]);
+    }
+
+    /// The column order is the one written in the file, not alphabetical —
+    /// otherwise `lookup_value` would key off whichever field happened to sort
+    /// first.
+    #[test]
+    fn json_objects_keep_the_order_of_the_file() {
+        let rows = parse_json(
+            r#"[{"code":"7891","name":"Product X"},{"code":"7892","name":"Product Y"}]"#,
+            "t.json",
+        )
+        .unwrap();
+        assert_eq!(rows[0], vec!["code", "name"]);
+        assert_eq!(rows[1], vec!["7891", "Product X"]);
+        assert_eq!(rows[2], vec!["7892", "Product Y"]);
+    }
+
+    /// A hole is visible in the report; a shifted row is not.
+    #[test]
+    fn a_missing_key_is_an_empty_cell_not_a_shift() {
+        let rows = parse_json(r#"[{"a":"1","b":"2"},{"a":"3"}]"#, "t.json").unwrap();
+        assert_eq!(rows[2], vec!["3", ""]);
+    }
+
+    #[test]
+    fn json_of_the_wrong_shape_says_which_row() {
+        let e = parse_json(r#"[["a"],{"b":"1"}]"#, "t.json").unwrap_err();
+        assert!(e.message.contains("row 2"), "{}", e.message);
+
+        let e = parse_json(r#"{"a":1}"#, "t.json").unwrap_err();
+        assert!(e.message.contains("an object"), "{}", e.message);
+
+        let e = parse_json(r#"["a"]"#, "t.json").unwrap_err();
+        assert!(e.message.contains("row 1"), "{}", e.message);
     }
 }

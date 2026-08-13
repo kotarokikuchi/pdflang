@@ -8,8 +8,16 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
-/// Packaged extensions: scripts and datasets.
-const EXTENSIONS: &[&str] = &["pdfl", "csv", "txt", "json", "xlsx"];
+/// Packaged extensions: scripts, and the datasets `data::` can actually open.
+///
+/// `xlsx` used to be here. Packaging a file no `data::` function can read ships
+/// a package that installs cleanly and then fails at the first lookup, so it is
+/// refused at pack time instead — where the person who can fix it is standing.
+const EXTENSIONS: &[&str] = &["pdfl", "csv", "txt", "json"];
+
+/// Extensions that look like datasets but cannot be read, so a folder holding
+/// one is a mistake worth naming rather than a file worth skipping quietly.
+const UNREADABLE: &[&str] = &["xlsx", "xls", "ods"];
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Manifest {
@@ -26,8 +34,17 @@ pub struct ManifestFile {
 
 pub fn pack(folder: &Path, output: &Path, name: &str, version: &str) -> Result<Manifest> {
     let mut paths = Vec::new();
-    collect(folder, folder, &mut paths)?;
+    let mut unreadable = Vec::new();
+    collect(folder, folder, &mut paths, &mut unreadable)?;
     paths.sort(); // deterministic order
+    unreadable.sort();
+    for path in &unreadable {
+        crate::note(format!(
+            "not packaged: {} — no data:: function reads that format, and a package \
+             that installs and then fails is worse than one file short",
+            path.display()
+        ));
+    }
     if paths.is_empty() {
         bail!("no packable file in {} (extensions: {})", folder.display(), EXTENSIONS.join(", "));
     }
@@ -114,17 +131,23 @@ pub fn add(package: &Path, dir: &Path) -> Result<(Manifest, PathBuf)> {
     Ok((manifest, target))
 }
 
-fn collect(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
+fn collect(
+    root: &Path,
+    dir: &Path,
+    out: &mut Vec<PathBuf>,
+    unreadable: &mut Vec<PathBuf>,
+) -> Result<()> {
     for entry in std::fs::read_dir(dir)? {
         let path = entry?.path();
         if path.is_dir() {
-            collect(root, &path, out)?;
-        } else if path
-            .extension()
-            .and_then(|e| e.to_str())
-            .is_some_and(|e| EXTENSIONS.contains(&e))
-        {
+            collect(root, &path, out, unreadable)?;
+            continue;
+        }
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
+        if EXTENSIONS.contains(&ext.as_str()) {
             out.push(path.strip_prefix(root)?.to_path_buf());
+        } else if UNREADABLE.contains(&ext.as_str()) {
+            unreadable.push(path.strip_prefix(root)?.to_path_buf());
         }
     }
     Ok(())
@@ -164,6 +187,23 @@ mod tests {
         assert!(target.ends_with("perfil-teste@1.2.0"));
         assert!(target.join("perfil.pdfl").exists());
         assert_eq!(std::fs::read_to_string(target.join("dados/lotes.csv")).unwrap(), "a,b\n1,2\n");
+    }
+
+    /// A spreadsheet next to the exported CSV is a normal thing to have, so it
+    /// must not block the package — but it must not travel inside it either,
+    /// because nothing can open it once installed.
+    #[test]
+    fn a_spreadsheet_stays_out_of_the_package() {
+        let src = tempdir("xlsx-src");
+        std::fs::write(src.join("perfil.pdfl"), "check \"a\" { }").unwrap();
+        std::fs::write(src.join("lotes.csv"), "a,b\n").unwrap();
+        std::fs::write(src.join("lotes.json"), "[[\"a\",\"b\"]]").unwrap();
+        std::fs::write(src.join("lotes.xlsx"), "PK\x03\x04").unwrap();
+
+        let pkg = tempdir("xlsx-pkg").join("p.pdflpkg");
+        let manifest = pack(&src, &pkg, "p", "1.0").unwrap();
+        let packed: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(packed, ["lotes.csv", "lotes.json", "perfil.pdfl"]);
     }
 
     #[test]

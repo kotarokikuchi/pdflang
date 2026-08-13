@@ -76,6 +76,36 @@ check "Glossary and dataset" {
 }
 ```
 
+### Datensätze als JSON
+
+Eine Datei mit der Endung `.json` wird als JSON gelesen — von `load_dataset` wie
+von `lookup_value`. Zwei Formen werden akzeptiert, denn in diesen beiden wird
+ein Datensatz tatsächlich geschrieben.
+
+Ein Array von Arrays sind die Zeilen, wie sie sind:
+
+```json
+[["charge", "beschreibung"],
+ ["L2026-08", "Freigegebene Charge August/2026"]]
+```
+
+Ein Array von Objekten wird zu einer Kopfzeile plus einer Zeile je Objekt. Die
+Spalten stehen in der Reihenfolge, die das **erste** Objekt schreibt, nicht
+alphabetisch — der erste Schlüssel bleibt also der, den `lookup_value` sucht:
+
+```json
+[{"charge": "L2026-08", "beschreibung": "Freigegebene Charge August/2026"},
+ {"charge": "L2026-09", "beschreibung": "Freigegebene Charge September/2026"}]
+```
+
+Ein Schlüssel, der in einem späteren Objekt fehlt, hinterlässt eine **leere
+Zelle**, nie eine verschobene Zeile: ein Loch sieht man im Bericht, eine
+Verschiebung nicht. Zahlen behalten die Ziffern, mit denen sie geschrieben
+wurden, und `null` ist eine leere Zelle — dasselbe, was ein leeres CSV-Feld
+bedeutet.
+
+Beide Formen in einer Datei zu mischen ist ein Fehler, der die Zeile nennt.
+
 ---
 
 ## 9.3 Nachschlagetabellen

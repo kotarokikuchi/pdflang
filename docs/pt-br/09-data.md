@@ -81,7 +81,7 @@ A comparação ignora maiúsculas e espaçamento — "CONDIÇÕES  GERAIS" satis
 
 ---
 
-## 9.3 Datasets (CSV)
+## 9.3 Datasets (CSV e JSON)
 
 ### `data::load_dataset(arquivo)`
 
@@ -110,6 +110,36 @@ check "Percorrendo a tabela" {
   }
 }
 ```
+
+### Bases em JSON
+
+Um arquivo terminado em `.json` é lido como JSON — tanto pelo `load_dataset`
+quanto pelo `lookup_value`. Duas formas são aceitas, porque são as duas em que
+uma base realmente é escrita.
+
+Um array de arrays são as linhas como estão:
+
+```json
+[["lote", "descricao"],
+ ["L2026-08", "Lote aprovado agosto/2026"]]
+```
+
+Um array de objetos vira uma linha de cabeçalho mais uma linha por objeto. As
+colunas seguem a ordem em que o **primeiro** objeto as escreve, não a ordem
+alfabética, então a primeira chave continua sendo a que o `lookup_value`
+procura:
+
+```json
+[{"lote": "L2026-08", "descricao": "Lote aprovado agosto/2026"},
+ {"lote": "L2026-09", "descricao": "Lote aprovado setembro/2026"}]
+```
+
+Uma chave ausente num objeto posterior deixa uma **célula vazia**, nunca uma
+linha deslocada: buraco aparece no relatório, deslocamento não. Números mantêm
+os dígitos com que foram escritos, e `null` é célula vazia — o mesmo que um
+campo vazio de CSV significa.
+
+Misturar as duas formas no mesmo arquivo é erro, e o erro diz em qual linha.
 
 ### `data::lookup_value(arquivo, chave)`
 

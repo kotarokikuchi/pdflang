@@ -12,6 +12,13 @@ quietly.
 
 ## Unreleased
 
+### Breaks
+
+- **`pdfl pack` no longer packages spreadsheets** (`.xlsx`, `.xls`, `.ods`), and
+  names the file it left behind. No `data::` function can open one, so a package
+  carrying it installed cleanly and then failed at the first lookup. If you
+  packaged a spreadsheet, export it to `.csv` or `.json` first.
+
 ### Added
 
 - `--tags TAG` on `run` filters which checks execute. Repeatable; a check runs
@@ -26,6 +33,9 @@ quietly.
 - `--quiet` on every command silences progress and confirmations on stderr.
   Errors still appear, and `print()` is untouched — that is the script's own
   output, and dropping it would change what a script does.
+- `data::load_dataset` and `data::lookup_value` read `.json` as well as `.csv`:
+  an array of arrays, or an array of objects whose first object names the
+  columns in the order the file writes them.
 
 ### Worth knowing
 

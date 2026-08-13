@@ -139,13 +139,13 @@ generates them from the CLI definition, so they cannot drift from the binary.
 | `.pdflpkg` with manifest and SHA-256, reproducible `pdfl pack` | 🟩 yes — determinism has a test |
 | Data schema validation at packaging time | 🟥 no |
 | Registry, search, publish, signing, dependency resolution, vendoring | 🟥 no |
-| `data::` reading CSV and TXT | 🟩 yes |
-| `data::` reading SQLite, JSON, XLSX, Parquet, TOML/YAML | 🟥 no |
+| `data::` reading CSV, TXT and JSON | 🟩 yes — JSON as an array of arrays or of objects, columns in file order |
+| `data::` reading SQLite, XLSX, Parquet, TOML/YAML | 🟥 no |
 | Versioned datasets, data dictionary, remote pinning | 🟥 no |
 
-**Inconsistency worth fixing cheaply:** `src/pack.rs:12` packages `.json` and
-`.xlsx` as data files, but `src/datans.rs` can only read CSV and TXT. A package
-can carry data the language cannot open.
+That inconsistency is closed: `pack` and `data::` now agree on the same list of
+formats, and a spreadsheet found in the folder is named and left out rather than
+packaged into a package that fails at the first lookup.
 
 ### CI and integration
 
@@ -191,24 +191,23 @@ Diagnostic identifiers are stable, checks declare their severity, the JSON
 report carries a schema version, and infrastructure failures exit outside the
 finding range. Baseline runs are no longer blocked.
 
-Wave 2 has started: `run`, `compare`, `watch` and `fix` write SARIF and JUnit, so
-a finding lands on the pull request and in the CI's test panel. The JSON report
-gained `checks_run` along the way, because a format that counts tests has to know
-which checks passed, and the diagnostics only name the ones that failed.
+### Wave 2 — done
+
+`run`, `compare`, `watch` and `fix` write SARIF and JUnit, so a finding lands on
+the pull request and in the CI's test panel. The JSON report gained `checks_run`
+along the way, because a format that counts tests has to know which checks
+passed, and the diagnostics only name the ones that failed.
 
 `pdfl completions <shell>` and a global `--quiet` followed. Completions cost one
-dependency, `clap_complete`, which is the only one Wave 2 added.
+dependency, `clap_complete`, the only one this wave added.
 
-### Wave 2 — collect what is already paid for
-
-Each of these reuses structure that exists.
-
-7. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
-   stop packaging formats it cannot open.
+Last, `data::` learned to read JSON and `pack` stopped packaging spreadsheets, so
+the two halves finally agree on which formats exist.
 
 ### Wave 3 — real cost, decided deliberately
 
-Each adds a dependency and a support surface. None starts before Waves 1–2.
+Each adds a dependency and a support surface. Waves 1 and 2 are done, so this is
+what is left.
 
 10. **`pdfl test`** — a golden-file runner. Anyone writing profiles has no way to
     test them today, which limits how far the package format can go.

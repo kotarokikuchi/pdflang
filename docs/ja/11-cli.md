@@ -385,9 +385,13 @@ pdfl doc prepress.pdfl --output html > profile.html
 pdfl pack <folder> [--name <name>] [--version <version>] [--output <file>]
 ```
 
-フォルダ内の `.pdfl`、`.csv`、`.txt`、`.json`、`.xlsx` を再帰的に収集し、
-各ファイルの SHA-256 を記録した `manifest.json` を付けます。パッケージは
-決定的です：同じフォルダからは同一のバイト列が生成されます。
+フォルダ内の `.pdfl`、`.csv`、`.txt`、`.json` を再帰的に収集し、各ファイルの
+SHA-256 を記録した `manifest.json` を付けます。パッケージは決定的です：同じ
+フォルダからは同一のバイト列が生成されます。
+
+表計算ファイル（`.xlsx`、`.xls`、`.ods`）は**含めません**。除外したファイル名は
+`pack` が伝えます。`data::` のどの関数もそれらを開けないため、同梱すると、
+インストールは成功するのに最初の参照で失敗するパッケージを配ることになります。
 
 ```bash
 pdfl pack profiles/print-shop --name print-profile --version 1.0.0

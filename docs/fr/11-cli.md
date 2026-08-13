@@ -377,9 +377,14 @@ Empaquette scripts et données dans un `.pdflpkg` distribuable.
 pdfl pack <dossier> [--name <nom>] [--version <version>] [--output <fichier>]
 ```
 
-Il collecte récursivement les `.pdfl`, `.csv`, `.txt`, `.json` et `.xlsx` du
-dossier et ajoute un `manifest.json` qui note le SHA-256 de chaque fichier.
-L'empaquetage est déterministe : le même dossier produit les mêmes octets.
+Il collecte récursivement les `.pdfl`, `.csv`, `.txt` et `.json` du dossier et
+ajoute un `manifest.json` qui note le SHA-256 de chaque fichier. L'empaquetage
+est déterministe : le même dossier produit les mêmes octets.
+
+Un tableur (`.xlsx`, `.xls`, `.ods`) n'est **pas** empaqueté, et `pack` dit quel
+fichier il a laissé. Aucune fonction `data::` ne sait en ouvrir un : l'inclure
+livrerait un paquet qui s'installe proprement et échoue à la première
+consultation.
 
 ```bash
 pdfl pack profils/imprimerie --name profil-impression --version 1.0.0

@@ -397,9 +397,13 @@ Empacota scripts e bases em um arquivo `.pdflpkg` distribuível.
 pdfl pack <pasta> [--name <nome>] [--version <versão>] [--output <arquivo>]
 ```
 
-Inclui `.pdfl`, `.csv`, `.txt`, `.json` e `.xlsx` da pasta (recursivamente), com
-um `manifest.json` que registra o SHA-256 de cada arquivo. O pacote é
+Inclui `.pdfl`, `.csv`, `.txt` e `.json` da pasta (recursivamente), com um
+`manifest.json` que registra o SHA-256 de cada arquivo. O pacote é
 determinístico: mesma pasta gera bytes idênticos.
+
+Planilha (`.xlsx`, `.xls`, `.ods`) **não** entra no pacote, e o `pack` diz qual
+arquivo ficou de fora. Nenhuma função `data::` abre uma, então empacotá-la
+entregaria um pacote que instala direitinho e falha na primeira consulta.
 
 ```bash
 pdfl pack perfis/grafica --name perfil-grafica --version 1.0.0

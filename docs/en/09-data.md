@@ -81,7 +81,7 @@ Comparison ignores case and spacing — "GENERAL  CONDITIONS" satisfies
 
 ---
 
-## 9.3 Datasets (CSV)
+## 9.3 Datasets (CSV and JSON)
 
 ### `data::load_dataset(file)`
 
@@ -110,6 +110,34 @@ check "Walking the table" {
   }
 }
 ```
+
+### JSON datasets
+
+A file ending in `.json` is read as JSON — by `load_dataset` and by
+`lookup_value` alike. Two shapes are accepted, because those are the two a
+dataset is actually written in.
+
+An array of arrays is the rows as they stand:
+
+```json
+[["batch", "description"],
+ ["L2026-08", "Approved batch August/2026"]]
+```
+
+An array of objects turns into a header row plus one row per object. The columns
+are ordered as the **first** object writes them, not alphabetically, so the
+first key stays the key `lookup_value` searches:
+
+```json
+[{"batch": "L2026-08", "description": "Approved batch August/2026"},
+ {"batch": "L2026-09", "description": "Approved batch September/2026"}]
+```
+
+A key missing from a later object leaves an **empty cell**, never a shifted row:
+a hole is visible in the report, a shift is not. Numbers keep the digits they
+were written with, and `null` is an empty cell — what an empty CSV field means.
+
+Mixing the two shapes in one file is an error that names the row.
 
 ### `data::lookup_value(file, key)`
 

@@ -400,9 +400,13 @@ Packages scripts and data files into a distributable `.pdflpkg`.
 pdfl pack <folder> [--name <name>] [--version <version>] [--output <file>]
 ```
 
-It includes `.pdfl`, `.csv`, `.txt`, `.json` and `.xlsx` files from the folder
+It includes `.pdfl`, `.csv`, `.txt` and `.json` files from the folder
 (recursively), plus a `manifest.json` recording the SHA-256 of each file. The
 package is deterministic: the same folder produces identical bytes.
+
+A spreadsheet (`.xlsx`, `.xls`, `.ods`) is **not** packaged, and `pack` says
+which file it left behind. No `data::` function can open one, so packaging it
+would ship a package that installs cleanly and fails at the first lookup.
 
 ```bash
 pdfl pack profiles/print-shop --name print-profile --version 1.0.0

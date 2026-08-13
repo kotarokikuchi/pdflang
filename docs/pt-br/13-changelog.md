@@ -12,6 +12,13 @@ em silêncio.
 
 ## Ainda não publicado
 
+### Quebra
+
+- **O `pdfl pack` não empacota mais planilhas** (`.xlsx`, `.xls`, `.ods`), e diz
+  qual arquivo ficou de fora. Nenhuma função `data::` abre uma, então um pacote
+  que a carregava instalava direitinho e falhava na primeira consulta. Se você
+  empacotava planilha, exporte antes para `.csv` ou `.json`.
+
 ### Novo
 
 - `--tags TAG` no `run` filtra quais checks rodam. Repetível; um check roda
@@ -26,6 +33,9 @@ em silêncio.
 - `--quiet` em todos os comandos silencia progresso e confirmações no stderr. Os
   erros continuam aparecendo, e o `print()` fica intacto — aquilo é a saída do
   próprio script, e sumir com ela mudaria o que o script faz.
+- `data::load_dataset` e `data::lookup_value` leem `.json` além de `.csv`: um
+  array de arrays, ou um array de objetos cujo primeiro objeto nomeia as colunas
+  na ordem em que o arquivo as escreve.
 
 ### Vale saber
 

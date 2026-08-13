@@ -75,6 +75,32 @@ check "Glossary and dataset" {
 }
 ```
 
+### JSON 数据集
+
+以 `.json` 结尾的文件按 JSON 读取——`load_dataset` 与 `lookup_value` 都是如此。
+接受两种形态，因为数据集实际上就是这两种写法。
+
+数组的数组，就是行本身：
+
+```json
+[["batch", "description"],
+ ["L2026-08", "Approved batch August/2026"]]
+```
+
+对象的数组会变成一行表头，加上每个对象一行。列的顺序取自**第一个**对象的书写
+顺序，而不是字母序，因此第一个键仍然是 `lookup_value` 查找的那个键：
+
+```json
+[{"batch": "L2026-08", "description": "Approved batch August/2026"},
+ {"batch": "L2026-09", "description": "Approved batch September/2026"}]
+```
+
+后面的对象少了某个键，留下的是**空单元格**，而不是错位的一行：空洞在报告里看得
+见，错位看不见。数字保留写入时的数位，`null` 是空单元格——与 CSV 的空字段含义
+相同。
+
+在同一个文件里混用两种形态会报错，并指出是第几行。
+
 ---
 
 ## 9.3 查询表

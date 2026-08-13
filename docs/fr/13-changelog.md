@@ -12,6 +12,14 @@ adapter. Rien ne change ici en silence.
 
 ## Non publié
 
+### Casse
+
+- **`pdfl pack` n'empaquette plus les tableurs** (`.xlsx`, `.xls`, `.ods`), et
+  nomme le fichier laissé de côté. Aucune fonction `data::` ne sait en ouvrir
+  un : un paquet qui en transportait s'installait proprement puis échouait à la
+  première consultation. Si vous empaquetiez un tableur, exportez-le d'abord en
+  `.csv` ou `.json`.
+
 ### Ajouté
 
 - `--tags TAG` sur `run` filtre les checks à exécuter. Répétable ; un check
@@ -26,6 +34,9 @@ adapter. Rien ne change ici en silence.
 - `--quiet` sur chaque commande fait taire la progression et les confirmations
   sur stderr. Les erreurs restent, et `print()` n'est pas touché — c'est la
   sortie du script lui-même, et l'avaler changerait ce qu'il fait.
+- `data::load_dataset` et `data::lookup_value` lisent `.json` en plus de `.csv` :
+  un tableau de tableaux, ou un tableau d'objets dont le premier nomme les
+  colonnes dans l'ordre du fichier.
 
 ### Bon à savoir
 

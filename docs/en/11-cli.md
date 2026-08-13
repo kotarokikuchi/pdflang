@@ -234,6 +234,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--debounce <ms>` | `1000` | Waits for the file to stop being copied |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Report format |
 | `--fail-fast` | — | Stops at the first error |
+| `--jobs <n>` | `1` | Files to validate at the same time; `0` means one per CPU |
 | `--once` | — | Processes what is already there and exits |
 
 ```bash
@@ -248,6 +249,17 @@ echo "result: $?"
 pdfl watch inbox/ --script preflight.pdfl \
   --pattern "*.pdf" --exclude "*_draft*"
 ```
+
+`--jobs` applies to whatever the pass has to get through, in batch mode and in a
+burst of arrivals alike. Each file is validated by its own `pdfl` process — the
+same reason `pdfl test` works that way — and this one renders the reports, so
+the file written is identical whatever `--jobs` says. On eight 41-page files:
+9.5s at `--jobs 1`, 1.2s at `--jobs 0`.
+
+With `--fail-fast`, no new file is started once one has failed; the ones already
+running finish, because killing them would leave half-written reports. The
+reports are written in the order the files were found, so a batch prints the
+same lines however many ran at once.
 
 **Debounce** exists because large files arrive in pieces: watch only processes a
 file once it stops changing, so it never reads half a PDF.

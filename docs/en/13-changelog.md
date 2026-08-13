@@ -44,6 +44,9 @@ quietly.
   process. Eight 41-page files: 8.9s at `--jobs 1`, 1.1s at `--jobs 8`. The
   default stays `1`, since each job holds a document in memory; `--jobs 0` gives
   one per CPU.
+- `--jobs <n>` on `pdfl watch` too: files are validated by child processes, so a
+  batch pass scales the same way (9.5s to 1.2s on eight 41-page files). The
+  report written is identical whatever `--jobs` says.
 
 ### Worth knowing
 

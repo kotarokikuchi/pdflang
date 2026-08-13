@@ -208,6 +208,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--debounce <ms>` | `1000` | 等待文件稳定的时间 |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | 报告格式 |
 | `--fail-fast` | — | 遇到第一个错误即停止 |
+| `--jobs <n>` | `1` | 同时校验的文件数；`0` 表示每个 CPU 一个 |
 | `--once` | — | 处理现有文件后退出 |
 
 ```bash
@@ -218,6 +219,15 @@ pdfl watch inbox/ --script preflight.pdfl --output-dir reports/ --report html
 pdfl watch inbox/ --script preflight.pdfl --once
 echo "result: $?"
 ```
+
+`--jobs` 对这一轮要处理的一切都有效，批量模式和一批文件同时到达时都一样。每个
+文件由它自己的 `pdfl` 进程校验（与 `pdfl test` 的理由相同），而渲染报告的是当前
+这个进程，所以无论 `--jobs` 取多少，写出的文件都完全相同。8 个 41 页的文件：
+`--jobs 1` 用 9.5 秒，`--jobs 0` 用 1.2 秒。
+
+加上 `--fail-fast` 后，一旦有文件失败就不再启动新的；已经在跑的会跑完，因为中途
+杀掉会留下写了一半的报告。报告按文件被发现的顺序写出，所以不管同时跑了多少个，
+一批打印出来的行都一样。
 
 **debounce** 的存在是因为大文件是逐步写入的：只有文件不再变化才处理，
 因此不会读到写了一半的 PDF。

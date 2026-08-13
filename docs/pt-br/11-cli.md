@@ -232,6 +232,7 @@ pdfl watch <pasta> --script <script.pdfl> [opções]
 | `--debounce <ms>` | `1000` | Espera o arquivo parar de ser copiado |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Formato dos relatórios |
 | `--fail-fast` | — | Para no primeiro erro |
+| `--jobs <n>` | `1` | Arquivos validados ao mesmo tempo; `0` é um por CPU |
 | `--once` | — | Processa o que já está lá e sai |
 
 ```bash
@@ -246,6 +247,17 @@ echo "resultado: $?"
 pdfl watch entrada/ --script preflight.pdfl \
   --pattern "*.pdf" --exclude "*_rascunho*"
 ```
+
+O `--jobs` vale para o que a passada tiver que vencer, tanto em lote quanto numa
+rajada de chegadas. Cada arquivo é validado pelo seu próprio processo `pdfl` — o
+mesmo motivo do `pdfl test` — e é este processo que renderiza os laudos, então o
+arquivo escrito é idêntico independente do `--jobs`. Em oito arquivos de 41
+páginas: 9,5s com `--jobs 1`, 1,2s com `--jobs 0`.
+
+Com `--fail-fast`, nenhum arquivo novo começa depois que um falhou; os que já
+estavam rodando terminam, porque matá-los deixaria laudos pela metade. Os laudos
+são escritos na ordem em que os arquivos foram encontrados, então um lote imprime
+as mesmas linhas não importa quantos rodaram juntos.
 
 O **debounce** existe porque arquivos grandes chegam aos poucos: o watch só
 processa quando o arquivo para de mudar, evitando ler um PDF pela metade.

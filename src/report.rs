@@ -1,9 +1,9 @@
 //! Diagnostics, the JSON report and exit codes.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Severity {
     Error,
@@ -38,13 +38,13 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Diagnostic {
     pub id: String,
     pub severity: Severity,
     pub check_name: String,
     pub message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub line: Option<usize>,
 }
 
@@ -53,14 +53,18 @@ pub struct Diagnostic {
 /// bump it, because a reader that ignores unknown fields survives that.
 pub const SCHEMA_VERSION: u32 = 1;
 
-#[derive(Debug, Serialize)]
+/// Deserialize as well as Serialize: `watch` has its cases analysed by child
+/// processes, which speak JSON, and renders every other format from what comes
+/// back. The round trip is lossless — every field is in the JSON — so a report
+/// rendered from a child is the one the same code would have produced in place.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Report {
     /// First key in the JSON, so a consumer can branch on it before parsing
     /// anything else.
     pub schema_version: u32,
     pub script_name: String,
     pub input_file: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub profile: Option<String>,
     pub status: String, // PASS | FAIL
     pub total_pages_analyzed: i64,
@@ -71,13 +75,13 @@ pub struct Report {
     /// The checks and rules that ran, in order. The diagnostics only name the
     /// ones that found something, so without this a format that counts tests
     /// cannot tell a clean run from an empty one.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub checks_run: Vec<String>,
     /// Applied fix:: operations (the `pdfl fix` command).
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fixes: Vec<String>,
     /// Overall similarity 0–100 (the `pdfl compare` command).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub similarity: Option<f64>,
 }
 

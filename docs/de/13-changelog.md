@@ -46,6 +46,10 @@ nichts stillschweigend.
   als eigenen Prozess. Acht Dateien à 41 Seiten: 8,9s bei `--jobs 1`, 1,1s bei
   `--jobs 8`. Die Vorgabe bleibt `1`, da jeder Job ein Dokument im Speicher
   hält; `--jobs 0` gibt einen je CPU.
+- `--jobs <n>` auch bei `pdfl watch`: die Dateien werden von Kindprozessen
+  geprüft, ein Stapeldurchlauf skaliert also genauso (9,5s auf 1,2s bei acht
+  Dateien à 41 Seiten). Der geschriebene Bericht ist unabhängig von `--jobs`
+  identisch.
 
 ### Wissenswert
 

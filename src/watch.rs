@@ -1,18 +1,26 @@
 //! The `pdfl watch` command — watches a folder and validates each new or
-//! alterado.
+//! changed file.
 //! ponytail: polling with debounce instead of inotify — portable, no new
 //! dependency; swap for the `notify` crate if latency starts to matter.
 //! Out of scope here: --paired (waiting for a v1+v2 pair) — not implemented yet.
+//!
+//! Each file is analysed by a child `pdfl run`, and this process renders the
+//! report. pdfium serialises every call behind one mutex, so threads sharing a
+//! process cannot analyse two documents at once — only separate processes can.
+//! The parent doing the rendering keeps one code path for every format and
+//! every value of --jobs.
 
-use crate::report::{Diagnostic, Report, Severity};
-use crate::{ast, interpreter, pdf};
+use crate::report::Report;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::{Duration, SystemTime};
 
 pub struct WatchOptions {
-    /// The script's directory (the base for imports).
-    pub script_dir: PathBuf,
+    /// The script under which every file is validated.
+    pub script: PathBuf,
+    /// Files analysed at the same time, each in its own process.
+    pub jobs: usize,
     pub pattern: String,
     pub exclude: Option<String>,
     pub output_dir: Option<PathBuf>,
@@ -24,7 +32,14 @@ pub struct WatchOptions {
     pub format: crate::OutputFormat,
 }
 
-pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &WatchOptions) -> u8 {
+pub fn watch(folder: &Path, opts: &WatchOptions) -> u8 {
+    let exe = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: could not find the pdfl binary to validate with: {e}");
+            return crate::EXIT_INFRASTRUCTURE;
+        }
+    };
     let mut processed: HashMap<PathBuf, SystemTime> = HashMap::new();
     let mut worst: u8 = 0;
     crate::note(format!(
@@ -39,6 +54,7 @@ pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wat
         let mut files = Vec::new();
         collect_files(folder, opts.depth, &mut files);
 
+        let mut due = Vec::new();
         for file in files {
             let name = file.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
             if !wildcard_match(&opts.pattern, &name) {
@@ -61,8 +77,16 @@ pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wat
                 }
             }
             processed.insert(file.clone(), mtime);
+            due.push(file);
+        }
+        due.sort();
 
-            let exit = process_file(&file, program, script_name, opts);
+        // Analysed together, reported in order: what a batch prints must not
+        // depend on which child finished first.
+        let analysed = analyse_all(&exe, &due, opts);
+        for (file, report) in due.iter().zip(analysed) {
+            let Some(report) = report else { continue };
+            let exit = write_report(file, &report, opts);
             worst = worst.max(exit);
             if opts.fail_fast && exit >= 2 {
                 crate::note(format!("--fail-fast: stopping at the first error ({})", file.display()));
@@ -77,32 +101,84 @@ pub fn watch(folder: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wat
     }
 }
 
-/// Validates a file and writes the report next to it (or into --output-dir).
-/// Returns the exit code `pdfl run` would have given.
-fn process_file(file: &Path, program: &[ast::Stmt], script_name: &str, opts: &WatchOptions) -> u8 {
-    let report = match pdf::load_document(file) {
-        Ok(doc) => {
-            let total_pages = doc.pages.len() as i64;
-            let mut interp = interpreter::Interpreter::new();
-            interp.script_dir = opts.script_dir.clone();
-            match interp.run(program, doc) {
-                Ok(()) => {
-                    let mut r = Report::new(
-                        script_name.into(),
-                        file.to_string_lossy().into_owned(),
-                        interp.profile_name.clone(),
-                        total_pages,
-                        interp.diagnostics,
-                    );
-                    r.checks_run = interp.checks_run;
-                    r
-                }
-                Err(e) => error_report(script_name, file, format!("{e}")),
-            }
+/// Analyses one file in a child `pdfl run` and returns its report.
+///
+/// A verdict of any severity still prints a report, and so does an unreadable
+/// input — its report carries the reason as a finding, which is exactly what
+/// belongs in the file written for that document. Only the absence of a report
+/// leaves nothing to write.
+fn analyse(exe: &Path, script: &Path, file: &Path) -> Option<Report> {
+    let output = std::process::Command::new(exe)
+        .arg("run")
+        .arg(script)
+        .arg(file)
+        .args(["--output", "json", "--quiet"])
+        .output();
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("error: could not run {}: {e}", exe.display());
+            return None;
         }
-        Err(e) => error_report(script_name, file, format!("{e:#}")),
     };
+    match serde_json::from_slice(&output.stdout) {
+        Ok(report) => Some(report),
+        Err(_) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let reason = stderr.split_whitespace().collect::<Vec<_>>().join(" ");
+            eprintln!(
+                "error: {} produced no report ({}){}{}",
+                file.display(),
+                output.status,
+                if reason.is_empty() { "" } else { ": " },
+                reason
+            );
+            None
+        }
+    }
+}
 
+/// Runs the batch `jobs` at a time, keeping the order of `files`.
+fn analyse_all(exe: &Path, files: &[PathBuf], opts: &WatchOptions) -> Vec<Option<Report>> {
+    if opts.jobs <= 1 || files.len() <= 1 {
+        return files.iter().map(|f| analyse(exe, &opts.script, f)).collect();
+    }
+    let next = AtomicUsize::new(0);
+    // With --fail-fast, no new file is started once one has failed. The ones
+    // already running finish: killing them would leave half-written reports.
+    let stop = AtomicBool::new(false);
+    let done: std::sync::Mutex<Vec<(usize, Option<Report>)>> =
+        std::sync::Mutex::new(Vec::with_capacity(files.len()));
+    std::thread::scope(|scope| {
+        for _ in 0..opts.jobs.min(files.len()) {
+            scope.spawn(|| loop {
+                if stop.load(Ordering::Relaxed) {
+                    return;
+                }
+                let i = next.fetch_add(1, Ordering::Relaxed);
+                let Some(file) = files.get(i) else { return };
+                let report = analyse(exe, &opts.script, file);
+                if opts.fail_fast && report.as_ref().is_some_and(|r| r.exit_code(false) >= 2) {
+                    stop.store(true, Ordering::Relaxed);
+                }
+                done.lock().expect("no panic holds this lock").push((i, report));
+            });
+        }
+    });
+    let mut results = done.into_inner().expect("the threads are joined");
+    results.sort_by_key(|(i, _)| *i);
+    // A file skipped by --fail-fast has no report and nothing to write; the
+    // padding keeps the results aligned with the files they came from.
+    let mut out: Vec<Option<Report>> = (0..files.len()).map(|_| None).collect();
+    for (i, report) in results {
+        out[i] = report;
+    }
+    out
+}
+
+/// Renders the report in the chosen format and writes it next to the file (or
+/// into --output-dir). Returns the exit code `pdfl run` would have given.
+fn write_report(file: &Path, report: &Report, opts: &WatchOptions) -> u8 {
     let (content, ext) = match opts.format {
         crate::OutputFormat::Json => (report.to_json().into_bytes(), "json"),
         crate::OutputFormat::Csv => (report.to_csv().into_bytes(), "csv"),
@@ -119,7 +195,6 @@ fn process_file(file: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wa
         return 2;
     }
 
-    let exit = report.exit_code(false) as u8;
     crate::note(format!(
         "{} → {} ({}, {} error(s), {} warning(s))",
         file.display(),
@@ -128,26 +203,9 @@ fn process_file(file: &Path, program: &[ast::Stmt], script_name: &str, opts: &Wa
         report.error_count,
         report.warning_count
     ));
-    exit
+    report.exit_code(false) as u8
 }
 
-fn error_report(script_name: &str, file: &Path, message: String) -> Report {
-    Report::new(
-        script_name.into(),
-        file.to_string_lossy().into_owned(),
-        None,
-        0,
-        vec![Diagnostic {
-            id: "PDFL-000".into(),
-            severity: Severity::Error,
-            check_name: "loading".into(),
-            message,
-            line: None,
-        }],
-    )
-}
-
-/// Lists files up to `depth` levels (1 = the folder only).
 fn collect_files(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
     if depth == 0 {
         return;

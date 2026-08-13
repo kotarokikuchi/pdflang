@@ -220,6 +220,7 @@ pdfl watch <dossier> --script <script.pdfl> [options]
 | `--debounce <ms>` | `1000` | Attente que le fichier se stabilise |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format des rapports |
 | `--fail-fast` | — | S'arrête à la première erreur |
+| `--jobs <n>` | `1` | Fichiers validés en même temps ; `0` = un par CPU |
 | `--once` | — | Traite l'existant puis quitte |
 
 ```bash
@@ -230,6 +231,17 @@ pdfl watch inbox/ --script preflight.pdfl --output-dir rapports/ --report html
 pdfl watch inbox/ --script preflight.pdfl --once
 echo "result: $?"
 ```
+
+`--jobs` s'applique à tout ce qu'une passe doit traiter, en lot comme lors d'une
+rafale d'arrivées. Chaque fichier est validé par son propre processus `pdfl` — la
+même raison que pour `pdfl test` — et c'est ce processus-ci qui rend les
+rapports : le fichier écrit est donc identique quel que soit `--jobs`. Sur huit
+fichiers de 41 pages : 9,5s avec `--jobs 1`, 1,2s avec `--jobs 0`.
+
+Avec `--fail-fast`, aucun nouveau fichier n'est lancé dès qu'un échec est
+constaté ; ceux déjà en cours vont au bout, car les tuer laisserait des rapports
+à moitié écrits. Les rapports sont écrits dans l'ordre où les fichiers ont été
+trouvés : un lot imprime les mêmes lignes quel qu'ait été le parallélisme.
 
 Le **debounce** existe parce qu'un gros fichier arrive par morceaux : on ne
 traite qu'un fichier qui a cessé de changer, donc jamais un PDF à moitié écrit.

@@ -44,6 +44,9 @@ em silêncio.
   um em seu processo. Oito arquivos de 41 páginas: 8,9s com `--jobs 1`, 1,1s com
   `--jobs 8`. O padrão segue `1`, já que cada job segura um documento na
   memória; `--jobs 0` dá um por CPU.
+- `--jobs <n>` também no `pdfl watch`: os arquivos são validados por processos
+  filhos, então a passada em lote escala igual (9,5s para 1,2s em oito arquivos
+  de 41 páginas). O laudo escrito é idêntico independente do `--jobs`.
 
 ### Vale saber
 

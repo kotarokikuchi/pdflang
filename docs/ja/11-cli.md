@@ -227,6 +227,7 @@ pdfl watch <folder> --script <script.pdfl> [options]
 | `--debounce <ms>` | `1000` | ファイルが安定するまでの待ち時間 |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | レポート形式 |
 | `--fail-fast` | — | 最初のエラーで停止 |
+| `--jobs <n>` | `1` | 同時に検証するファイル数。`0` は CPU 1つにつき1件 |
 | `--once` | — | 既にあるファイルを処理して終了 |
 
 ```bash
@@ -237,6 +238,17 @@ pdfl watch inbox/ --script preflight.pdfl --output-dir reports/ --report html
 pdfl watch inbox/ --script preflight.pdfl --once
 echo "result: $?"
 ```
+
+`--jobs` は、そのパスで処理すべきものすべてに効きます。バッチでも、まとめて到着
+したときでも同じです。各ファイルはそれぞれの `pdfl` プロセスが検証し（`pdfl test`
+と同じ理由です）、レポートを書き出すのはこのプロセスなので、書かれるファイルは
+`--jobs` の値によらず同一です。41ページのファイル8つで、`--jobs 1` が9.5秒、
+`--jobs 0` が1.2秒。
+
+`--fail-fast` を付けた場合、1件でも失敗したらそれ以降の新しいファイルは始めません。
+すでに走っているものは最後まで走ります。途中で殺すと書きかけのレポートが残るから
+です。レポートはファイルが見つかった順に書かれるので、同時に何件走ったかにかかわ
+らずバッチは同じ行を出力します。
 
 **debounce** があるのは、大きなファイルが少しずつ届くためです。ファイルの
 変化が止まってから処理するので、途中まで書かれた PDF を読むことがありません。

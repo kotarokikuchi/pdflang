@@ -221,6 +221,7 @@ pdfl watch <ordner> --script <skript.pdfl> [optionen]
 | `--debounce <ms>` | `1000` | Wartezeit, bis die Datei stabil ist |
 | `--report json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format der Berichte |
 | `--fail-fast` | — | Hält beim ersten Fehler an |
+| `--jobs <n>` | `1` | Gleichzeitig geprüfte Dateien; `0` heißt eine je CPU |
 | `--once` | — | Verarbeitet den Bestand und beendet sich |
 
 ```bash
@@ -231,6 +232,17 @@ pdfl watch inbox/ --script preflight.pdfl --output-dir berichte/ --report html
 pdfl watch inbox/ --script preflight.pdfl --once
 echo "result: $?"
 ```
+
+`--jobs` gilt für alles, was ein Durchlauf zu bewältigen hat — im Stapel wie bei
+einem Schwung Neuzugänge. Jede Datei wird von ihrem eigenen `pdfl`-Prozess
+geprüft (aus demselben Grund wie bei `pdfl test`), und dieser Prozess rendert die
+Berichte, die geschriebene Datei ist also unabhängig von `--jobs` identisch. Bei
+acht Dateien à 41 Seiten: 9,5s mit `--jobs 1`, 1,2s mit `--jobs 0`.
+
+Mit `--fail-fast` wird keine neue Datei mehr begonnen, sobald eine gescheitert
+ist; die laufenden werden fertig, denn sie abzubrechen hinterließe halb
+geschriebene Berichte. Die Berichte entstehen in der Fundreihenfolge, ein Stapel
+druckt also dieselben Zeilen, wie viele auch gleichzeitig liefen.
 
 Das **debounce** gibt es, weil große Dateien in Stücken ankommen: Verarbeitet
 wird nur eine Datei, die sich nicht mehr ändert — also nie ein halb

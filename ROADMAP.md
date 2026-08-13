@@ -109,6 +109,7 @@ is in; state as a private database is out.
 | Include/exclude globs, depth limit | 🟩 yes — `--pattern`, `--exclude`, `--depth` |
 | Symlink policy, network-share fallback | 🟥 no — though polling is the only mode, so network shares work by accident |
 | `--once` | 🟩 yes |
+| Parallel batch | 🟩 yes — `--jobs`, one child process per file; the reports are written in the order the files were found |
 | `--status`, hot reload, catch-up scan, log rotation, disk guard, status artifact | 🟥 no |
 | Service unit generation, watchdog integration, cron overlap lock, jitter, calendar awareness | 🟥 no |
 
@@ -219,11 +220,15 @@ report, and compares the JSON it already knows how to produce.
 Parallelism needed none either, but not for the expected reason. Threads inside
 one process do not help: pdfium serialises every call behind a single mutex, and
 a threaded run of eight 41-page files measured *slower* than sequential (12.2s
-against 8.3s). Separate processes finished the same work in 1.2s. So `--jobs` on
-`pdfl test` spawns children rather than threads, and `rayon` never came up.
+against 8.3s). Separate processes finished the same work in 1.2s. So `--jobs`
+spawns children rather than threads, on `pdfl test` and on `pdfl watch` alike,
+and `rayon` never came up.
 
-11. **Parallelism in `watch --once`** — `pdfl test` already runs its cases as
-    separate processes; batch mode still walks its folder one file at a time.
+`watch` was restructured to match: a child analyses each file and this process
+renders every format from the JSON that comes back. One code path for all six
+formats and every value of `--jobs` — CI checks that a report rendered from a
+child is byte-identical to one rendered in place.
+
 12. **Event-based watch**, keeping polling as the fallback for network shares.
 13. **Batch as runtime semantics** — the largest single block of work. Worth
     starting only once 10–12 exist.

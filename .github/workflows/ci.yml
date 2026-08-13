@@ -73,3 +73,15 @@ jobs:
           ec=0
           ./target/debug/pdfl test examples/basic.pdfl --dir /tmp/cases || ec=$?
           test "$ec" -eq 2
+          # watch --once: the report a batch writes must not depend on --jobs,
+          # and rendering from a child's JSON must match rendering in place
+          mkdir -p /tmp/w1 /tmp/w8
+          ./target/debug/pdfl watch /tmp/cases --script examples/basic.pdfl \
+            --output-dir /tmp/w1 --once --jobs 1 --report html || true
+          ./target/debug/pdfl watch /tmp/cases --script examples/basic.pdfl \
+            --output-dir /tmp/w8 --once --jobs 0 --report html || true
+          diff -r /tmp/w1 /tmp/w8
+          # same file by the same path, so only the rendering path differs
+          ./target/debug/pdfl run examples/basic.pdfl /tmp/cases/minimal.pdf \
+            --output html --output-file /tmp/direct.html || true
+          cmp /tmp/w1/minimal.report.html /tmp/direct.html

@@ -159,6 +159,9 @@ enum Command {
         /// Format of the written reports
         #[arg(long = "report", default_value = "json")]
         report_format: OutputFormat,
+        /// Files to validate at the same time (0 = one per CPU)
+        #[arg(long, default_value_t = 1)]
+        jobs: usize,
     },
     /// Shows a quick summary of a PDF
     Inspect {
@@ -375,13 +378,16 @@ fn main() -> ExitCode {
             fail_fast,
             once,
             report_format,
+            jobs,
         } => {
-            let program = match load_program(&script) {
-                Ok(p) => p,
-                Err(code) => return code,
-            };
+            // Parsed here only to fail fast: a syntax error is one message,
+            // not one per file in the folder.
+            if let Err(code) = load_program(&script) {
+                return code;
+            }
             let opts = watch::WatchOptions {
-                script_dir: script.parent().map(|d| d.to_path_buf()).unwrap_or_default(),
+                script,
+                jobs: resolve_jobs(jobs),
                 pattern,
                 exclude,
                 output_dir,
@@ -391,7 +397,7 @@ fn main() -> ExitCode {
                 once,
                 format: report_format,
             };
-            ExitCode::from(watch::watch(&folder, &program, &file_name(&script), &opts))
+            ExitCode::from(watch::watch(&folder, &opts))
         }
         Command::Inspect { input, json } => {
             match pdf::load_document(&input) {

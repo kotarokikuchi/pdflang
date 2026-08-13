@@ -45,6 +45,10 @@ adapter. Rien ne change ici en silence.
   son processus. Huit fichiers de 41 pages : 8,9s avec `--jobs 1`, 1,1s avec
   `--jobs 8`. La valeur par défaut reste `1`, chaque tâche tenant un document en
   mémoire ; `--jobs 0` en donne un par CPU.
+- `--jobs <n>` sur `pdfl watch` aussi : les fichiers sont validés par des
+  processus enfants, une passe en lot passe donc à l'échelle de la même façon
+  (9,5s à 1,2s sur huit fichiers de 41 pages). Le rapport écrit est identique
+  quel que soit `--jobs`.
 
 ### Bon à savoir
 

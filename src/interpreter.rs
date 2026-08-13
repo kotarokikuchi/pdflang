@@ -212,6 +212,8 @@ pub struct Interpreter {
     pub diagnostics: Vec<Diagnostic>,
     pub profile_name: Option<String>,
     current_check: String,
+    /// Severity a failing assertion reports, from the enclosing check.
+    current_severity: Severity,
     /// How many times each (check, message) pair has already fired this run —
     /// the occurrence that disambiguates an otherwise identical finding.
     seen: HashMap<String, u32>,
@@ -233,6 +235,7 @@ impl Interpreter {
             diagnostics: Vec::new(),
             profile_name: None,
             current_check: String::new(),
+            current_severity: Severity::Error,
             seen: HashMap::new(),
             allow_fixes: false,
             fix_ops: Vec::new(),
@@ -267,14 +270,16 @@ impl Interpreter {
                 self.scopes.pop();
                 r
             }
-            Stmt::Check { name, tags: _, body } => {
+            Stmt::Check { name, tags: _, severity, body } => {
                 self.current_check = name.clone();
+                self.current_severity = severity.clone();
                 self.scopes.push(HashMap::new());
                 if let Err(e) = self.exec_stmts(body) {
                     self.emit(Severity::Error, format!("error in check: {}", e.message), None);
                 }
                 self.scopes.pop();
                 self.current_check.clear();
+                self.current_severity = Severity::Error;
                 Ok(())
             }
             Stmt::Rule { name, pages, body } => {
@@ -364,7 +369,7 @@ impl Interpreter {
                         Some(m) => self.eval(m)?.to_string(),
                         None => format!("requirement not met: {source}"),
                     };
-                    self.emit(Severity::Error, msg, Some(*line));
+                    self.emit(self.current_severity.clone(), msg, Some(*line));
                 }
                 Ok(())
             }
@@ -1065,6 +1070,50 @@ check "Pages" {
         assert_eq!(i.diagnostics[0].message, "expected more than 10 pages");
         assert_eq!(i.diagnostics[0].check_name, "Pages");
         assert!(i.diagnostics[0].id.starts_with("PDFL-"), "{}", i.diagnostics[0].id);
+    }
+
+    #[test]
+    fn check_declares_the_severity_of_its_findings() {
+        let i = run(r#"
+check "Advisory" severity: warning {
+  assert false, "low resolution image"
+}
+check "Blocking" {
+  assert false, "no title"
+}
+"#);
+        assert_eq!(i.diagnostics.len(), 2);
+        assert_eq!(i.diagnostics[0].severity, Severity::Warning);
+        // Without a declaration the default stays Error, so existing scripts
+        // keep the exit code they had.
+        assert_eq!(i.diagnostics[1].severity, Severity::Error);
+    }
+
+    #[test]
+    fn severity_accepts_info_and_survives_alongside_tags() {
+        let i = run(r#"
+check "Note" tags: ["x"] severity: info {
+  assert false, "just so you know"
+}
+check "Other" severity: info tags: ["y"] {
+  assert false, "either order parses"
+}
+"#);
+        assert_eq!(i.diagnostics.len(), 2);
+        assert!(i.diagnostics.iter().all(|d| d.severity == Severity::Info));
+    }
+
+    /// A broken script is not advisory: a runtime error inside a check stays an
+    /// error even when the check declared itself a warning.
+    #[test]
+    fn a_runtime_error_ignores_the_declared_severity() {
+        let i = run(r#"
+check "Advisory" severity: warning {
+  require nonexistent_variable
+}
+"#);
+        assert_eq!(i.diagnostics.len(), 1);
+        assert_eq!(i.diagnostics[0].severity, Severity::Error);
     }
 
     /// The property the identifier exists for: it names the finding, so it

@@ -46,6 +46,27 @@ check "TAC dentro do limite" tags: ["prepress", "cores"] {
 }
 ```
 
+### Severidade de um check
+
+Por padrão um check que falha é **erro** e a execução sai com 2. Um check pode
+se declarar consultivo:
+
+```pdfl
+check "Resolução das imagens" severity: warning {
+  require !visual::detect_low_resolution(300)
+}
+```
+
+`error` (o padrão), `warning` e `info`. Aviso e informação não reprovam a
+execução — saem com 1 e 0 — a menos que você passe `--fail-on warning`, que é
+como a CI decide o rigor sem alterar o script.
+
+`tags:` e `severity:` podem vir em qualquer ordem.
+
+> Um erro de execução dentro do check — variável escrita errada, arquivo
+> ausente — continua sendo erro, independentemente do que o check declarou. Um
+> script quebrado não é consultivo.
+
 ---
 
 ## 1.2 As duas formas de validar

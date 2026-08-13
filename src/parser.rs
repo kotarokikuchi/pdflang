@@ -2,6 +2,7 @@
 
 use crate::ast::*;
 use crate::lexer::{tokenize, StrSeg, Tok, Token};
+use crate::report::Severity;
 use std::fmt;
 
 #[derive(Debug)]
@@ -147,6 +148,25 @@ impl Parser {
                 self.advance();
                 let name = self.string_literal("check name")?;
                 let mut tags = Vec::new();
+                let mut severity = Severity::Error;
+                // Named arguments after the check name, in any order.
+                loop {
+                if matches!(self.peek(), Tok::Ident(w) if w == "severity") {
+                    self.advance();
+                    self.expect(Tok::Colon, "':' after severity")?;
+                    severity = match self.peek() {
+                        Tok::Ident(w) if w == "error" => Severity::Error,
+                        Tok::Ident(w) if w == "warning" => Severity::Warning,
+                        Tok::Ident(w) if w == "info" => Severity::Info,
+                        other => {
+                            return Err(self.error(format!(
+                                "severity must be error, warning or info, got {other}"
+                            )))
+                        }
+                    };
+                    self.advance();
+                    continue;
+                }
                 if matches!(self.peek(), Tok::Ident(w) if w == "tags") {
                     self.advance();
                     self.expect(Tok::Colon, "':' after tags")?;
@@ -165,9 +185,12 @@ impl Parser {
                         }
                     }
                     self.expect(Tok::RBracket, "']'")?;
+                    continue;
+                }
+                break;
                 }
                 let body = self.braced_body()?;
-                Ok(Stmt::Check { name, tags, body })
+                Ok(Stmt::Check { name, tags, severity, body })
             }
             Tok::Function => {
                 self.advance();
@@ -584,10 +607,10 @@ check "Fontes" tags: ["fonts", "basico"] {
 }
 "#;
         let prog = parse(src).unwrap();
-        let Stmt::Check { name, tags, body } = &prog[0] else { panic!("esperava check") };
+        let Stmt::Check { name, tags, body, .. } = &prog[0] else { panic!("expected a check") };
         assert_eq!(name, "Fontes");
         assert_eq!(tags, &["fonts".to_string(), "basico".to_string()]);
-        let Stmt::Assert { message, source, .. } = &body[0] else { panic!("esperava assert") };
+        let Stmt::Assert { message, source, .. } = &body[0] else { panic!("expected an assert") };
         assert!(message.is_none());
         assert_eq!(source, "doc.page_count > 0");
     }
@@ -597,7 +620,7 @@ check "Fontes" tags: ["fonts", "basico"] {
         let src = r#"assert font.is_embedded, "Font #{font.name} is not embedded""#;
         let prog = parse(src).unwrap();
         let Stmt::Assert { message: Some(Expr::Str(parts)), .. } = &prog[0] else {
-            panic!("esperava assert com mensagem string")
+            panic!("expected an assert with a string message")
         };
         assert_eq!(parts.len(), 3);
         assert!(matches!(&parts[1], StrPart::Interp(Expr::Member { .. })));
@@ -608,7 +631,7 @@ check "Fontes" tags: ["fonts", "basico"] {
         let src = "doc.pages.each { |page|\n  require page.width > 0\n}";
         let prog = parse(src).unwrap();
         let Stmt::Expr(Expr::Call { name, block: Some(b), .. }) = &prog[0] else {
-            panic!("esperava chamada com bloco")
+            panic!("expected a call with a block")
         };
         assert_eq!(name, "each");
         assert_eq!(b.params, vec!["page".to_string()]);

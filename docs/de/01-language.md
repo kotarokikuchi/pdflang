@@ -48,6 +48,27 @@ check "Ink within limit" tags: ["prepress", "colors"] {
 }
 ```
 
+### Schweregrad eines Checks
+
+Standardmäßig ist ein fehlschlagender Check ein **Fehler** und der Lauf endet
+mit 2. Ein Check kann sich stattdessen als beratend deklarieren:
+
+```pdfl
+check "Bildauflösung" severity: warning {
+  require !visual::detect_low_resolution(300)
+}
+```
+
+`error` (Vorgabe), `warning` und `info`. Warnung und Hinweis lassen den Lauf
+nicht scheitern — sie enden mit 1 und 0 — außer mit `--fail-on warning`, womit
+die CI die Strenge bestimmt, ohne das Skript zu ändern.
+
+`tags:` und `severity:` dürfen in beliebiger Reihenfolge stehen.
+
+> Ein Laufzeitfehler im Check — ein Tippfehler in einer Variablen, eine fehlende
+> Datei — bleibt ein Fehler, ganz gleich was der Check deklariert hat. Ein
+> kaputtes Skript ist nicht beratend.
+
 ---
 
 ## 1.2 Zwei Arten zu prüfen

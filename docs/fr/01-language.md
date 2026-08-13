@@ -48,6 +48,27 @@ check "Ink within limit" tags: ["prepress", "colors"] {
 }
 ```
 
+### Gravité d'un check
+
+Par défaut un check en échec est une **erreur** et l'exécution sort avec 2. Un
+check peut se déclarer consultatif :
+
+```pdfl
+check "Résolution des images" severity: warning {
+  require !visual::detect_low_resolution(300)
+}
+```
+
+`error` (par défaut), `warning` et `info`. Un avertissement ou une information
+ne font pas échouer l'exécution — ils sortent avec 1 et 0 — sauf avec
+`--fail-on warning`, par lequel la CI choisit sa sévérité sans toucher au script.
+
+`tags:` et `severity:` peuvent venir dans n'importe quel ordre.
+
+> Une erreur d'exécution dans le check — une variable mal orthographiée, un
+> fichier absent — reste une erreur quoi qu'ait déclaré le check. Un script
+> cassé n'est pas consultatif.
+
 ---
 
 ## 1.2 Deux façons de valider

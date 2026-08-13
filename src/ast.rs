@@ -1,9 +1,14 @@
 //! PDFLang's AST.
 
+use crate::report::Severity;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     Profile { name: String, body: Vec<Stmt> },
-    Check { name: String, tags: Vec<String>, body: Vec<Stmt> },
+    /// `severity` is what a failing assertion inside this check reports. It
+    /// defaults to Error; a runtime error in the check stays Error regardless,
+    /// because a broken script is not advisory.
+    Check { name: String, tags: Vec<String>, severity: Severity, body: Vec<Stmt> },
     /// `function name(a, b) { ... }` — the value is that of the last expression.
     Function { name: String, params: Vec<String>, body: Vec<Stmt> },
     /// `import "other.pdfl"` — path relative to the importing script.

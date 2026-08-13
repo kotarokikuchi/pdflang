@@ -46,6 +46,26 @@ check "Ink within limit" tags: ["prepress", "colors"] {
 }
 ```
 
+### Severity of a check
+
+By default a failing check is an **error** and the run exits 2. A check can
+declare itself advisory instead:
+
+```pdfl
+check "Image resolution" severity: warning {
+  require !visual::detect_low_resolution(300)
+}
+```
+
+`error` (the default), `warning` and `info`. Warnings and info do not fail the
+run — they exit 1 and 0 — unless you pass `--fail-on warning`, which is how CI
+decides how strict to be without the script changing.
+
+`tags:` and `severity:` may appear in either order.
+
+> A runtime error inside the check — a misspelled variable, a missing file —
+> stays an error whatever the check declared. A broken script is not advisory.
+
 ---
 
 ## 1.2 Two ways to validate

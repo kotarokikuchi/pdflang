@@ -46,6 +46,27 @@ check "Ink within limit" tags: ["prepress", "colors"] {
 }
 ```
 
+### check の重大度
+
+既定では失敗した check は**エラー**で、実行は 2 で終了します。check は助言的
+であると宣言できます。
+
+```pdfl
+check "画像の解像度" severity: warning {
+  require !visual::detect_low_resolution(300)
+}
+```
+
+`error`（既定）、`warning`、`info` の3つ。警告と情報は実行を失敗させず、1 と
+0 で終了します。ただし `--fail-on warning` を渡した場合は別で、これによりスク
+リプトを変えずに CI 側で厳しさを決められます。
+
+`tags:` と `severity:` はどちらの順序でも書けます。
+
+> check の中で起きた実行時エラー——変数の綴り間違い、ファイルの欠落——は、
+> check が何を宣言していてもエラーのままです。壊れたスクリプトは助言では
+> ありません。
+
 ---
 
 ## 1.2 検証の2つの書き方

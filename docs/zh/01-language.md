@@ -45,6 +45,25 @@ check "Ink within limit" tags: ["prepress", "colors"] {
 }
 ```
 
+### check 的严重级别
+
+默认情况下，失败的 check 是**错误**，运行以 2 退出。check 可以声明自己只是
+建议性的：
+
+```pdfl
+check "图像分辨率" severity: warning {
+  require !visual::detect_low_resolution(300)
+}
+```
+
+共三级：`error`（默认）、`warning`、`info`。警告和信息不会让运行失败——它们以
+1 和 0 退出——除非传入 `--fail-on warning`，CI 由此决定严格程度而无需改动脚本。
+
+`tags:` 与 `severity:` 的先后顺序不限。
+
+> check 内部的运行时错误——变量拼写错误、文件缺失——无论 check 声明了什么，
+> 都仍然是错误。脚本坏了不是建议。
+
 ---
 
 ## 1.2 两种校验写法

@@ -32,15 +32,6 @@ tree-walking interpreter, all shipping.
 | Distribution | 5 platforms, installers + one portable tarball |
 | Documentation | 7 languages, verified in sync with the code |
 
-### The gap that blocks everything downstream
-
-**Severity is not part of the language.** The design principles call for
-severity as language semantics — `error`/`warning`/`info` mapping to exit codes.
-Today `assert` and `require` always emit `Error`; `Warning` and `Info` come only
-from `lint` and `compare`. A script author cannot say "this one is a warning".
-`--fail-on warning` exists, but it moves a threshold for severities scripts
-cannot yet produce.
-
 ---
 
 ## 2. Coverage
@@ -56,7 +47,7 @@ and `Cargo.toml`.
 | Basic invocation, exit by worst severity | 🟩 yes | `src/main.rs`, `src/report.rs` |
 | Exit codes 0/1/2 | 🟩 yes | 0 OK, 1 warnings, 2 validation, 3 syntax |
 | Infrastructure errors in a separate range (10+) | 🟥 **no** | infra errors reuse 2 and 3 — CI cannot tell "the file is corrupt" from "the file failed" |
-| `--fail-on warning` | 🟩 yes | `src/main.rs` |
+| `--fail-on warning` | 🟩 yes | `src/main.rs`; checks declare `severity: warning` |
 | Custom exit mapping declared in the script | 🟥 no | |
 | `--fail-fast` | 🟧 partial | exists in `watch`, not in `run` |
 | `--max-findings N` | 🟥 no | |
@@ -194,11 +185,7 @@ same thing as a published action other people can use.
 
 ### Wave 1 — unblock
 
-1. **Severity in the language.** Let a check or an assertion declare
-   `warning`/`info`. This is what makes the severity principle true and gives
-   `--fail-on` something to act on. It changes exit-code behaviour, so it comes
-   before anything that consumes exit codes.
-2. **Move infrastructure errors out of the finding range.** Today a corrupt file
+1. **Move infrastructure errors out of the finding range.** Today a corrupt file
    and a failed validation both exit 2, so CI cannot tell them apart.
 
 ### Wave 2 — collect what is already paid for

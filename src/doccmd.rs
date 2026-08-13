@@ -167,7 +167,7 @@ fn walk(stmts: &[Stmt], doc: &mut ScriptDoc) {
                 doc.profile = Some(name.clone());
                 walk(body, doc);
             }
-            Stmt::Check { name, tags, body } => {
+            Stmt::Check { name, tags, body, .. } => {
                 let mut validations = Vec::new();
                 collect_validations(body, &mut validations, doc);
                 doc.checks.push(CheckDoc { name: name.clone(), tags: tags.clone(), validations });

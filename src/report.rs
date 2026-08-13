@@ -20,8 +20,16 @@ pub struct Diagnostic {
     pub line: Option<usize>,
 }
 
+/// Bumped only when a consumer that parsed the previous output would break —
+/// a field changing meaning, a value changing shape. Adding a field does not
+/// bump it, because a reader that ignores unknown fields survives that.
+pub const SCHEMA_VERSION: u32 = 1;
+
 #[derive(Debug, Serialize)]
 pub struct Report {
+    /// First key in the JSON, so a consumer can branch on it before parsing
+    /// anything else.
+    pub schema_version: u32,
     pub script_name: String,
     pub input_file: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -35,7 +43,7 @@ pub struct Report {
     /// Applied fix:: operations (the `pdfl fix` command).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub fixes: Vec<String>,
-    /// Similaridade geral 0–100 (comando `pdfl compare`).
+    /// Overall similarity 0–100 (the `pdfl compare` command).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub similarity: Option<f64>,
 }
@@ -53,6 +61,7 @@ impl Report {
         let warning_count = count(Severity::Warning);
         let info_count = count(Severity::Info);
         Report {
+            schema_version: SCHEMA_VERSION,
             script_name,
             input_file,
             profile,
@@ -373,6 +382,14 @@ mod tests {
             message: "m".into(),
             line: None,
         }
+    }
+
+    #[test]
+    fn json_declares_its_schema_version() {
+        let r = Report::new("s.pdfl".into(), "f.pdf".into(), None, 1, vec![diag(Severity::Error)]);
+        let json = r.to_json();
+        // First key, so a consumer can branch on it without parsing the rest.
+        assert!(json.starts_with("{\n  \"schema_version\": 1"), "{json}");
     }
 
     #[test]

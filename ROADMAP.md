@@ -32,7 +32,7 @@ tree-walking interpreter, all shipping.
 | Distribution | 5 platforms, installers + one portable tarball |
 | Documentation | 7 languages, verified in sync with the code |
 
-### The three gaps that block everything downstream
+### The two gaps that block everything downstream
 
 Each is small; each unblocks a family of features that cannot start without it.
 
@@ -51,10 +51,6 @@ Today `assert` and `require` always emit `Error`; `Warning` and `Info` come only
 from `lint` and `compare`. A script author cannot say "this one is a warning".
 `--fail-on warning` exists, but it moves a threshold for severities scripts
 cannot yet produce.
-
-**3. The JSON report has no `schema_version`.** Without it no consumer can detect
-a format change, which makes every downstream integration fragile before it is
-written.
 
 ---
 
@@ -91,7 +87,8 @@ and `Cargo.toml`.
 | Feature | State |
 |---|---|
 | Self-contained HTML, PDF | 🟩 yes — `src/report.rs`; the PDF is deterministic with embedded Helvetica |
-| Canonical JSON/CSV | 🟧 partial — both exist, neither carries `schema_version` |
+| Canonical JSON/CSV | 🟩 yes — JSON carries `schema_version`, bumped only on a breaking change |
+| `schema_version` in CSV | 🟥 no — deliberately: a CSV consumer parses by header, so a format change is already visible there, and a constant column on every row is noise |
 | SARIF, JUnit XML, Markdown, NDJSON, XLSX, XML, SQLite artifact | 🟥 no |
 | NDJSON progress on stderr | 🟥 no |
 | stdout/stderr separation | 🟩 yes — report on stdout, `print()` and progress on stderr |
@@ -216,9 +213,7 @@ same thing as a published action other people can use.
    `warning`/`info`. This is what makes the severity principle true and gives
    `--fail-on` something to act on. It changes exit-code behaviour, so it comes
    before anything that consumes exit codes.
-3. **`schema_version` in JSON and CSV.** One field, added before anyone writes an
-   integration rather than after.
-4. **Move infrastructure errors out of the finding range.** Today a corrupt file
+3. **Move infrastructure errors out of the finding range.** Today a corrupt file
    and a failed validation both exit 2, so CI cannot tell them apart.
 
 ### Wave 2 — collect what is already paid for

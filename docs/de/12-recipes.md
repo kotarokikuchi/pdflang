@@ -1,6 +1,6 @@
 # 12. Rezepte
 
-[← Kommandozeile](11-cli.md) · [Inhalt](README.md)
+[← Kommandozeile](11-cli.md) · [Inhalt](README.md) · [Weiter: Änderungen →](13-changelog.md)
 
 Vollständige Fälle, direkt übernehmbar. Jeder löst ein reales Problem aus der
 Praxis.
@@ -370,4 +370,4 @@ pdfl run untersuchung.pdfl verdaechtig.pdf > /dev/null
 
 ---
 
-[← Kommandozeile](11-cli.md) · [Inhalt](README.md)
+[← Kommandozeile](11-cli.md) · [Inhalt](README.md) · [Weiter: Änderungen →](13-changelog.md)

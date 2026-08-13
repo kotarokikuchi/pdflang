@@ -1,6 +1,6 @@
 # 12. Receitas
 
-[← Comandos do CLI](11-cli.md) · [Índice](README.md)
+[← Comandos do CLI](11-cli.md) · [Índice](README.md) · [Próximo: Mudanças →](13-changelog.md)
 
 Casos completos, prontos para adaptar. Cada um resolve um problema real de
 produção.
@@ -422,4 +422,4 @@ pdfl run investigar.pdfl suspeito.pdf > /dev/null
 
 ---
 
-[← Comandos do CLI](11-cli.md) · [Índice](README.md)
+[← Comandos do CLI](11-cli.md) · [Índice](README.md) · [Próximo: Mudanças →](13-changelog.md)

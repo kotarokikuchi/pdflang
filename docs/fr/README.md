@@ -30,6 +30,7 @@ chapitres se consultent comme une référence.
 | [10. Bibliothèque standard](10-stdlib.md) | Méthodes de listes et de chaînes, fonctions globales |
 | [11. Ligne de commande](11-cli.md) | `run`, `compare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add` |
 | [12. Recettes](12-recipes.md) | Cas complets : imprimerie, édition juridique, laboratoire, CI/CD |
+| [13. Changements](13-changelog.md) | Ce qui a changé à chaque version, et ce que cela peut casser |
 
 ## Démarrer en 30 secondes
 

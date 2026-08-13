@@ -1,6 +1,6 @@
 # 12. レシピ
 
-[← CLI コマンド](11-cli.md) · [目次](README.md)
+[← CLI コマンド](11-cli.md) · [目次](README.md) · [次：変更履歴 →](13-changelog.md)
 
 そのまま応用できる実例集。それぞれが現場の実際の課題を解決します。
 
@@ -369,4 +369,4 @@ pdfl run investigate.pdfl suspect.pdf > /dev/null
 
 ---
 
-[← CLI コマンド](11-cli.md) · [目次](README.md)
+[← CLI コマンド](11-cli.md) · [目次](README.md) · [次：変更履歴 →](13-changelog.md)

@@ -1,6 +1,6 @@
 # 12. Recipes
 
-[← CLI commands](11-cli.md) · [Index](README.md)
+[← CLI commands](11-cli.md) · [Index](README.md) · [Next: Changes →](13-changelog.md)
 
 Complete cases, ready to adapt. Each one solves a real production problem.
 
@@ -420,4 +420,4 @@ pdfl run investigate.pdfl suspect.pdf > /dev/null
 
 ---
 
-[← CLI commands](11-cli.md) · [Index](README.md)
+[← CLI commands](11-cli.md) · [Index](README.md) · [Next: Changes →](13-changelog.md)

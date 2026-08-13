@@ -22,6 +22,7 @@ reference.
 | [10. Standard library](10-stdlib.md) | List and string methods, global functions |
 | [11. CLI commands](11-cli.md) | `run`, `compare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add` |
 | [12. Recipes](12-recipes.md) | Complete cases: print shop, legal publisher, lab, CI/CD |
+| [13. Changes](13-changelog.md) | What changed in each version, and what it may break |
 
 ## Getting started in 30 seconds
 

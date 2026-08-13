@@ -28,6 +28,7 @@
 | [10. 標準ライブラリ](10-stdlib.md) | リストと文字列のメソッド、グローバル関数 |
 | [11. CLI コマンド](11-cli.md) | `run`、`compare`、`watch`、`fix`、`inspect`、`lint`、`fmt`、`doc`、`pack`、`add` |
 | [12. レシピ](12-recipes.md) | 実例：印刷会社、法務出版社、製薬会社、CI/CD |
+| [13. 変更履歴](13-changelog.md) | 各バージョンの変更点と、壊れうるもの |
 
 ## 30秒で始める
 

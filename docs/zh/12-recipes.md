@@ -1,6 +1,6 @@
 # 12. 实用范例
 
-[← 命令行](11-cli.md) · [目录](README.md)
+[← 命令行](11-cli.md) · [目录](README.md) · [下一章：变更记录 →](13-changelog.md)
 
 可直接套用的完整案例，每一个都解决现场的真实问题。
 
@@ -359,4 +359,4 @@ pdfl run investigate.pdfl suspect.pdf > /dev/null
 
 ---
 
-[← 命令行](11-cli.md) · [目录](README.md)
+[← 命令行](11-cli.md) · [目录](README.md) · [下一章：变更记录 →](13-changelog.md)

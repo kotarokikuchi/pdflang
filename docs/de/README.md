@@ -30,6 +30,7 @@ Kapitel 1; die übrigen Kapitel sind zum Nachschlagen gedacht.
 | [10. Standardbibliothek](10-stdlib.md) | Listen- und Zeichenkettenmethoden, globale Funktionen |
 | [11. Kommandozeile](11-cli.md) | `run`, `compare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add` |
 | [12. Rezepte](12-recipes.md) | Vollständige Fälle: Druckerei, Rechtsverlag, Pharmalabor, CI/CD |
+| [13. Änderungen](13-changelog.md) | Was sich in jeder Version geändert hat und was brechen kann |
 
 ## In 30 Sekunden loslegen
 

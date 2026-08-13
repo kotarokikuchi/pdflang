@@ -1,6 +1,6 @@
 # 12. Recettes
 
-[← Ligne de commande](11-cli.md) · [Sommaire](README.md)
+[← Ligne de commande](11-cli.md) · [Sommaire](README.md) · [Suivant : changements →](13-changelog.md)
 
 Des cas complets, réutilisables tels quels. Chacun résout un problème réel de
 terrain.
@@ -369,4 +369,4 @@ pdfl run enquete.pdfl suspect.pdf > /dev/null
 
 ---
 
-[← Ligne de commande](11-cli.md) · [Sommaire](README.md)
+[← Ligne de commande](11-cli.md) · [Sommaire](README.md) · [Suivant : changements →](13-changelog.md)

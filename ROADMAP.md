@@ -13,7 +13,7 @@ found to disagree with the code more than once. Where a claim could not be
 verified, it is marked **partial** with the doubt stated, never rounded up to a
 yes.
 
-State at **0.10.1**.
+State at **0.13.0**.
 
 ---
 
@@ -25,10 +25,10 @@ tree-walking interpreter, all shipping.
 | Area | State |
 |---|---|
 | Language core (lexer → parser → AST → interpreter) | 🟩 complete |
-| CLI commands | 10 — see the coverage table for what is missing |
+| CLI commands | 12 — see the coverage table for what is missing |
 | Standard library | 135 functions across 7 namespaces |
 | Domain types | 7 (`Document`, `Page`, `Region`, `Font`, `Image`, `List`, `Str`) + `Diagnostic` |
-| Report formats | 4 of 10 (JSON, CSV, HTML, PDF) |
+| Report formats | 6 of 10 (JSON, CSV, HTML, PDF, SARIF, JUnit) |
 | Distribution | 5 platforms, installers + one portable tarball |
 | Documentation | 7 languages, verified in sync with the code |
 
@@ -59,7 +59,7 @@ and `Cargo.toml`.
 | Report language selection | 🟥 no | reports are English-only by decision |
 | `--dry-run` / execution plan | 🟧 partial | `fix --dry-run` exists; `run` has neither |
 | `--profile`, `--explain-skip` | 🟥 no | |
-| `--json` on every subcommand | 🟩 yes | `run`/`compare`/`fix`/`watch` via `--output`; `inspect` and `lint` via `--json`; `doc` via `--output json` |
+| `--json` on every validating command | 🟩 yes | `run`/`compare`/`fix`/`watch` via `--output`; `inspect` and `lint` via `--json`; `doc` via `--output json`. `pack`, `add`, `fmt`, `test` and `completions` print human-readable text — they confirm an action or report pass/fail counts, not a document verdict, so JSON was never added there |
 | Baseline runs, run-to-run diff | 🟥 no | unblocked: diagnostic identifiers are now stable |
 
 ### Outputs
@@ -151,7 +151,7 @@ has settled.
 
 ### Developer tooling
 
-Six of the planned tooling subcommands exist in some form; eleven do not.
+Eight of the planned tooling subcommands exist in some form; ten do not.
 
 | Command | State |
 |---|---|
@@ -198,11 +198,11 @@ same thing as a published action other people can use.
 | Feature | State |
 |---|---|
 | Same script + same PDF = same bytes | 🟩 yes — CI asserts it on every push |
-| Deterministic parallel output | 🟩 yes — `pdfl test --jobs` judges cases in the order they were found, whichever child finished first; CI compares the parallel and sequential runs |
+| Deterministic parallel output | 🟩 yes — `pdfl test --jobs` and `pdfl watch --jobs` both judge files in the order they were found, whichever child finished first; CI compares the parallel and sequential runs for each |
 | Seeded sampling, reproducible builds | 🟥 no — there is no sampling |
 | Strict vs lenient parsing, repair diagnostics | 🟥 no — a corrupt PDF fails with one error |
 | Partial result on timeout | 🟧 partial — `watch --timeout` kills a hung file and substitutes a "timeout" finding for it; `pdfl run` alone has no timeout, and there is no version that keeps whatever diagnostics ran before the hang |
-| Memory/time limits, recursion limit, path sandbox, large-file guard | 🟧 partial — recursion is bounded and tested; nothing else |
+| Memory/time limits, recursion limit, path sandbox, large-file guard | 🟧 partial — recursion is bounded and tested; `watch --timeout` bounds one file's analysis inside a batch by killing the child process; a lone `pdfl run` still has no time limit of its own, and there is no memory limit or path sandbox anywhere |
 | Memory-mapped reads, page streaming, lazy images | 🟥 no — `visual::` renders on demand and caches, which bounds cost in practice but is not streaming |
 | Structured logging, resource report, SBOM, dependency audit | 🟥 no |
 
@@ -242,12 +242,13 @@ dependency, `clap_complete`, the only one this wave added.
 Last, `data::` learned to read JSON and `pack` stopped packaging spreadsheets, so
 the two halves finally agree on which formats exist.
 
-### Wave 3 — real cost, decided deliberately
+### Wave 3 — done
 
-Each adds a dependency and a support surface. Waves 1 and 2 are done, and
-`pdfl test` is in; this is what is left.
+Five items — `pdfl test`, `--jobs`, `--events`, `--journal`, `--timeout` — each
+expected to cost a dependency and a support surface. Only one of the five
+actually did.
 
-`pdfl test` needed no dependency in the end — it reuses the interpreter and the
+`pdfl test` needed no dependency at all — it reuses the interpreter and the
 report, and compares the JSON it already knows how to produce.
 
 Parallelism needed none either, but not for the expected reason. Threads inside
@@ -262,8 +263,20 @@ renders every format from the JSON that comes back. One code path for all six
 formats and every value of `--jobs` — CI checks that a report rendered from a
 child is byte-identical to one rendered in place.
 
-13. **Batch as runtime semantics** — the largest single block of work. Worth
-    starting only once 10–12 exist.
+`--events` is the one real dependency the wave added, `notify`, and it is
+opt-in rather than the default: the measurement did not support switching, and
+inotify goes silent on a network share instead of failing loud. `--journal`
+answered the design question the roadmap flagged as deciding batch mode's
+shape — a resumable run needs to remember what it did, and a journal the user
+asked for by name is an artifact, not state the tool keeps on its own.
+`--timeout` closed the last hole: one adversarial PDF hanging pdfium no longer
+hangs the batch around it, since the child is killed and the file gets a
+`"timeout"` finding like any other rejection.
+
+What Wave 3 did not build is the batch-as-a-product direction — a job type,
+priorities, SLAs, retry, quarantine, multi-machine coordination. See "Batch and
+queues" above: that is not a deferred item waiting on a prerequisite, it is a
+deliberate boundary. This project is a validator with a folder mode, not a queue.
 
 ---
 
@@ -324,6 +337,13 @@ grep -rin "baseline\|rayon\|serve\|repl" src/ Cargo.toml
 
 ```
 
-Beware that a plain grep for `ocr`, `notify` or `xlsx` returns hits which are
-comments saying the feature is *absent*, or an extension whitelist rather than a
-reader. Every hit recorded here was opened and read first.
+Beware that a plain grep for `ocr` or `xlsx` returns hits which are comments
+saying the feature is *absent*, or an extension whitelist rather than a reader
+(`src/pack.rs`'s `UNREADABLE` list names `xlsx` precisely to refuse it). `notify`
+used to belong on this warning list too: this document itself said, in full
+sentences, "`notify` is not a dependency; the watcher polls" — a true statement
+at the time, and exactly the kind of confident-sounding hit that goes stale the
+moment a feature ships. `--events` shipped, and the sentence became wrong
+without anyone editing it, until this pass caught it. It is a real dependency
+now (`Cargo.toml`, `src/watch.rs`). Every hit recorded here was opened and read
+first — including, this time, the ones inside this file.

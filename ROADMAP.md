@@ -32,20 +32,9 @@ tree-walking interpreter, all shipping.
 | Distribution | 5 platforms, installers + one portable tarball |
 | Documentation | 7 languages, verified in sync with the code |
 
-### The two gaps that block everything downstream
+### The gap that blocks everything downstream
 
-Each is small; each unblocks a family of features that cannot start without it.
-
-**1. Diagnostic IDs are positional.** `src/interpreter.rs:377` builds them with
-`format!("PDFL-{:03}", self.next_id)` — a per-run counter. Insert a check at the
-top of a script and every ID below it shifts. A stable identifier, derived from
-what actually identifies a finding, is the prerequisite for three separate
-features: running against an approved baseline so only new findings fail,
-carrying a triage decision across versions of a document, and giving a batch job
-an idempotency key. None of them can start while the ID means "the second thing
-we happened to find".
-
-**2. Severity is not part of the language.** The design principles call for
+**Severity is not part of the language.** The design principles call for
 severity as language semantics — `error`/`warning`/`info` mapping to exit codes.
 Today `assert` and `require` always emit `Error`; `Warning` and `Info` come only
 from `lint` and `compare`. A script author cannot say "this one is a warning".
@@ -80,7 +69,7 @@ and `Cargo.toml`.
 | `--dry-run` / execution plan | 🟧 partial | `fix --dry-run` exists; `run` has neither |
 | `--profile`, `--explain-skip` | 🟥 no | |
 | `--json` on every subcommand | 🟧 partial | `run`/`compare`/`fix`/`watch` emit JSON; `inspect`, `lint`, `doc` print text only |
-| Baseline runs, run-to-run diff | 🟥 no | blocked by the ID counter above |
+| Baseline runs, run-to-run diff | 🟥 no | unblocked: diagnostic identifiers are now stable |
 
 ### Outputs
 
@@ -205,15 +194,11 @@ same thing as a published action other people can use.
 
 ### Wave 1 — unblock
 
-1. **Stable diagnostic identifier** replacing the positional counter. Derive it
-   from what identifies the finding — check name, rule, location, normalized
-   message — so it survives reordering and edits elsewhere in the script. Keep
-   the sequential number as a separate field if reports need ordering.
-2. **Severity in the language.** Let a check or an assertion declare
+1. **Severity in the language.** Let a check or an assertion declare
    `warning`/`info`. This is what makes the severity principle true and gives
    `--fail-on` something to act on. It changes exit-code behaviour, so it comes
    before anything that consumes exit codes.
-3. **Move infrastructure errors out of the finding range.** Today a corrupt file
+2. **Move infrastructure errors out of the finding range.** Today a corrupt file
    and a failed validation both exit 2, so CI cannot tell them apart.
 
 ### Wave 2 — collect what is already paid for
@@ -298,8 +283,7 @@ grep -cE '^\s+"[a-z0-9_]+"( \| "[a-z0-9_]+")* =>' src/textns.rs   # and the othe
 # the absences
 grep -rin "sarif\|junit\|baseline\|rayon\|serve\|repl" src/ Cargo.toml
 
-# the ID counter and the discarded tags
-grep -n 'PDFL-{:03}' src/interpreter.rs
+# the discarded tags
 grep -n 'tags: _' src/interpreter.rs
 ```
 

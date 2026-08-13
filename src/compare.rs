@@ -6,6 +6,7 @@
 use crate::interpreter::DocData;
 use crate::report::{Diagnostic, Severity};
 use regex::Regex;
+use std::collections::HashMap;
 
 pub struct CompareOptions {
     pub normalize: bool,
@@ -22,16 +23,17 @@ pub struct CompareResult {
 
 pub fn compare_documents(a: &DocData, b: &DocData, opts: &CompareOptions) -> CompareResult {
     let mut diags = Vec::new();
-    let mut next_id = 1usize;
+    let mut seen: HashMap<String, u32> = HashMap::new();
     let mut push = |diags: &mut Vec<Diagnostic>, severity: Severity, check: &str, message: String| {
+        let key = format!("{check}\u{1f}{message}");
+        let occurrence = seen.entry(key).and_modify(|n| *n += 1).or_insert(1);
         diags.push(Diagnostic {
-            id: format!("PDFL-{:03}", next_id),
+            id: crate::report::fingerprint(check, &message, *occurrence),
             severity,
             check_name: check.into(),
             message,
             line: None,
         });
-        next_id += 1;
     };
 
     // ---- metadata (a change is a warning, not an error) ----

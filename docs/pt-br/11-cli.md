@@ -91,7 +91,7 @@ pdfl run prepress.pdfl revista.pdf --fail-on warning
   "info_count": 0,
   "diagnostics": [
     {
-      "id": "PDFL-001",
+      "id": "PDFL-093751a2",
       "severity": "error",
       "check_name": "Cobertura de tinta",
       "message": "page 7: 324% ink (limit 300%)",

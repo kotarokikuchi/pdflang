@@ -212,7 +212,9 @@ pub struct Interpreter {
     pub diagnostics: Vec<Diagnostic>,
     pub profile_name: Option<String>,
     current_check: String,
-    next_id: usize,
+    /// How many times each (check, message) pair has already fired this run —
+    /// the occurrence that disambiguates an otherwise identical finding.
+    seen: HashMap<String, u32>,
     /// fix:: operations are only allowed in the `pdfl fix` command.
     pub allow_fixes: bool,
     pub fix_ops: Vec<crate::fixns::FixOp>,
@@ -231,7 +233,7 @@ impl Interpreter {
             diagnostics: Vec::new(),
             profile_name: None,
             current_check: String::new(),
-            next_id: 1,
+            seen: HashMap::new(),
             allow_fixes: false,
             fix_ops: Vec::new(),
             functions: HashMap::new(),
@@ -374,8 +376,9 @@ impl Interpreter {
     }
 
     fn emit(&mut self, severity: Severity, message: String, line: Option<usize>) {
-        let id = format!("PDFL-{:03}", self.next_id);
-        self.next_id += 1;
+        let key = format!("{}\u{1f}{}", self.current_check, message);
+        let occurrence = self.seen.entry(key).and_modify(|n| *n += 1).or_insert(1);
+        let id = crate::report::fingerprint(&self.current_check, &message, *occurrence);
         self.diagnostics.push(Diagnostic {
             id,
             severity,
@@ -1061,7 +1064,61 @@ check "Pages" {
         assert_eq!(i.diagnostics.len(), 1);
         assert_eq!(i.diagnostics[0].message, "expected more than 10 pages");
         assert_eq!(i.diagnostics[0].check_name, "Pages");
-        assert_eq!(i.diagnostics[0].id, "PDFL-001");
+        assert!(i.diagnostics[0].id.starts_with("PDFL-"), "{}", i.diagnostics[0].id);
+    }
+
+    /// The property the identifier exists for: it names the finding, so it
+    /// survives an edit that only moves the finding down the report.
+    #[test]
+    fn diagnostic_id_survives_a_check_inserted_above() {
+        let before = run(r#"
+check "Fonts" {
+  assert false, "Font Arial is not embedded"
+}
+"#);
+        let after = run(r#"
+check "Pages" {
+  assert false, "too few pages"
+}
+check "Fonts" {
+  assert false, "Font Arial is not embedded"
+}
+"#);
+        assert_eq!(after.diagnostics.len(), 2);
+        // The Fonts finding moved from first to second and kept its identity;
+        // a positional counter would have renamed it from 001 to 002.
+        assert_eq!(before.diagnostics[0].id, after.diagnostics[1].id);
+        assert_ne!(after.diagnostics[0].id, after.diagnostics[1].id);
+    }
+
+    /// Two findings that differ only in the value inside the message are
+    /// different findings — approving one must not approve the other.
+    #[test]
+    fn diagnostic_id_distinguishes_the_interpolated_value() {
+        let i = run(r#"
+check "Fonts" {
+  assert false, "Font Arial is not embedded"
+  assert false, "Font Helvetica is not embedded"
+}
+"#);
+        assert_eq!(i.diagnostics.len(), 2);
+        assert_ne!(i.diagnostics[0].id, i.diagnostics[1].id);
+    }
+
+    /// The honest collision: the same check failing twice with the identical
+    /// message. Without an occurrence counter both would share an identity and
+    /// a baseline approving the first would silence the second.
+    #[test]
+    fn identical_findings_get_distinct_ids() {
+        let i = run(r#"
+check "Boxes" {
+  assert false, "TrimBox missing"
+  assert false, "TrimBox missing"
+}
+"#);
+        assert_eq!(i.diagnostics.len(), 2);
+        assert_eq!(i.diagnostics[0].message, i.diagnostics[1].message);
+        assert_ne!(i.diagnostics[0].id, i.diagnostics[1].id);
     }
 
     #[test]

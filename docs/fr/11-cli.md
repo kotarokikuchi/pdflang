@@ -80,7 +80,7 @@ pdfl run prepresse.pdfl magazine.pdf --fail-on warning                   # mode 
   "info_count": 0,
   "diagnostics": [
     {
-      "id": "PDFL-001",
+      "id": "PDFL-093751a2",
       "severity": "error",
       "check_name": "Ink coverage",
       "message": "page 7: 324% ink (limit 300%)",

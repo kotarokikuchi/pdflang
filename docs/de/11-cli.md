@@ -79,7 +79,7 @@ pdfl run vorstufe.pdfl magazin.pdf --fail-on warning                   # strenge
   "info_count": 0,
   "diagnostics": [
     {
-      "id": "PDFL-001",
+      "id": "PDFL-093751a2",
       "severity": "error",
       "check_name": "Ink coverage",
       "message": "page 7: 324% ink (limit 300%)",

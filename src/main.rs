@@ -244,7 +244,7 @@ fn load_doc(
 ) -> Result<std::rc::Rc<interpreter::DocData>, ExitCode> {
     pdf::load_document(input).map_err(|e| {
         let diag = Diagnostic {
-            id: "PDFL-000".into(),
+            id: report::fingerprint("loading", &format!("{e:#}"), 1),
             severity: Severity::Error,
             check_name: "loading".into(),
             message: format!("{e:#}"),

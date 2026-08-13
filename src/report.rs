@@ -1,6 +1,7 @@
 //! Diagnostics, the JSON report and exit codes.
 
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -8,6 +9,33 @@ pub enum Severity {
     Error,
     Warning,
     Info,
+}
+
+/// A finding's identity: what it is about, not where it landed in the run.
+///
+/// Derived from the check name and the message, so inserting a check above a
+/// finding no longer renames it — which is what a positional counter did, and
+/// what made an approved baseline impossible to keep.
+///
+/// `line` is deliberately excluded: editing the script above a check shifts it
+/// without the finding itself changing.
+///
+/// `occurrence` disambiguates the honest collision — the same check failing
+/// twice with the identical message, one page per failure. Without it the two
+/// share an identity and a baseline that approves the first silences the second.
+pub fn fingerprint(check_name: &str, message: &str, occurrence: u32) -> String {
+    let mut h = Sha256::new();
+    // A unit separator, so ("ab", "c") and ("a", "bc") cannot collide.
+    h.update(check_name.as_bytes());
+    h.update([0x1f]);
+    h.update(message.as_bytes());
+    h.update([0x1f]);
+    h.update(occurrence.to_string().as_bytes());
+    format!("PDFL-{:.8}", hex(&h.finalize()))
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 #[derive(Debug, Clone, Serialize)]

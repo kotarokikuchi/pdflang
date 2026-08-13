@@ -57,6 +57,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 | `--output-file <file>` | — | يكتب في ملف بدل المخرج القياسي |
 | `--fail-on error\|warning` | `error` | مع `warning` يعطي التحذير أيضًا الرمز 2 |
 | `--verbose` | — | معلومات إضافية على مخرج الأخطاء |
+| `--var الاسم=القيمة` | — | قيمة يقرأها النص البرمجي بوصفها `vars.الاسم`؛ ويجوز تكرارها |
 
 ```bash
 pdfl run prepress.pdfl magazine.pdf                                    # JSON في الطرفية

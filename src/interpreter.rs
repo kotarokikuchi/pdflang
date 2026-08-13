@@ -214,6 +214,10 @@ pub struct Interpreter {
     current_check: String,
     /// Severity a failing assertion reports, from the enclosing check.
     current_severity: Severity,
+    /// Values passed with --var, reachable from the script as `vars.name`.
+    /// Kept in their own namespace so a script cannot collide with them by
+    /// accident, and so a missing one names the flag that would supply it.
+    pub vars: HashMap<String, String>,
     /// How many times each (check, message) pair has already fired this run —
     /// the occurrence that disambiguates an otherwise identical finding.
     seen: HashMap<String, u32>,
@@ -236,6 +240,7 @@ impl Interpreter {
             profile_name: None,
             current_check: String::new(),
             current_severity: Severity::Error,
+            vars: HashMap::new(),
             seen: HashMap::new(),
             allow_fixes: false,
             fix_ops: Vec::new(),
@@ -426,6 +431,18 @@ impl Interpreter {
                 rerr(format!("unknown variable: {name}"))
             }
             Expr::Member { recv, name } => {
+                // `vars.x` resolves against --var, unless the script itself
+                // defined something called `vars`, which then wins.
+                if let Expr::Ident(id) = recv.as_ref() {
+                    if id == "vars" && !self.scopes.iter().any(|s| s.contains_key("vars")) {
+                        return match self.vars.get(name) {
+                            Some(v) => Ok(Value::Str(v.clone())),
+                            None => rerr(format!(
+                                "vars.{name} was not provided — pass --var {name}=<value>"
+                            )),
+                        };
+                    }
+                }
                 let v = self.eval(recv)?;
                 self.member(&v, name)
             }
@@ -1070,6 +1087,36 @@ check "Pages" {
         assert_eq!(i.diagnostics[0].message, "expected more than 10 pages");
         assert_eq!(i.diagnostics[0].check_name, "Pages");
         assert!(i.diagnostics[0].id.starts_with("PDFL-"), "{}", i.diagnostics[0].id);
+    }
+
+    #[test]
+    fn vars_come_from_the_command_line() {
+        let mut i = Interpreter::new();
+        i.vars.insert("approved".into(), "proof.pdf".into());
+        let prog = crate::parser::parse(r#"
+check "Uses a variable" {
+  require vars.approved == "proof.pdf"
+}
+"#).unwrap();
+        i.run(&prog, mock_doc()).unwrap();
+        assert_eq!(i.diagnostics.len(), 0, "{:?}", i.diagnostics);
+    }
+
+    /// A missing variable names the flag that would supply it, rather than
+    /// resolving to nothing and failing somewhere further away.
+    #[test]
+    fn a_missing_var_says_which_flag_to_pass() {
+        let i = run(r#"
+check "Needs a variable" {
+  require vars.approved != ""
+}
+"#);
+        assert_eq!(i.diagnostics.len(), 1);
+        assert!(
+            i.diagnostics[0].message.contains("--var approved="),
+            "{}",
+            i.diagnostics[0].message
+        );
     }
 
     #[test]

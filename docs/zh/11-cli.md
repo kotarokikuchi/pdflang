@@ -57,6 +57,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 | `--output-file <file>` | — | 写入文件而非标准输出 |
 | `--fail-on error\|warning` | `error` | 设为 `warning` 时警告也退出码 2 |
 | `--verbose` | — | 标准错误输出附加信息 |
+| `--var 名称=值` | — | 脚本以 `vars.名称` 读取的值；可重复 |
 
 ```bash
 pdfl run prepress.pdfl magazine.pdf                                    # 终端 JSON

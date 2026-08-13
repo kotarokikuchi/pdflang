@@ -52,7 +52,7 @@ and `Cargo.toml`.
 | `--fail-fast` | 🟧 partial | exists in `watch`, not in `run` |
 | `--max-findings N` | 🟥 no | |
 | stdin input, stdin file list | 🟥 no | |
-| Typed script parameters and free variables | 🟥 no | scripts take no arguments; only `const` inside the file |
+| Typed script parameters and free variables | 🟧 partial | `--var name=value` reaches the script as `vars.name`; no typed `params` block that declares what a script requires |
 | Input by URL | 🟥 no | out of scope until a network namespace exists |
 | `--tags` | 🟥 **no, but nearly free** | tags are parsed and discarded: `src/interpreter.rs:268` reads `Stmt::Check { tags: _ }` |
 | `--quiet` / `--verbose` | 🟧 partial | `run` has `--verbose`; no `--quiet` anywhere |

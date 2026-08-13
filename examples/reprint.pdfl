@@ -1,16 +1,16 @@
 // reprint.pdfl — publisher: a reprint against the edition already on shelves
-// Usage: pdfl run examples/reprint.pdfl reprint-3rd.pdf
+// Usage:
+// pdfl run examples/reprint.pdfl 3rd.pdf --var previous=2nd-printing.pdf
 // 
 // A reprint is supposed to be the same book. In practice one page is meant to
 // change — the colophon carries the new print run and date — and every other
 // page changing is a mistake someone will find after ten thousand copies.
 // 
 // The interesting part is the asymmetry: one page must differ, the rest must
-// not. Point PREVIOUS at the edition that shipped.
+// not. The edition that shipped is passed in, so one profile serves every
+// title on the list.
 
 profile "reprint-against-shipped-edition" {
-
-  const PREVIOUS = "editions/2nd-printing.pdf"
 
   // The page carrying the print run and date.
   const COLOPHON = 4
@@ -22,7 +22,7 @@ profile "reprint-against-shipped-edition" {
   const COVER_QUALITY = 70.0
 
   rule "Body pages unchanged" on doc.pages.filter { |p| p.number != COLOPHON } {
-    ssim = visual::measure_ssim(page.number, PREVIOUS)
+    ssim = visual::measure_ssim(page.number, vars.previous)
     assert ssim >= IDENTICAL,
     "page #{page.number} changed since the previous printing (SSIM #{ssim})"
   }
@@ -30,7 +30,7 @@ profile "reprint-against-shipped-edition" {
   check "The colophon did change" tags: ["reprint"] {
     // If it did not, this file is the old edition under a new name — the
     // reprint statement was never updated.
-    changed = visual::measure_ssim(COLOPHON, PREVIOUS) < IDENTICAL
+    changed = visual::measure_ssim(COLOPHON, vars.previous) < IDENTICAL
     assert changed,
     "the colophon on page #{COLOPHON} is identical to the previous printing — was it updated?"
   }
@@ -52,7 +52,7 @@ profile "reprint-against-shipped-edition" {
     // human deciding what to look at can see which pages drifted and by how
     // much. Nothing here can fail — the judging is done by the checks above.
     doc.pages.each { |page|
-      similarity = visual::diff_pages(page.number, PREVIOUS)
+      similarity = visual::diff_pages(page.number, vars.previous)
       print("page", page.number, "similarity", similarity)
     }
   }

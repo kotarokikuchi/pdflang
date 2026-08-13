@@ -57,6 +57,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 | `--output-file <file>` | — | 標準出力ではなくファイルへ書き出す |
 | `--fail-on error\|warning` | `error` | `warning` にすると警告でも終了コード2 |
 | `--verbose` | — | 標準エラー出力に追加情報 |
+| `--var 名前=値` | — | スクリプトが `vars.名前` として読む値。繰り返し指定可 |
 
 ```bash
 # 端末に JSON レポート

@@ -62,6 +62,9 @@ enum Command {
         /// Verbose output on stderr
         #[arg(long)]
         verbose: bool,
+        /// Value the script reads as `vars.<name>`; repeatable
+        #[arg(long = "var", value_name = "NAME=VALUE")]
+        vars: Vec<String>,
     },
     /// Applies fix:: operations from a script and saves a new PDF
     Fix {
@@ -233,6 +236,16 @@ enum DocFormat {
     Html,
 }
 
+/// `--var NAME=VALUE`, split on the first `=` so a value may contain more.
+fn parse_vars(raw: &[String]) -> Result<std::collections::HashMap<String, String>, String> {
+    raw.iter()
+        .map(|s| match s.split_once('=') {
+            Some((k, v)) if !k.is_empty() => Ok((k.to_string(), v.to_string())),
+            _ => Err(s.clone()),
+        })
+        .collect()
+}
+
 /// Loads and parses the script; an error means exit 3.
 fn load_program(script: &Path) -> Result<Vec<ast::Stmt>, ExitCode> {
     let source = std::fs::read_to_string(script).map_err(|e| {
@@ -272,8 +285,8 @@ fn file_name(p: &Path) -> String {
 
 fn main() -> ExitCode {
     match Cli::parse().command {
-        Command::Run { script, input, output, output_file, fail_on, verbose } => {
-            run_cmd(&script, &input, output, output_file.as_ref(), fail_on, verbose)
+        Command::Run { script, input, output, output_file, fail_on, verbose, vars } => {
+            run_cmd(&script, &input, output, output_file.as_ref(), fail_on, verbose, &vars)
         }
         Command::Fix { input, script, output, dry_run, report_format, report_file } => {
             fix_cmd(&input, &script, &output, dry_run, report_format, report_file.as_ref())
@@ -432,7 +445,15 @@ fn run_cmd(
     output_file: Option<&PathBuf>,
     fail_on: FailOn,
     verbose: bool,
+    vars: &[String],
 ) -> ExitCode {
+    let vars = match parse_vars(vars) {
+        Ok(v) => v,
+        Err(bad) => {
+            eprintln!("error: --var expects NAME=VALUE, got '{bad}'");
+            return ExitCode::from(EXIT_INFRASTRUCTURE);
+        }
+    };
     let program = match load_program(script) {
         Ok(p) => p,
         Err(code) => return code,
@@ -447,6 +468,7 @@ fn run_cmd(
     }
 
     let mut interp = interpreter::Interpreter::new();
+    interp.vars = vars;
     if let Some(dir) = script.parent() {
         interp.script_dir = dir.to_path_buf();
     }

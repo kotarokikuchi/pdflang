@@ -1,16 +1,16 @@
 // proof.pdfl — print shop: the press file against the approved proof
-// Usage: pdfl run examples/proof.pdfl press-ready.pdf
+// Usage:
+// pdfl run examples/proof.pdfl press-ready.pdf --var approved=signed.pdf
 // 
 // The client signed off on a proof. Days later a "final" file arrives, and the
 // question is whether anything moved since the signature — a swapped photo, a
 // price corrected without telling anyone, an image degraded by a round trip
 // through the wrong export preset.
 // 
-// Point APPROVED at the file that was signed off.
+// The proof is passed in rather than written here, because the same profile
+// has to serve every job that comes through the shop.
 
 profile "press-file-vs-approved-proof" {
-
-  const APPROVED = "approved/proof-signed.pdf"
 
   // Below this, the page is not the page that was approved.
   const IDENTICAL = 0.995
@@ -28,7 +28,7 @@ profile "press-file-vs-approved-proof" {
 
   check "Nothing moved since sign-off" tags: ["proof"] {
     doc.pages.each { |page|
-      ssim = visual::measure_ssim(page.number, APPROVED)
+      ssim = visual::measure_ssim(page.number, vars.approved)
       assert ssim >= IDENTICAL,
       "page #{page.number} differs from the approved proof (SSIM #{ssim})"
     }
@@ -39,7 +39,7 @@ profile "press-file-vs-approved-proof" {
     // between the two thresholds is usually a re-rendered font or a nudged
     // element — worth a human look, not worth stopping the press.
     doc.pages.each { |page|
-      ssim = visual::measure_ssim(page.number, APPROVED)
+      ssim = visual::measure_ssim(page.number, vars.approved)
       assert ssim >= SUSPICIOUS || ssim < IDENTICAL,
       "page #{page.number} is nearly identical but not exactly (SSIM #{ssim}) — check it"
     }
@@ -49,7 +49,7 @@ profile "press-file-vs-approved-proof" {
     // Perceptual hash catches a replaced photo that SSIM might average away
     // on a busy page.
     doc.pages.each { |page|
-      assert !visual::detect_image_replacement(page.number, APPROVED),
+      assert !visual::detect_image_replacement(page.number, vars.approved),
       "page #{page.number}: an image looks replaced since the proof"
     }
   }

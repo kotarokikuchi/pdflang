@@ -58,6 +58,7 @@ pdfl run <script.pdfl> <entree.pdf> [options]
 | `--output-file <fichier>` | — | Écrit dans un fichier au lieu de la sortie standard |
 | `--fail-on error\|warning` | `error` | Avec `warning`, un avertissement donne aussi le code 2 |
 | `--verbose` | — | Informations supplémentaires sur la sortie d'erreur |
+| `--var NOM=VALEUR` | — | Valeur que le script lit comme `vars.NOM` ; répétable |
 
 ```bash
 pdfl run prepresse.pdfl magazine.pdf                                     # JSON au terminal

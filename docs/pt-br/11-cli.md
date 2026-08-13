@@ -60,6 +60,7 @@ pdfl run <script.pdfl> <entrada.pdf> [opções]
 | `--output-file <arquivo>` | — | Grava em arquivo em vez do stdout |
 | `--fail-on error\|warning` | `error` | Com `warning`, avisos também dão exit 2 |
 | `--verbose` | — | Informação extra no stderr |
+| `--var NOME=VALOR` | — | Valor que o script lê como `vars.NOME`; repetível |
 
 ```bash
 # Relatório JSON no terminal

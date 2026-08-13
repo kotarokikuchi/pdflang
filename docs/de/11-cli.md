@@ -57,6 +57,7 @@ pdfl run <skript.pdfl> <eingabe.pdf> [optionen]
 | `--output-file <datei>` | — | Schreibt in eine Datei statt auf die Standardausgabe |
 | `--fail-on error\|warning` | `error` | Mit `warning` führt auch eine Warnung zu Code 2 |
 | `--verbose` | — | Zusatzinformationen auf der Fehlerausgabe |
+| `--var NAME=WERT` | — | Wert, den das Skript als `vars.NAME` liest; wiederholbar |
 
 ```bash
 pdfl run vorstufe.pdfl magazin.pdf                                     # JSON im Terminal

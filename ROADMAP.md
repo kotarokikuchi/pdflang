@@ -54,7 +54,7 @@ and `Cargo.toml`.
 | stdin input, stdin file list | 🟥 no | |
 | Typed script parameters and free variables | 🟧 partial | `--var name=value` reaches the script as `vars.name`; no typed `params` block that declares what a script requires |
 | Input by URL | 🟥 no | out of scope until a network namespace exists |
-| `--tags` | 🟥 **no, but nearly free** | tags are parsed and discarded: `src/interpreter.rs:268` reads `Stmt::Check { tags: _ }` |
+| `--tags` | 🟩 yes | filters checks; a tag no check carries is an error rather than an empty pass |
 | `--quiet` / `--verbose` | 🟧 partial | `run` has `--verbose`; no `--quiet` anywhere |
 | Report language selection | 🟥 no | reports are English-only by decision |
 | `--dry-run` / execution plan | 🟧 partial | `fix --dry-run` exists; `run` has neither |
@@ -193,14 +193,13 @@ finding range. Baseline runs are no longer blocked.
 
 Each of these reuses structure that exists; none needs a new dependency.
 
-5. **`--tags`** — the AST already carries tags and the interpreter discards them.
-6. **`--json` for `inspect`, `lint` and `doc`** — a fully scriptable CLI is three
+5. **`--json` for `inspect`, `lint` and `doc`** — a fully scriptable CLI is three
    subcommands away.
-7. **SARIF and JUnit output** — `src/report.rs` already models a diagnostic with
+6. **SARIF and JUnit output** — `src/report.rs` already models a diagnostic with
    id, severity, check name, message and line. Two more serializers, and they are
    what makes the tool visible inside GitHub and any CI.
-8. **Shell completions** via `clap_complete`, and `--quiet`.
-9. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
+7. **Shell completions** via `clap_complete`, and `--quiet`.
+8. **Fix the `pack`/`data` mismatch** — either teach `data::` to read JSON, or
    stop packaging formats it cannot open.
 
 ### Wave 3 — real cost, decided deliberately
@@ -271,8 +270,6 @@ grep -cE '^\s+"[a-z0-9_]+"( \| "[a-z0-9_]+")* =>' src/textns.rs   # and the othe
 # the absences
 grep -rin "sarif\|junit\|baseline\|rayon\|serve\|repl" src/ Cargo.toml
 
-# the discarded tags
-grep -n 'tags: _' src/interpreter.rs
 ```
 
 Beware that a plain grep for `ocr`, `notify` or `xlsx` returns hits which are

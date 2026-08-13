@@ -59,6 +59,7 @@ pdfl run <script.pdfl> <entree.pdf> [options]
 | `--fail-on error\|warning` | `error` | Avec `warning`, un avertissement donne aussi le code 2 |
 | `--verbose` | — | Informations supplémentaires sur la sortie d'erreur |
 | `--var NOM=VALEUR` | — | Valeur que le script lit comme `vars.NOM` ; répétable |
+| `--tags TAG` | — | N'exécute que les checks portant ce tag ; répétable. Un tag qu'aucun check ne porte est une erreur, pas une réussite vide |
 
 ```bash
 pdfl run prepresse.pdfl magazine.pdf                                     # JSON au terminal

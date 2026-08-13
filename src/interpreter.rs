@@ -214,6 +214,13 @@ pub struct Interpreter {
     current_check: String,
     /// Severity a failing assertion reports, from the enclosing check.
     current_severity: Severity,
+    /// When set, only checks carrying one of these tags run. An empty match is
+    /// caught by the caller rather than passing quietly — a CI filtering on a
+    /// misspelled tag would otherwise run nothing and report success.
+    pub tag_filter: Option<Vec<String>>,
+    /// How many checks actually ran, so the caller can tell "everything passed"
+    /// from "nothing was selected".
+    pub checks_run: usize,
     /// Values passed with --var, reachable from the script as `vars.name`.
     /// Kept in their own namespace so a script cannot collide with them by
     /// accident, and so a missing one names the flag that would supply it.
@@ -240,6 +247,8 @@ impl Interpreter {
             profile_name: None,
             current_check: String::new(),
             current_severity: Severity::Error,
+            tag_filter: None,
+            checks_run: 0,
             vars: HashMap::new(),
             seen: HashMap::new(),
             allow_fixes: false,
@@ -275,7 +284,13 @@ impl Interpreter {
                 self.scopes.pop();
                 r
             }
-            Stmt::Check { name, tags: _, severity, body } => {
+            Stmt::Check { name, tags, severity, body } => {
+                if let Some(wanted) = &self.tag_filter {
+                    if !tags.iter().any(|t| wanted.contains(t)) {
+                        return Ok(());
+                    }
+                }
+                self.checks_run += 1;
                 self.current_check = name.clone();
                 self.current_severity = severity.clone();
                 self.scopes.push(HashMap::new());
@@ -288,6 +303,11 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Rule { name, pages, body } => {
+                // A rule carries no tags, so it cannot match a filter. Skipping
+                // it is the same answer as for an untagged check.
+                if self.tag_filter.is_some() {
+                    return Ok(());
+                }
                 // A rule is a check applied page by page, with `page` bound in
                 // the body's scope.
                 let previous_check = std::mem::replace(&mut self.current_check, name.clone());
@@ -1087,6 +1107,40 @@ check "Pages" {
         assert_eq!(i.diagnostics[0].message, "expected more than 10 pages");
         assert_eq!(i.diagnostics[0].check_name, "Pages");
         assert!(i.diagnostics[0].id.starts_with("PDFL-"), "{}", i.diagnostics[0].id);
+    }
+
+    #[test]
+    fn tags_select_which_checks_run() {
+        let prog = crate::parser::parse(r#"
+check "Untagged" {
+  assert false, "no tag"
+}
+check "Prepress" tags: ["prepress"] {
+  assert false, "prepress"
+}
+"#).unwrap();
+        let mut i = Interpreter::new();
+        i.tag_filter = Some(vec!["prepress".into()]);
+        i.run(&prog, mock_doc()).unwrap();
+        assert_eq!(i.checks_run, 1);
+        assert_eq!(i.diagnostics.len(), 1);
+        assert_eq!(i.diagnostics[0].message, "prepress");
+    }
+
+    /// A filter matching nothing must be visible to the caller. Reporting a
+    /// pass because no check ran is the failure this guard exists to prevent.
+    #[test]
+    fn a_filter_matching_nothing_runs_nothing() {
+        let prog = crate::parser::parse(r#"
+check "Prepress" tags: ["prepress"] {
+  assert false, "prepress"
+}
+"#).unwrap();
+        let mut i = Interpreter::new();
+        i.tag_filter = Some(vec!["typo".into()]);
+        i.run(&prog, mock_doc()).unwrap();
+        assert_eq!(i.checks_run, 0);
+        assert_eq!(i.diagnostics.len(), 0);
     }
 
     #[test]

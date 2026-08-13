@@ -58,6 +58,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 | `--fail-on error\|warning` | `error` | مع `warning` يعطي التحذير أيضًا الرمز 2 |
 | `--verbose` | — | معلومات إضافية على مخرج الأخطاء |
 | `--var الاسم=القيمة` | — | قيمة يقرأها النص البرمجي بوصفها `vars.الاسم`؛ ويجوز تكرارها |
+| `--tags TAG` | — | لا يشغّل إلا الفحوص الحاملة لهذه السمة؛ ويجوز تكرارها. والسمة التي لا يحملها أي فحص خطأ، لا نجاحًا فارغًا |
 
 ```bash
 pdfl run prepress.pdfl magazine.pdf                                    # JSON في الطرفية

@@ -65,6 +65,9 @@ enum Command {
         /// Value the script reads as `vars.<name>`; repeatable
         #[arg(long = "var", value_name = "NAME=VALUE")]
         vars: Vec<String>,
+        /// Run only checks carrying this tag; repeatable
+        #[arg(long = "tags", value_name = "TAG")]
+        tags: Vec<String>,
     },
     /// Applies fix:: operations from a script and saves a new PDF
     Fix {
@@ -285,8 +288,8 @@ fn file_name(p: &Path) -> String {
 
 fn main() -> ExitCode {
     match Cli::parse().command {
-        Command::Run { script, input, output, output_file, fail_on, verbose, vars } => {
-            run_cmd(&script, &input, output, output_file.as_ref(), fail_on, verbose, &vars)
+        Command::Run { script, input, output, output_file, fail_on, verbose, vars, tags } => {
+            run_cmd(&script, &input, output, output_file.as_ref(), fail_on, verbose, &vars, &tags)
         }
         Command::Fix { input, script, output, dry_run, report_format, report_file } => {
             fix_cmd(&input, &script, &output, dry_run, report_format, report_file.as_ref())
@@ -446,6 +449,7 @@ fn run_cmd(
     fail_on: FailOn,
     verbose: bool,
     vars: &[String],
+    tags: &[String],
 ) -> ExitCode {
     let vars = match parse_vars(vars) {
         Ok(v) => v,
@@ -469,6 +473,9 @@ fn run_cmd(
 
     let mut interp = interpreter::Interpreter::new();
     interp.vars = vars;
+    if !tags.is_empty() {
+        interp.tag_filter = Some(tags.to_vec());
+    }
     if let Some(dir) = script.parent() {
         interp.script_dir = dir.to_path_buf();
     }
@@ -476,6 +483,14 @@ fn run_cmd(
     if let Err(e) = interp.run(&program, doc) {
         eprintln!("{}: {e}", script.display());
         return ExitCode::from(3);
+    }
+
+    // A filter that matches nothing would otherwise run no checks and report a
+    // pass, so a misspelled tag in a pipeline would look like a clean file.
+    if !tags.is_empty() && interp.checks_run == 0 {
+        eprintln!("error: no check carries any of these tags: {}", tags.join(", "));
+        eprintln!("nothing was validated — check the spelling, or drop --tags");
+        return ExitCode::from(EXIT_INFRASTRUCTURE);
     }
 
     let report = Report::new(

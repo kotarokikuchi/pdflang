@@ -58,6 +58,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 | `--fail-on error\|warning` | `error` | 设为 `warning` 时警告也退出码 2 |
 | `--verbose` | — | 标准错误输出附加信息 |
 | `--var 名称=值` | — | 脚本以 `vars.名称` 读取的值；可重复 |
+| `--tags TAG` | — | 仅运行带该标签的 check；可重复。没有任何 check 带的标签会报错，而不是空通过 |
 
 ```bash
 pdfl run prepress.pdfl magazine.pdf                                    # 终端 JSON

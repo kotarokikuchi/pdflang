@@ -58,6 +58,7 @@ pdfl run <skript.pdfl> <eingabe.pdf> [optionen]
 | `--fail-on error\|warning` | `error` | Mit `warning` führt auch eine Warnung zu Code 2 |
 | `--verbose` | — | Zusatzinformationen auf der Fehlerausgabe |
 | `--var NAME=WERT` | — | Wert, den das Skript als `vars.NAME` liest; wiederholbar |
+| `--tags TAG` | — | Führt nur Checks mit diesem Tag aus; wiederholbar. Ein Tag, den kein Check trägt, ist ein Fehler, kein leeres Bestehen |
 
 ```bash
 pdfl run vorstufe.pdfl magazin.pdf                                     # JSON im Terminal

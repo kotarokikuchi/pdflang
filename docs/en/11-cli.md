@@ -60,6 +60,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 | `--fail-on error\|warning` | `error` | With `warning`, warnings also exit 2 |
 | `--verbose` | — | Extra information on stderr |
 | `--var NAME=VALUE` | — | Value the script reads as `vars.NAME`; repeatable |
+| `--tags TAG` | — | Run only checks carrying this tag; repeatable. A tag no check carries is an error, not an empty pass |
 
 ```bash
 # JSON report in the terminal

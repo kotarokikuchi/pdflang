@@ -58,6 +58,7 @@ pdfl run <script.pdfl> <input.pdf> [options]
 | `--fail-on error\|warning` | `error` | `warning` にすると警告でも終了コード2 |
 | `--verbose` | — | 標準エラー出力に追加情報 |
 | `--var 名前=値` | — | スクリプトが `vars.名前` として読む値。繰り返し指定可 |
+| `--tags TAG` | — | このタグを持つ check だけを実行。繰り返し可。どの check も持たないタグはエラーで、空の合格にはなりません |
 
 ```bash
 # 端末に JSON レポート

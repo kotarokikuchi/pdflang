@@ -347,8 +347,9 @@ that forgets the documentation cannot merge.
 
 ## About this project
 
-pdfl is developed by one person, with the code open. **Pull requests are not
-accepted** — please do not spend time on one.
+pdfl is developed by one person, with the code open. **Pull requests are turned
+off on this repository** — not as a judgement on anyone's patch, but so that
+nobody writes one expecting it to be read.
 
 Bug reports and questions are welcome as
 [issues](https://github.com/kotarokikuchi/pdflang/issues): a reproducible bug is

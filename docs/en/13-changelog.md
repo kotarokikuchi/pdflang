@@ -12,6 +12,17 @@ quietly.
 
 ## Unreleased
 
+### Added
+
+- `if` / `else if` / `else`, as an **expression**: its value is the last
+  expression of whichever branch ran, the same rule a function already follows.
+  So it serves both as a value (`const LIMIT = if coated { 300 } else { 260 }`)
+  and as a guard around statements, with no second syntax. A branch that does
+  not run yields `null`, and each branch has its own scope — assigning to a
+  variable that already exists outside still updates that one.
+
+---
+
 ## 0.14.0
 
 ### Fixed

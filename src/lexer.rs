@@ -31,6 +31,8 @@ pub enum Tok {
     Import,
     Rule,
     On,
+    If,
+    Else,
     Ident(String),
     // Symbols
     LBrace,
@@ -280,6 +282,8 @@ fn tokenize_impl(source: &str, keep_comments: bool) -> Result<Vec<Token>, LexErr
                     "import" => Tok::Import,
                     "rule" => Tok::Rule,
                     "on" => Tok::On,
+                    "if" => Tok::If,
+                    "else" => Tok::Else,
                     "true" => Tok::True,
                     "false" => Tok::False,
                     _ => Tok::Ident(word),

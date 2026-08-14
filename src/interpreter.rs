@@ -277,6 +277,24 @@ impl Interpreter {
         Ok(())
     }
 
+    /// Runs a body and yields the value of its last expression, which is what
+    /// makes both a function and an `if` an expression. A body ending in a
+    /// statement (an `assert`, an assignment) yields null — there is nothing
+    /// else it could mean.
+    fn eval_body(&mut self, body: &[Stmt]) -> Result<Value, RuntimeError> {
+        let mut result = Value::Null;
+        for stmt in body {
+            result = match stmt {
+                Stmt::Expr(e) => self.eval(e)?,
+                other => {
+                    self.exec_stmt(other)?;
+                    Value::Null
+                }
+            };
+        }
+        Ok(result)
+    }
+
     fn exec_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         match stmt {
             Stmt::Profile { name, body } => {
@@ -425,6 +443,20 @@ impl Interpreter {
 
     fn eval(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
         match expr {
+            Expr::If { cond, then, otherwise } => {
+                let taken = if self.eval(cond)?.truthy() { Some(then) } else { otherwise.as_ref() };
+                let Some(body) = taken else {
+                    // No else: the whole thing is null, the same value any
+                    // branch that assigns nothing would produce.
+                    return Ok(Value::Null);
+                };
+                // Its own scope, like a block or a function: a variable born in
+                // a branch does not outlive it.
+                self.scopes.push(HashMap::new());
+                let result = self.eval_body(body);
+                self.scopes.pop();
+                result
+            }
             Expr::Int(n) => Ok(Value::Int(*n)),
             Expr::Float(n) => Ok(Value::Float(*n)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
@@ -1096,6 +1128,129 @@ mod tests {
         let mut interp = Interpreter::new();
         interp.run(&prog, mock_doc()).unwrap();
         interp
+    }
+
+    /// The whole point of `if` being an expression: it produces a value, the
+    /// way a function's last expression does.
+    #[test]
+    fn if_yields_the_value_of_the_branch_taken() {
+        let i = run(r#"
+check "value" {
+  limit = if doc.page_count > 0 { 300 } else { 260 }
+  assert limit == 300, "took the wrong branch: #{limit}"
+}
+"#);
+        assert!(i.diagnostics.is_empty(), "{:?}", i.diagnostics);
+    }
+
+    #[test]
+    fn if_without_a_matching_branch_is_null() {
+        let i = run(r#"
+check "null" {
+  v = if false { 1 }
+  assert !v, "an if with no else must be null, got #{v}"
+}
+"#);
+        assert!(i.diagnostics.is_empty(), "{:?}", i.diagnostics);
+    }
+
+    #[test]
+    fn else_if_picks_the_first_true_branch() {
+        let i = run(r#"
+check "chain" {
+  n = if doc.page_count > 100 { "big" } else if doc.page_count > 0 { "small" } else { "none" }
+  assert n == "small", "got #{n}"
+}
+"#);
+        assert!(i.diagnostics.is_empty(), "{:?}", i.diagnostics);
+    }
+
+    /// A branch may guard statements, not just produce a value — the same
+    /// construct has to serve both without a second syntax.
+    #[test]
+    fn a_branch_can_guard_an_assertion() {
+        let i = run(r#"
+check "guard" {
+  if doc.page_count > 100 {
+    assert false, "must not run"
+  }
+  if doc.page_count > 0 {
+    assert false, "must run"
+  }
+}
+"#);
+        assert_eq!(i.diagnostics.len(), 1);
+        assert_eq!(i.diagnostics[0].message, "must run");
+    }
+
+    /// Assignment already walks outward to find an existing binding, so a
+    /// branch can update a variable declared before it — while one born inside
+    /// the branch stays there.
+    #[test]
+    fn a_branch_updates_an_outer_variable_but_does_not_leak_its_own() {
+        let i = run(r#"
+check "scope" {
+  total = 0
+  if doc.page_count > 0 {
+    total = 5
+    born_here = 1
+  }
+  assert total == 5, "the branch did not update the outer variable: #{total}"
+}
+"#);
+        assert!(i.diagnostics.is_empty(), "{:?}", i.diagnostics);
+
+        let prog = parse(
+            r#"
+check "leak" {
+  if doc.page_count > 0 {
+    born_here = 1
+  }
+  require born_here
+}
+"#,
+        )
+        .unwrap();
+        let mut interp = Interpreter::new();
+        interp.run(&prog, mock_doc()).unwrap();
+        assert_eq!(interp.diagnostics.len(), 1);
+        assert!(
+            interp.diagnostics[0].message.contains("unknown variable: born_here"),
+            "{}",
+            interp.diagnostics[0].message
+        );
+    }
+
+    #[test]
+    fn if_works_inside_a_block() {
+        let i = run(r#"
+check "in a block" {
+  doc.pages.each { |page|
+    if page.width > 0 {
+      assert page.height > 0, "page #{page.number} has no height"
+    }
+  }
+}
+"#);
+        assert!(i.diagnostics.is_empty(), "{:?}", i.diagnostics);
+    }
+
+    /// A function's value is its last expression, and an `if` is an
+    /// expression — so a function can finally return one thing or another,
+    /// which composing booleans could not express.
+    #[test]
+    fn a_function_can_return_either_branch() {
+        let i = run(r#"
+function limit_for(coated) {
+  if coated { 300 } else { 260 }
+}
+
+check "function" {
+  assert limit_for(true) == 300, "coated: got #{limit_for(true)}"
+  assert limit_for(false) == 260, "uncoated: got #{limit_for(false)}"
+}
+"#);
+        assert!(i.diagnostics.is_empty(), "{:?}", i.diagnostics);
     }
 
     #[test]

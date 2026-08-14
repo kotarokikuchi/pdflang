@@ -43,6 +43,10 @@ struct Walker {
     check_names: HashMap<String, usize>,
     findings: Vec<String>,
     has_fix: bool,
+    /// Whether the statement being walked sits inside a check. Mirrors the
+    /// `in_check` argument so that `expr` — which an `if` body hangs off — can
+    /// still tell an assert inside a check from one outside it.
+    in_check: bool,
 }
 
 impl Walker {
@@ -53,6 +57,7 @@ impl Walker {
     }
 
     fn stmt(&mut self, stmt: &Stmt, in_check: bool) {
+        self.in_check = in_check;
         match stmt {
             Stmt::Profile { body, .. } => self.stmts(body, in_check),
             Stmt::Import { .. } => {}
@@ -148,6 +153,18 @@ impl Walker {
                 if let Some(b) = block {
                     self.block(b);
                 }
+            }
+            Expr::If { cond, then, otherwise } => {
+                self.expr(cond);
+                // The branches are ordinary statement bodies: an unused
+                // variable or a stray assert inside one is worth the same
+                // finding it would get anywhere else.
+                let in_check = self.in_check;
+                self.stmts(then, in_check);
+                if let Some(body) = otherwise {
+                    self.stmts(body, in_check);
+                }
+                self.in_check = in_check;
             }
             Expr::Unary { expr, .. } => self.expr(expr),
             Expr::Binary { left, right, .. } => {

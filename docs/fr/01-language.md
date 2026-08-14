@@ -244,7 +244,69 @@ check "Operators" {
 
 ---
 
-## 1.5 Les blocs : répéter pour chaque élément
+## 1.5 `if` : choisir entre deux choses
+
+`if` est une **expression**, comme tout ce qui produit une valeur ici : elle rend
+la dernière expression de la branche exécutée. Elle sert donc de valeur :
+
+```pdfl
+check "La limite d'encre dépend du papier" {
+  // vars.papier vient de --var papier=couche
+  const LIMITE = if vars.papier == "couche" { 300 } else { 260 }
+
+  doc.pages.each { |page|
+    assert page.tac <= LIMITE,
+      "page #{page.number} : #{page.tac}% d'encre, limite #{LIMITE}%"
+  }
+}
+```
+
+et de garde autour d'instructions, sans `else` :
+
+```pdfl
+check "Ne vérifier la couverture que s'il y en a une" {
+  if doc.page_count > 1 {
+    require doc.pages.first().width > 0
+  }
+}
+```
+
+`else if` s'enchaîne sans accolades supplémentaires :
+
+```pdfl
+taille = if doc.page_count > 500 { "grand" }
+         else if doc.page_count > 50 { "moyen" }
+         else { "petit" }
+```
+
+Trois choses à savoir :
+
+- **Une branche qui ne s'exécute pas rend `null`.** Un `if` sans `else` dont la
+  condition est fausse vaut `null` — qui est faux, donc testable directement.
+- **Chaque branche a sa propre portée**, comme un bloc ou une fonction. Une
+  variable créée dans une branche n'existe plus après. Affecter une variable qui
+  existe déjà à l'extérieur met toujours celle-là à jour.
+- **L'accolade après la condition ouvre le corps.** Si la condition se termine
+  elle-même par un bloc, mettez-la entre parenthèses, sinon l'accolade du corps
+  serait lue comme celle de ce bloc :
+
+```pdfl
+// faux : le { est pris pour le corps du if
+// if doc.pages.all { |p| p.width > 0 } { ... }
+
+// juste
+if (doc.pages.all { |p| p.width > 0 }) {
+  require doc.page_count > 0
+}
+```
+
+> `if` sert à choisir une valeur ou à protéger une instruction — pas à remplacer
+> une vérification qui échoue par une vérification muette. Une validation qui doit
+> échouer échoue toujours ; voir [1.2](#12-deux-façons-de-valider).
+
+---
+
+## 1.6 Les blocs : répéter pour chaque élément
 
 Un bloc est du code entre accolades, avec ses paramètres entre deux barres
 verticales. Cela se lit « pour chaque page, faire… ».
@@ -303,7 +365,7 @@ check "Named steps" {
 
 ---
 
-## 1.6 Les fonctions : donner un nom à une règle
+## 1.7 Les fonctions : donner un nom à une règle
 
 Quand la même validation revient plusieurs fois, donnez-lui un nom :
 
@@ -336,7 +398,7 @@ Règles des fonctions :
 
 ---
 
-## 1.7 import : réutiliser entre profils
+## 1.8 import : réutiliser entre profils
 
 Mettez les règles communes dans un fichier et importez-le où vous en avez
 besoin.
@@ -371,7 +433,7 @@ l'importent — les imports circulaires ne bloquent donc rien.
 
 ---
 
-## 1.8 rule : valider page par page
+## 1.9 rule : valider page par page
 
 Une `rule` est un check exécuté une fois par page, la page étant déjà liée à la
 variable `page` :
@@ -406,7 +468,7 @@ rule "Body pages numbered" on doc.pages.filter { |p| p.number > 2 } {
 
 ---
 
-## 1.9 Variables et portée
+## 1.10 Variables et portée
 
 ```pdfl
 const GLOBAL = 100          // visible dans tout le fichier
@@ -455,7 +517,7 @@ fichier que personne n'a validé.
 
 ---
 
-## 1.10 Des messages utiles à qui reçoit le fichier
+## 1.11 Des messages utiles à qui reçoit le fichier
 
 La qualité du rapport tient aux messages que vous écrivez. Comparez :
 
@@ -489,7 +551,7 @@ check "Context" {
 
 ---
 
-## 1.11 Erreurs courantes
+## 1.12 Erreurs courantes
 
 | Message | Cause | Correction |
 |---|---|---|
@@ -499,6 +561,7 @@ check "Context" {
 | `fix:: is only available in the 'pdfl fix' command` | `fix::` employé avec `pdfl run` | `pdfl fix input.pdf script.pdfl --output out.pdf` |
 | `unknown unit: 'kg'` | Unité invalide | Utilisez `pt`, `mm`, `cm`, `in` ou `%` |
 | `expected '{' with the rule body` | L'expression après `on` finit par une propriété | Mettez-la entre parenthèses |
+| `the '{' here opens the body of the if` | la condition du `if` finit par un bloc | mettre la condition entre parenthèses |
 | `unexpected expression: Dot` | Enchaînement coupé par un retour à la ligne | Gardez `.methode` sur la même ligne, ou passez par une variable |
 
 Avant d'exécuter, ces deux commandes valent toujours la peine :

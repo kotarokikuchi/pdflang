@@ -12,6 +12,18 @@ adapter. Rien ne change ici en silence.
 
 ## Non publié
 
+### Ajouté
+
+- `if` / `else if` / `else`, en tant qu'**expression** : sa valeur est la
+  dernière expression de la branche exécutée, la règle que suit déjà une
+  fonction. Elle sert donc de valeur (`const LIMITE = if couche { 300 } else
+  { 260 }`) comme de garde autour d'instructions, sans seconde syntaxe. Une
+  branche qui ne s'exécute pas rend `null`, et chaque branche a sa propre
+  portée — affecter une variable qui existe déjà à l'extérieur met toujours
+  celle-là à jour.
+
+---
+
 ## 0.14.0
 
 ### Corrigé

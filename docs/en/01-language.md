@@ -239,7 +239,69 @@ check "Operators" {
 
 ---
 
-## 1.5 Blocks: repeating for each item
+## 1.5 `if`: choosing between two things
+
+`if` is an **expression**, like everything else that produces a value here: it
+gives back the last expression of whichever branch ran. So it works as a value:
+
+```pdfl
+check "Ink limit depends on the stock" {
+  // vars.stock comes from --var stock=coated
+  const LIMIT = if vars.stock == "coated" { 300 } else { 260 }
+
+  doc.pages.each { |page|
+    assert page.tac <= LIMIT,
+      "page #{page.number}: #{page.tac}% ink, limit #{LIMIT}%"
+  }
+}
+```
+
+and as a guard around statements, with no `else`:
+
+```pdfl
+check "Only check the cover if there is one" {
+  if doc.page_count > 1 {
+    require doc.pages.first().width > 0
+  }
+}
+```
+
+`else if` chains without extra braces:
+
+```pdfl
+size = if doc.page_count > 500 { "large" }
+       else if doc.page_count > 50 { "medium" }
+       else { "small" }
+```
+
+Three things worth knowing:
+
+- **A branch that does not run yields `null`.** An `if` without `else` whose
+  condition is false is `null` — which is falsy, so it can be tested directly.
+- **A branch has its own scope**, like a block or a function. A variable created
+  inside a branch does not exist after it. Assigning to a variable that already
+  exists outside still updates that one.
+- **The `{` after the condition opens the body.** If the condition itself ends
+  in a block, wrap it in parentheses, or the body's brace would be read as that
+  block's:
+
+```pdfl
+// wrong: the { is taken as the body of the if
+// if doc.pages.all { |p| p.width > 0 } { ... }
+
+// right
+if (doc.pages.all { |p| p.width > 0 }) {
+  require doc.page_count > 0
+}
+```
+
+> `if` is for choosing a value or guarding a statement — not for replacing a
+> failed check with a quiet one. A validation that should fail must still fail;
+> see [1.2](#12-two-ways-to-validate).
+
+---
+
+## 1.6 Blocks: repeating for each item
 
 Blocks are pieces of code in braces that take a parameter between vertical bars.
 They read like a sentence: "for each page, do...".
@@ -298,7 +360,7 @@ check "Named steps" {
 
 ---
 
-## 1.6 Functions: naming your rules
+## 1.7 Functions: naming your rules
 
 When the same verification shows up in several places, give it a name:
 
@@ -331,7 +393,7 @@ Rules for functions:
 
 ---
 
-## 1.7 Imports: sharing between profiles
+## 1.8 Imports: sharing between profiles
 
 Put common rules in one file and import it wherever you need.
 
@@ -365,7 +427,7 @@ circular imports do not hang.
 
 ---
 
-## 1.8 Rules (`rule`): validating page by page
+## 1.9 Rules (`rule`): validating page by page
 
 A `rule` is a check that runs once per page, with the page already bound to the
 `page` variable:
@@ -400,7 +462,7 @@ rule "Body pages numbered" on doc.pages.filter { |p| p.number > 2 } {
 
 ---
 
-## 1.9 Variables and scope
+## 1.10 Variables and scope
 
 ```pdfl
 const GLOBAL = 100          // visible throughout the file
@@ -446,7 +508,7 @@ report a file nobody validated.
 
 ---
 
-## 1.10 Messages that help whoever gets the file
+## 1.11 Messages that help whoever gets the file
 
 The quality of the report depends on the messages you write. Compare:
 
@@ -480,7 +542,7 @@ check "Context" {
 
 ---
 
-## 1.11 Common errors
+## 1.12 Common errors
 
 | Message | Cause | Fix |
 |---|---|---|
@@ -490,6 +552,7 @@ check "Context" {
 | `fix:: is only available in the 'pdfl fix' command` | `fix::` used under `pdfl run` | use `pdfl fix input.pdf script.pdfl --output out.pdf` |
 | `unknown unit: 'kg'` | invalid unit suffix | use `pt`, `mm`, `cm`, `in` or `%` |
 | `expected '{' with the rule body` | `on` selection ends in a property | wrap the selection in parentheses |
+| `the '{' here opens the body of the if` | the `if` condition ends in a block | wrap the condition in parentheses |
 | `unexpected expression: Dot` | chain split across lines | keep `.method` on the same line, or use intermediate variables |
 
 Before running, it is always worth doing:

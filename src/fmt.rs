@@ -105,6 +105,8 @@ fn render_token(tok: &Tok) -> String {
         Import => "import".into(),
         Rule => "rule".into(),
         On => "on".into(),
+        If => "if".into(),
+        Else => "else".into(),
         Ident(s) => s.clone(),
         LBrace => "{".into(),
         RBrace => "}".into(),
@@ -171,6 +173,26 @@ mod tests {
         let src = "profile \"x\"{\ncheck \"a\"   {\nrequire doc.page_count>0\n}\n}\n";
         let want = "profile \"x\" {\n  check \"a\" {\n    require doc.page_count > 0\n  }\n}\n";
         assert_eq!(format_source(src).unwrap(), want);
+    }
+
+    /// `} else {` closes and reopens on one line: the leading `}` dedents the
+    /// line and the trailing `{` restores the depth, so the branches line up
+    /// under the if.
+    #[test]
+    fn if_else_indentation() {
+        let src = "check \"a\" {\nif x>1 {\nrequire a\n} else {\nrequire b\n}\n}\n";
+        let want =
+            "check \"a\" {\n  if x > 1 {\n    require a\n  } else {\n    require b\n  }\n}\n";
+        assert_eq!(format_source(src).unwrap(), want);
+    }
+
+    #[test]
+    fn if_as_a_value_stays_on_one_line() {
+        let src = "const L=if coated{300}else{260}\n";
+        let got = format_source(src).unwrap();
+        assert_eq!(got, "const L = if coated { 300 } else { 260 }\n");
+        // Formatting is idempotent: the result formats to itself.
+        assert_eq!(format_source(&got).unwrap(), got);
     }
 
     #[test]

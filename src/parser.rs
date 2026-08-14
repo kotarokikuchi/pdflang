@@ -22,7 +22,7 @@ impl std::error::Error for ParseError {}
 
 pub fn parse(source: &str) -> Result<Vec<Stmt>, ParseError> {
     let toks = tokenize(source).map_err(|e| ParseError { message: e.message, line: e.line, col: e.col })?;
-    let mut p = Parser { toks, pos: 0 };
+    let mut p = Parser { toks, pos: 0, no_brace: false };
     p.parse_program()
 }
 
@@ -33,7 +33,7 @@ fn parse_expr_source(source: &str, line: usize, col: usize) -> Result<Expr, Pars
         line,
         col,
     })?;
-    let mut p = Parser { toks, pos: 0 };
+    let mut p = Parser { toks, pos: 0, no_brace: false };
     let expr = p.expr()?;
     p.skip_newlines();
     if !matches!(p.peek(), Tok::Eof) {
@@ -45,6 +45,9 @@ fn parse_expr_source(source: &str, line: usize, col: usize) -> Result<Expr, Pars
 struct Parser {
     toks: Vec<Token>,
     pos: usize,
+    /// Set while parsing an `if` condition: a trailing `{` opens the body, so
+    /// it must not be taken as a method block.
+    no_brace: bool,
 }
 
 impl Parser {
@@ -380,6 +383,9 @@ impl Parser {
 
     fn call_args(&mut self) -> Result<Vec<Arg>, ParseError> {
         self.expect(Tok::LParen, "'('")?;
+        // Inside parentheses a `{` can only be a block: the if body cannot
+        // start until the arguments close.
+        let outer_no_brace = std::mem::replace(&mut self.no_brace, false);
         let mut args = Vec::new();
         loop {
             self.skip_newlines();
@@ -405,12 +411,13 @@ impl Parser {
         }
         self.skip_newlines();
         self.expect(Tok::RParen, "')'")?;
+        self.no_brace = outer_no_brace;
         Ok(args)
     }
 
     /// A `{ |a, b| body }` block — the `|params|` part is optional.
     fn maybe_block(&mut self) -> Result<Option<Block>, ParseError> {
-        if !matches!(self.peek(), Tok::LBrace) {
+        if self.no_brace || !matches!(self.peek(), Tok::LBrace) {
             return Ok(None);
         }
         self.advance();
@@ -435,6 +442,72 @@ impl Parser {
         Ok(Some(Block { params, body }))
     }
 
+    /// `if cond { ... } [else { ... } | else if ...]`, with the `if` already
+    /// consumed by `primary`.
+    ///
+    /// The condition is parsed with `no_brace_expr`, so the `{` that opens the
+    /// body is never mistaken for a method block — the same ambiguity `rule ...
+    /// on` already has to dodge, but here it can be prevented outright instead
+    /// of explained after the fact.
+    fn if_expr(&mut self) -> Result<Expr, ParseError> {
+        let cond = self.no_brace_expr()?;
+        self.skip_newlines();
+        // `if doc.pages.all { |p| ... } { ... }` — the first `{` was taken as
+        // the body, so the block's `|` is about to fail with a token-level
+        // error. Same trap as `rule ... on`, and it gets the same kind of
+        // answer rather than "unexpected expression: Pipe".
+        if matches!(self.peek(), Tok::LBrace) && matches!(self.peek2(), Tok::Pipe) {
+            return Err(self.error(
+                "the '{' here opens the body of the if, so the block belongs to the condition — \
+                 wrap the condition in parentheses: if (doc.pages.all { |p| ... }) { ... }"
+                    .to_string(),
+            ));
+        }
+        if !matches!(self.peek(), Tok::LBrace) {
+            return Err(self.error(format!(
+                "expected '{{' with the body of the if, found {}",
+                self.peek()
+            )));
+        }
+        let then = self.braced_body()?;
+
+        // `else` may sit on the line after the closing brace, so newlines are
+        // skipped before looking — but only tentatively: if what follows is not
+        // an `else`, the position is restored so the newline still terminates
+        // the statement.
+        let save = self.pos;
+        self.skip_newlines();
+        if !matches!(self.peek(), Tok::Else) {
+            self.pos = save;
+            return Ok(Expr::If { cond: Box::new(cond), then, otherwise: None });
+        }
+        self.advance();
+        self.skip_newlines();
+        // `else if` chains without needing braces around the inner if.
+        let otherwise = if matches!(self.peek(), Tok::If) {
+            self.advance();
+            vec![Stmt::Expr(self.if_expr()?)]
+        } else {
+            if !matches!(self.peek(), Tok::LBrace) {
+                return Err(self.error(format!(
+                    "expected '{{' or 'if' after else, found {}",
+                    self.peek()
+                )));
+            }
+            self.braced_body()?
+        };
+        Ok(Expr::If { cond: Box::new(cond), then, otherwise: Some(otherwise) })
+    }
+
+    /// An expression for a position immediately followed by a `{` body: a
+    /// trailing `{` is the body, never a block argument.
+    fn no_brace_expr(&mut self) -> Result<Expr, ParseError> {
+        self.no_brace = true;
+        let result = self.expr();
+        self.no_brace = false;
+        result
+    }
+
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let (line, col) = (self.toks[self.pos].line, self.toks[self.pos].col);
         match self.advance() {
@@ -454,6 +527,7 @@ impl Parser {
                 Ok(Expr::Str(parts))
             }
             Tok::LBracket => {
+                let outer_no_brace = std::mem::replace(&mut self.no_brace, false);
                 let mut items = Vec::new();
                 loop {
                     self.skip_newlines();
@@ -469,15 +543,21 @@ impl Parser {
                     }
                 }
                 self.expect(Tok::RBracket, "']'")?;
+                self.no_brace = outer_no_brace;
                 Ok(Expr::List(items))
             }
             Tok::LParen => {
+                // Parenthesised: a `{` inside belongs to whatever is in here,
+                // not to an enclosing if.
+                let outer_no_brace = std::mem::replace(&mut self.no_brace, false);
                 self.skip_newlines();
                 let e = self.expr()?;
                 self.skip_newlines();
                 self.expect(Tok::RParen, "')'")?;
+                self.no_brace = outer_no_brace;
                 Ok(e)
             }
+            Tok::If => self.if_expr(),
             Tok::Ident(name) => {
                 if matches!(self.peek(), Tok::ColonColon) {
                     // Namespace call: text::count_words(...)
@@ -566,6 +646,16 @@ impl fmt::Display for Expr {
                 UnOp::Not => write!(f, "!{expr}"),
                 UnOp::Neg => write!(f, "-{expr}"),
             },
+            // Bodies collapse to `...`: an automatic `require` message names
+            // the condition that failed, and inlining whole branches would bury
+            // it.
+            Expr::If { cond, otherwise, .. } => {
+                write!(f, "if {cond} {{ ... }}")?;
+                if otherwise.is_some() {
+                    write!(f, " else {{ ... }}")?;
+                }
+                Ok(())
+            }
             Expr::Binary { op, left, right } => {
                 let sym = match op {
                     BinOp::Add => "+",
@@ -685,6 +775,68 @@ profile "offset" {
         let Stmt::Expr(Expr::Call { name, args, .. }) = &prog[0] else { panic!() };
         assert_eq!(name, "text::extract_all");
         assert!(args.is_empty());
+    }
+
+    #[test]
+    fn if_as_a_value_with_else() {
+        let prog = parse("const L = if coated { 300 } else { 260 }").unwrap();
+        let Stmt::Const { value: Expr::If { then, otherwise: Some(otherwise), .. }, .. } = &prog[0]
+        else {
+            panic!("expected a const bound to an if expression")
+        };
+        assert_eq!(then.len(), 1);
+        assert_eq!(otherwise.len(), 1);
+    }
+
+    #[test]
+    fn if_without_else() {
+        let prog = parse("if x {\n  require y\n}").unwrap();
+        let Stmt::Expr(Expr::If { otherwise, .. }) = &prog[0] else { panic!("expected an if") };
+        assert!(otherwise.is_none());
+    }
+
+    /// `else if` nests without braces around the inner if, so a chain stays flat
+    /// to read.
+    #[test]
+    fn else_if_chains() {
+        let prog = parse(r#"n = if a { 1 } else if b { 2 } else { 3 }"#).unwrap();
+        let Stmt::Assign { value: Expr::If { otherwise: Some(outer), .. }, .. } = &prog[0] else {
+            panic!("expected an if")
+        };
+        assert_eq!(outer.len(), 1);
+        let Stmt::Expr(Expr::If { otherwise: Some(inner), .. }) = &outer[0] else {
+            panic!("expected the else to hold another if")
+        };
+        assert_eq!(inner.len(), 1);
+    }
+
+    /// The `{` after the condition is the body, so a method block in the
+    /// condition needs parentheses — and says so instead of failing on the `|`.
+    #[test]
+    fn block_in_condition_is_explained() {
+        let err = parse("if doc.pages.all { |p| p.w > 0 } {\n  require x\n}").unwrap_err();
+        assert!(err.message.contains("wrap the condition in parentheses"), "{}", err.message);
+
+        // With the parentheses it parses.
+        assert!(parse("if (doc.pages.all { |p| p.w > 0 }) {\n  require x\n}").is_ok());
+    }
+
+    /// An `else` on the line after the closing brace still belongs to the if,
+    /// but a newline with no `else` after it still ends the statement.
+    #[test]
+    fn else_may_sit_on_the_next_line() {
+        assert!(parse("v = if a {\n  1\n}\nelse {\n  2\n}").is_ok());
+
+        let prog = parse("v = if a {\n  1\n}\nw = 2").unwrap();
+        assert_eq!(prog.len(), 2, "the newline still separates the statements");
+        assert!(matches!(&prog[1], Stmt::Assign { name, .. } if name == "w"));
+    }
+
+    #[test]
+    fn if_renders_without_inlining_its_branches() {
+        let prog = parse("require if a { 1 } else { 2 }").unwrap();
+        let Stmt::Assert { source, .. } = &prog[0] else { panic!() };
+        assert_eq!(source, "if a { ... } else { ... }");
     }
 
     #[test]

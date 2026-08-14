@@ -12,6 +12,17 @@ em silêncio.
 
 ## Ainda não publicado
 
+### Novo
+
+- `if` / `else if` / `else`, como **expressão**: o valor é a última expressão do
+  ramo que rodou, a mesma regra que uma função já segue. Serve tanto como valor
+  (`const LIMITE = if couche { 300 } else { 260 }`) quanto como guarda em volta
+  de comandos, sem uma segunda sintaxe. Um ramo que não roda devolve `null`, e
+  cada ramo tem escopo próprio — atribuir a uma variável que já existe fora
+  continua atualizando aquela.
+
+---
+
 ## 0.14.0
 
 ### Corrigido

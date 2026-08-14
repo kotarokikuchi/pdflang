@@ -261,8 +261,25 @@ fn expr_uses_fix(expr: &Expr) -> bool {
         }
         Expr::Binary { left, right, .. } => expr_uses_fix(left) || expr_uses_fix(right),
         Expr::Unary { expr, .. } => expr_uses_fix(expr),
+        // A branch is a body like any other: `fix::` hidden in one still makes
+        // the script a fix script. The `_` arm below cannot catch this, so it
+        // is spelled out.
+        Expr::If { cond, then, otherwise } => {
+            expr_uses_fix(cond)
+                || body_uses_fix(then)
+                || otherwise.as_ref().is_some_and(|b| body_uses_fix(b))
+        }
         _ => false,
     }
+}
+
+fn body_uses_fix(body: &[Stmt]) -> bool {
+    body.iter().any(|s| match s {
+        Stmt::Expr(e) => expr_uses_fix(e),
+        Stmt::Assert { cond, .. } => expr_uses_fix(cond),
+        Stmt::Const { value, .. } | Stmt::Assign { value, .. } => expr_uses_fix(value),
+        _ => false,
+    })
 }
 
 #[cfg(test)]

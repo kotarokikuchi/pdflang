@@ -239,7 +239,69 @@ check "Operators" {
 
 ---
 
-## 1.5 ブロック：各要素に対する繰り返し
+## 1.5 `if`：2つのうちどちらかを選ぶ
+
+`if` は**式**です。ここで値を生むものすべてと同じく、実行された側の分岐の最後の
+式を返します。だから値として使えます。
+
+```pdfl
+check "インキ制限は用紙で変わる" {
+  // vars.stock は --var stock=coated から来ます
+  const LIMIT = if vars.stock == "coated" { 300 } else { 260 }
+
+  doc.pages.each { |page|
+    assert page.tac <= LIMIT,
+      "#{page.number}ページ：インキ #{page.tac}%、上限 #{LIMIT}%"
+  }
+}
+```
+
+`else` なしで、文を囲むガードとしても使えます。
+
+```pdfl
+check "表紙がある場合だけ確認する" {
+  if doc.page_count > 1 {
+    require doc.pages.first().width > 0
+  }
+}
+```
+
+`else if` は余分な波かっこなしでつながります。
+
+```pdfl
+size = if doc.page_count > 500 { "large" }
+       else if doc.page_count > 50 { "medium" }
+       else { "small" }
+```
+
+知っておくとよいことが3つあります。
+
+- **実行されない分岐は `null` を返します。** `else` のない `if` で条件が偽なら
+  `null`——これは偽なので、そのまま判定に使えます。
+- **分岐にはそれぞれのスコープがあります。** ブロックや関数と同じです。分岐の中で
+  作った変数は、その外には存在しません。外にすでにある変数への代入は、これまで
+  どおりその変数を更新します。
+- **条件のあとの `{` は本体の始まりです。** 条件自体がブロックで終わる場合は
+  かっこで囲んでください。そうしないと本体の波かっこが、そのブロックのものとして
+  読まれてしまいます。
+
+```pdfl
+// 誤り：この { が if の本体とみなされる
+// if doc.pages.all { |p| p.width > 0 } { ... }
+
+// 正しい
+if (doc.pages.all { |p| p.width > 0 }) {
+  require doc.page_count > 0
+}
+```
+
+> `if` は値を選ぶため、あるいは文を守るためのものです。失敗した検証を黙った検証に
+> すり替えるためのものではありません。失敗すべき検証はこれまでどおり失敗します。
+> [1.2](#12-2つの検証の書き方) を参照してください。
+
+---
+
+## 1.6 ブロック：各要素に対する繰り返し
 
 ブロックは波かっこで囲み、縦棒の間に引数を書きます。「各ページについて〜する」
 と読めます。
@@ -299,7 +361,7 @@ check "Named steps" {
 
 ---
 
-## 1.6 関数：ルールに名前を付ける
+## 1.7 関数：ルールに名前を付ける
 
 同じ検証が何度も出てくるなら、名前を付けましょう：
 
@@ -331,7 +393,7 @@ check "Format and ink" {
 
 ---
 
-## 1.7 import：プロファイル間での共有
+## 1.8 import：プロファイル間での共有
 
 共通のルールを1つのファイルにまとめ、必要な場所で読み込みます。
 
@@ -365,7 +427,7 @@ check "Format" {
 
 ---
 
-## 1.8 rule：ページごとの検証
+## 1.9 rule：ページごとの検証
 
 `rule` は各ページに対して1回ずつ実行される check です。ページは `page`
 変数に入っています：
@@ -400,7 +462,7 @@ rule "Body pages numbered" on doc.pages.filter { |p| p.number > 2 } {
 
 ---
 
-## 1.9 変数とスコープ
+## 1.10 変数とスコープ
 
 ```pdfl
 const GLOBAL = 100          // ファイル全体で有効
@@ -448,7 +510,7 @@ pdfl run intake.pdfl received.pdf --var order=SO-4471
 
 ---
 
-## 1.10 受け取る人に役立つメッセージ
+## 1.11 受け取る人に役立つメッセージ
 
 レポートの質は、あなたが書くメッセージで決まります。比べてみましょう：
 
@@ -482,7 +544,7 @@ check "Context" {
 
 ---
 
-## 1.11 よくあるエラー
+## 1.12 よくあるエラー
 
 | メッセージ | 原因 | 対処 |
 |---|---|---|
@@ -492,6 +554,7 @@ check "Context" {
 | `fix:: is only available in the 'pdfl fix' command` | `pdfl run` で `fix::` を使用 | `pdfl fix input.pdf script.pdfl --output out.pdf` を使う |
 | `unknown unit: 'kg'` | 不正な単位 | `pt`、`mm`、`cm`、`in`、`%` を使う |
 | `expected '{' with the rule body` | `on` の選択式がプロパティで終わっている | 選択式をかっこで囲む |
+| `the '{' here opens the body of the if` | `if` の条件がブロックで終わっている | 条件をかっこで囲む |
 | `unexpected expression: Dot` | 連結が複数行に分かれている | `.method` を同じ行に置くか、中間変数を使う |
 
 実行前には常にこれを行う価値があります：

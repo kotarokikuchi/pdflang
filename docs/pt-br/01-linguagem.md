@@ -240,7 +240,69 @@ check "Operadores" {
 
 ---
 
-## 1.5 Blocos: repetindo para cada item
+## 1.5 `if`: escolher entre duas coisas
+
+`if` é uma **expressão**, como tudo que produz valor aqui: devolve a última
+expressão do ramo que rodou. Então serve como valor:
+
+```pdfl
+check "O limite de tinta depende do papel" {
+  // vars.papel vem de --var papel=couche
+  const LIMITE = if vars.papel == "couche" { 300 } else { 260 }
+
+  doc.pages.each { |page|
+    assert page.tac <= LIMITE,
+      "página #{page.number}: #{page.tac}% de tinta, limite #{LIMITE}%"
+  }
+}
+```
+
+e como guarda em volta de comandos, sem `else`:
+
+```pdfl
+check "Só verifica a capa se existir" {
+  if doc.page_count > 1 {
+    require doc.pages.first().width > 0
+  }
+}
+```
+
+`else if` encadeia sem chaves a mais:
+
+```pdfl
+tamanho = if doc.page_count > 500 { "grande" }
+          else if doc.page_count > 50 { "médio" }
+          else { "pequeno" }
+```
+
+Três coisas que vale saber:
+
+- **Um ramo que não roda devolve `null`.** Um `if` sem `else` com condição falsa
+  é `null` — que é falso, então dá para testar direto.
+- **Cada ramo tem escopo próprio**, como um bloco ou uma função. Variável criada
+  dentro do ramo não existe depois dele. Atribuir a uma variável que já existe
+  fora continua atualizando aquela.
+- **A `{` depois da condição abre o corpo.** Se a própria condição terminar em
+  bloco, coloque-a entre parênteses, senão a chave do corpo seria lida como a
+  daquele bloco:
+
+```pdfl
+// errado: a { é tomada como o corpo do if
+// if doc.pages.all { |p| p.width > 0 } { ... }
+
+// certo
+if (doc.pages.all { |p| p.width > 0 }) {
+  require doc.page_count > 0
+}
+```
+
+> `if` serve para escolher um valor ou proteger um comando — não para trocar uma
+> verificação que falhou por uma calada. Uma validação que deve falhar continua
+> falhando; veja [1.2](#12-duas-formas-de-validar).
+
+---
+
+## 1.6 Blocos: repetindo para cada item
 
 Blocos são trechos entre chaves que recebem um parâmetro entre barras verticais.
 É como se lê em português: "para cada página, faça...".
@@ -299,7 +361,7 @@ check "Etapas nomeadas" {
 
 ---
 
-## 1.6 Functions: dando nome às suas regras
+## 1.7 Functions: dando nome às suas regras
 
 Quando a mesma verificação aparece em vários lugares, dê um nome a ela:
 
@@ -331,7 +393,7 @@ Regras das functions:
 
 ---
 
-## 1.7 Imports: reaproveitando entre perfis
+## 1.8 Imports: reaproveitando entre perfis
 
 Coloque as regras comuns em um arquivo e importe onde precisar.
 
@@ -365,7 +427,7 @@ Cada arquivo é carregado **uma única vez**, mesmo que vários scripts o import
 
 ---
 
-## 1.8 Regras (`rule`): validar página a página
+## 1.9 Regras (`rule`): validar página a página
 
 Uma `rule` é um check que roda uma vez para cada página, com a página já
 disponível na variável `page`:
@@ -400,7 +462,7 @@ rule "Miolo numerado" on doc.pages.filter { |p| p.number > 2 } {
 
 ---
 
-## 1.9 Variáveis e escopo
+## 1.10 Variáveis e escopo
 
 ```pdfl
 const GLOBAL = 100          // visível no arquivo inteiro
@@ -447,7 +509,7 @@ arquivo que ninguém validou.
 
 ---
 
-## 1.10 Mensagens que ajudam quem recebe o arquivo
+## 1.11 Mensagens que ajudam quem recebe o arquivo
 
 A qualidade do relatório depende das mensagens que você escreve. Compare:
 
@@ -481,7 +543,7 @@ check "Contexto" {
 
 ---
 
-## 1.11 Erros comuns
+## 1.12 Erros comuns
 
 As mensagens do `pdfl` são em inglês; a tabela liga cada uma à causa.
 
@@ -493,6 +555,7 @@ As mensagens do `pdfl` são em inglês; a tabela liga cada uma à causa.
 | `fix:: is only available in the 'pdfl fix' command` | `fix::` em `pdfl run` | use `pdfl fix entrada.pdf script.pdfl --output saida.pdf` |
 | `unknown unit: 'kg'` | sufixo inválido | use `pt`, `mm`, `cm`, `in` ou `%` |
 | `expected '{' with the rule body` | `on` com seleção terminando em propriedade | envolva a seleção em parênteses |
+| `the '{' here opens the body of the if` | a condição do `if` termina em bloco | envolva a condição em parênteses |
 | `unexpected expression: Dot` | encadeamento quebrado em várias linhas | mantenha `.metodo` na mesma linha, ou use variáveis intermediárias |
 
 Antes de rodar, vale sempre:

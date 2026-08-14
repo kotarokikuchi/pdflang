@@ -235,7 +235,66 @@ check "Operators" {
 
 ---
 
-## 1.5 块：对每个元素重复
+## 1.5 `if`：在两者之间做选择
+
+`if` 是**表达式**——和这里所有能产生值的东西一样，它返回所走那个分支的最后一个
+表达式。因此它可以当值用：
+
+```pdfl
+check "墨量上限取决于纸张" {
+  // vars.stock 来自 --var stock=coated
+  const LIMIT = if vars.stock == "coated" { 300 } else { 260 }
+
+  doc.pages.each { |page|
+    assert page.tac <= LIMIT,
+      "第 #{page.number} 页：墨量 #{page.tac}%，上限 #{LIMIT}%"
+  }
+}
+```
+
+也可以当作语句的守卫，不写 `else`：
+
+```pdfl
+check "只在有封面时才检查封面" {
+  if doc.page_count > 1 {
+    require doc.pages.first().width > 0
+  }
+}
+```
+
+`else if` 无需额外的花括号即可串联：
+
+```pdfl
+size = if doc.page_count > 500 { "large" }
+       else if doc.page_count > 50 { "medium" }
+       else { "small" }
+```
+
+有三点值得知道：
+
+- **没有走到的分支返回 `null`。** 条件为假且没有 `else` 的 `if` 就是 `null`——
+  它是假值，可以直接拿来判断。
+- **每个分支有自己的作用域**，和块或函数一样。在分支里创建的变量，出了分支就不
+  存在。给分支外已经存在的变量赋值，仍然更新的是外面那个。
+- **条件后面的 `{` 是函数体的开始。** 如果条件本身以块结尾，请给条件加括号，
+  否则函数体的花括号会被当成那个块的：
+
+```pdfl
+// 错误：这个 { 会被当作 if 的主体
+// if doc.pages.all { |p| p.width > 0 } { ... }
+
+// 正确
+if (doc.pages.all { |p| p.width > 0 }) {
+  require doc.page_count > 0
+}
+```
+
+> `if` 是用来选一个值、或者给语句加保护的——不是用来把一个失败的校验换成一个沉默
+> 的校验。该失败的校验仍然会失败；参见 [1.2](#12-两种校验写法)。
+
+---
+
+## 1.6 块：对每个元素重复
 
 块是写在花括号里的代码，参数放在两个竖线之间。读起来就像「对每一页，做……」。
 
@@ -291,7 +350,7 @@ check "Named steps" {
 
 ---
 
-## 1.6 函数：给规则起名字
+## 1.7 函数：给规则起名字
 
 当同一段校验反复出现时，给它起个名字：
 
@@ -323,7 +382,7 @@ check "Format and ink" {
 
 ---
 
-## 1.7 import：在配置之间复用
+## 1.8 import：在配置之间复用
 
 把通用规则放进一个文件，在需要的地方引入。
 
@@ -356,7 +415,7 @@ check "Format" {
 
 ---
 
-## 1.8 rule：逐页校验
+## 1.9 rule：逐页校验
 
 `rule` 是对每一页执行一次的 check，页面已绑定到 `page` 变量：
 
@@ -389,7 +448,7 @@ rule "Body pages numbered" on doc.pages.filter { |p| p.number > 2 } {
 
 ---
 
-## 1.9 变量与作用域
+## 1.10 变量与作用域
 
 ```pdfl
 const GLOBAL = 100          // 整个文件可见
@@ -434,7 +493,7 @@ pdfl run intake.pdfl received.pdf --var order=SO-4471
 
 ---
 
-## 1.10 让收件人受益的消息
+## 1.11 让收件人受益的消息
 
 报告的质量取决于你写的消息。对比一下：
 
@@ -467,7 +526,7 @@ check "Context" {
 
 ---
 
-## 1.11 常见错误
+## 1.12 常见错误
 
 | 消息 | 原因 | 处理 |
 |---|---|---|
@@ -477,6 +536,7 @@ check "Context" {
 | `fix:: is only available in the 'pdfl fix' command` | 在 `pdfl run` 中使用 `fix::` | 改用 `pdfl fix input.pdf script.pdfl --output out.pdf` |
 | `unknown unit: 'kg'` | 单位无效 | 使用 `pt`、`mm`、`cm`、`in` 或 `%` |
 | `expected '{' with the rule body` | `on` 的选择表达式以属性结尾 | 用括号包住选择表达式 |
+| `the '{' here opens the body of the if` | `if` 的条件以块结尾 | 用括号包住条件 |
 | `unexpected expression: Dot` | 串联被换行截断 | 把 `.method` 放在同一行，或使用中间变量 |
 
 运行之前，做这两件事总是值得的：

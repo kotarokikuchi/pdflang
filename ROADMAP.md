@@ -211,6 +211,7 @@ same thing as a published action other people can use.
 | Area | State |
 |---|---|
 | Core and inspection | 🟩 **yes** — domain types, `check`/`rule`, imports, metadata, SHA-256, normalized text extraction, glossaries, region masks, personal data with valid check digits |
+| Conditionals | 🟩 yes — `if`/`else if`/`else` as an **expression**, so a function can finally yield one value or another instead of only composing booleans |
 | Diagnostics in more than one language | 🟥 no — output is English-only |
 | Comparison | 🟧 partial — text diff with LCS page alignment, pHash, SSIM, pixel diff, Delta-E; **no** typography/table/vector diff, no anchor alignment, no moved-vs-changed semantics, no accept/reject/review triage |
 | Preflight | 🟩 **largely yes** — exact TAC from real separations, hairlines, overprint, bleed, spot colors, rich black, output intent, font details |

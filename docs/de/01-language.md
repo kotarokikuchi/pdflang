@@ -245,7 +245,69 @@ check "Operators" {
 
 ---
 
-## 1.5 Blöcke: für jedes Element wiederholen
+## 1.5 `if`: zwischen zwei Dingen wählen
+
+`if` ist ein **Ausdruck**, wie alles hier, was einen Wert liefert: es gibt den
+letzten Ausdruck des gelaufenen Zweigs zurück. Also taugt es als Wert:
+
+```pdfl
+check "Das Farblimit hängt vom Papier ab" {
+  // vars.papier kommt von --var papier=gestrichen
+  const LIMIT = if vars.papier == "gestrichen" { 300 } else { 260 }
+
+  doc.pages.each { |page|
+    assert page.tac <= LIMIT,
+      "Seite #{page.number}: #{page.tac}% Farbe, Grenze #{LIMIT}%"
+  }
+}
+```
+
+und als Wächter um Anweisungen, ohne `else`:
+
+```pdfl
+check "Den Umschlag nur prüfen, wenn es einen gibt" {
+  if doc.page_count > 1 {
+    require doc.pages.first().width > 0
+  }
+}
+```
+
+`else if` verkettet ohne zusätzliche Klammern:
+
+```pdfl
+groesse = if doc.page_count > 500 { "groß" }
+          else if doc.page_count > 50 { "mittel" }
+          else { "klein" }
+```
+
+Drei Dinge, die man wissen sollte:
+
+- **Ein Zweig, der nicht läuft, liefert `null`.** Ein `if` ohne `else` mit
+  falscher Bedingung ist `null` — und das ist falsch, also direkt prüfbar.
+- **Jeder Zweig hat einen eigenen Gültigkeitsbereich**, wie ein Block oder eine
+  Funktion. Eine im Zweig angelegte Variable existiert danach nicht mehr. Einer
+  Variablen zuzuweisen, die außerhalb schon existiert, ändert weiterhin jene.
+- **Die `{` nach der Bedingung öffnet den Rumpf.** Endet die Bedingung selbst in
+  einem Block, setzen Sie sie in Klammern, sonst würde die Klammer des Rumpfes
+  als die jenes Blocks gelesen:
+
+```pdfl
+// falsch: die { wird als Rumpf des if genommen
+// if doc.pages.all { |p| p.width > 0 } { ... }
+
+// richtig
+if (doc.pages.all { |p| p.width > 0 }) {
+  require doc.page_count > 0
+}
+```
+
+> `if` dient dazu, einen Wert zu wählen oder eine Anweisung zu schützen — nicht
+> dazu, eine gescheiterte Prüfung durch eine stille zu ersetzen. Eine Validierung,
+> die scheitern soll, scheitert weiterhin; siehe [1.2](#12-zwei-arten-zu-validieren).
+
+---
+
+## 1.6 Blöcke: für jedes Element wiederholen
 
 Ein Block ist Code in geschweiften Klammern, mit den Parametern zwischen zwei
 senkrechten Strichen. Es liest sich als „für jede Seite tue …“.
@@ -304,7 +366,7 @@ check "Named steps" {
 
 ---
 
-## 1.6 Funktionen: einer Regel einen Namen geben
+## 1.7 Funktionen: einer Regel einen Namen geben
 
 Wenn dieselbe Prüfung mehrfach auftaucht, geben Sie ihr einen Namen:
 
@@ -337,7 +399,7 @@ Regeln für Funktionen:
 
 ---
 
-## 1.7 import: zwischen Profilen wiederverwenden
+## 1.8 import: zwischen Profilen wiederverwenden
 
 Legen Sie gemeinsame Regeln in eine Datei und importieren Sie sie dort, wo Sie
 sie brauchen.
@@ -372,7 +434,7 @@ importieren — zyklische Importe blockieren also nichts.
 
 ---
 
-## 1.8 rule: Seite für Seite prüfen
+## 1.9 rule: Seite für Seite prüfen
 
 Eine `rule` ist ein check, der einmal pro Seite läuft, wobei die Seite bereits an
 die Variable `page` gebunden ist:
@@ -407,7 +469,7 @@ rule "Body pages numbered" on doc.pages.filter { |p| p.number > 2 } {
 
 ---
 
-## 1.9 Variablen und Gültigkeitsbereich
+## 1.10 Variablen und Gültigkeitsbereich
 
 ```pdfl
 const GLOBAL = 100          // in der ganzen Datei sichtbar
@@ -455,7 +517,7 @@ bestünde sonst und meldete eine Datei, die niemand geprüft hat.
 
 ---
 
-## 1.10 Meldungen, die dem Empfänger helfen
+## 1.11 Meldungen, die dem Empfänger helfen
 
 Die Qualität des Berichts hängt an den Meldungen, die Sie schreiben. Vergleichen
 Sie:
@@ -490,7 +552,7 @@ check "Context" {
 
 ---
 
-## 1.11 Häufige Fehler
+## 1.12 Häufige Fehler
 
 | Meldung | Ursache | Abhilfe |
 |---|---|---|
@@ -500,6 +562,7 @@ check "Context" {
 | `fix:: is only available in the 'pdfl fix' command` | `fix::` unter `pdfl run` benutzt | `pdfl fix input.pdf script.pdfl --output out.pdf` |
 | `unknown unit: 'kg'` | Ungültige Einheit | `pt`, `mm`, `cm`, `in` oder `%` verwenden |
 | `expected '{' with the rule body` | Ausdruck nach `on` endet mit einer Eigenschaft | In Klammern setzen |
+| `the '{' here opens the body of the if` | die `if`-Bedingung endet in einem Block | In Klammern setzen |
 | `unexpected expression: Dot` | Kette durch Zeilenumbruch getrennt | `.methode` in derselben Zeile lassen oder Zwischenvariable nutzen |
 
 Vor dem Ausführen lohnen sich diese beiden Befehle immer:

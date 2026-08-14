@@ -38,6 +38,14 @@ pub enum Expr {
     Call { recv: Option<Box<Expr>>, name: String, args: Vec<Arg>, block: Option<Block> },
     Unary { op: UnOp, expr: Box<Expr> },
     Binary { op: BinOp, left: Box<Expr>, right: Box<Expr> },
+    /// `if cond { ... } else { ... }` — an *expression*, like everywhere else
+    /// in this language: its value is that of the last expression in whichever
+    /// branch ran, exactly as a function's value is its last expression.
+    ///
+    /// `else` is optional, and a branch that does not run yields null. That
+    /// makes `if` usable both as a value (`const limit = if coated { 300 } else
+    /// { 260 }`) and as a guard around statements, without two syntaxes.
+    If { cond: Box<Expr>, then: Vec<Stmt>, otherwise: Option<Vec<Stmt>> },
 }
 
 #[derive(Debug, Clone, PartialEq)]

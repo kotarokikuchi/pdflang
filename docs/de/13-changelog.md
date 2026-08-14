@@ -12,6 +12,17 @@ nichts stillschweigend.
 
 ## Noch nicht veröffentlicht
 
+### Neu
+
+- `if` / `else if` / `else` als **Ausdruck**: der Wert ist der letzte Ausdruck
+  des gelaufenen Zweigs — dieselbe Regel, der eine Funktion schon folgt. Damit
+  taugt es als Wert (`const LIMIT = if gestrichen { 300 } else { 260 }`) wie als
+  Wächter um Anweisungen, ohne zweite Syntax. Ein Zweig, der nicht läuft,
+  liefert `null`, und jeder Zweig hat einen eigenen Gültigkeitsbereich — einer
+  außerhalb bereits vorhandenen Variablen zuzuweisen ändert weiterhin jene.
+
+---
+
 ## 0.14.0
 
 ### Behoben

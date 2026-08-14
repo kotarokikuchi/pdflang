@@ -10,7 +10,17 @@ nichts stillschweigend.
 
 ---
 
-## Noch nicht veröffentlicht
+## 0.18.0
+
+### Bricht
+
+**Die Kennung eines `loading`-Befunds ändert sich.** Sie leitet sich aus der
+Meldung ab, und die Meldung trägt die Zeilenumbrüche von pdfium nicht mehr.
+
+> Betroffen sind nur Befunde aus einem Dokument, das nicht lesbar war — kein
+> eigener Check erzeugt so einen. Genehmigt eine Baseline eine solche Kennung,
+> muss sie neu aufgenommen werden. Deshalb ist dies ein Minor und kein Patch:
+> Auf der Kennung ruht die Baseline, also ändert sie sich nicht stillschweigend.
 
 ### Behoben
 
@@ -29,11 +39,6 @@ nichts stillschweigend.
 - Ein Fehler von pdfium erreichte den Bericht als über drei Zeilen
   ausgedrucktes Rust-Enum. Eine Diagnose ist ein Feld einer CSV-Zeile und ein
   XML-Attribut, deshalb wird sie jetzt auf eine Zeile gefaltet.
-
-### Gut zu wissen
-
-- Die Kennung eines `loading`-Befunds ändert sich, denn sie leitet sich aus der
-  Meldung ab, und die Meldung trägt diese Zeilenumbrüche nicht mehr.
 
 ---
 

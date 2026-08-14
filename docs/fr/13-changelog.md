@@ -10,7 +10,18 @@ adapter. Rien ne change ici en silence.
 
 ---
 
-## Non publié
+## 0.18.0
+
+### Casse
+
+**L'identifiant d'un constat `loading` change.** Il dérive du message, et le
+message ne porte plus les retours à la ligne que pdfium y mettait.
+
+> Seuls les constats d'un document illisible sont concernés — aucun de vos
+> checks n'en produit. Si une ligne de base approuve un tel identifiant, il faut
+> l'enregistrer à nouveau. C'est ce qui fait de cette version une mineure et non
+> un correctif : un identifiant porte la ligne de base, il ne change pas en
+> silence.
 
 ### Corrigé
 
@@ -30,11 +41,6 @@ adapter. Rien ne change ici en silence.
 - Une erreur de pdfium arrivait dans le rapport sous la forme d'un enum Rust
   imprimé sur trois lignes. Un diagnostic est un champ d'une ligne CSV et un
   attribut XML : il est maintenant replié sur une seule ligne.
-
-### Bon à savoir
-
-- L'identifiant d'un constat `loading` change, car il dérive du message et le
-  message ne porte plus ces retours à la ligne.
 
 ---
 

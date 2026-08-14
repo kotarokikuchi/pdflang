@@ -10,7 +10,18 @@ quietly.
 
 ---
 
-## Unreleased
+## 0.18.0
+
+### Breaks
+
+**The identifier of a `loading` finding changes.** It is derived from the
+message, and the message no longer carries the line breaks pdfium put in it.
+
+> Only findings from a document that could not be read are affected — no check
+> of your own produces one. If a baseline approves such an identifier, it needs
+> to be recorded again. This is what makes the release a minor rather than a
+> patch: an identifier is what a baseline is built on, so it does not change
+> quietly.
 
 ### Fixed
 
@@ -28,11 +39,6 @@ quietly.
 - A pdfium error reached the report as a pretty-printed Rust enum spread over
   three lines. A diagnostic is one field of a CSV row and one XML attribute, so
   it is now folded onto a single line.
-
-### Worth knowing
-
-- The identifier of a `loading` finding changes, because it is derived from the
-  message and the message no longer carries those line breaks.
 
 ---
 

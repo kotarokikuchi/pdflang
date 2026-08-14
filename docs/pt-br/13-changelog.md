@@ -10,7 +10,17 @@ em silêncio.
 
 ---
 
-## Ainda não publicado
+## 0.18.0
+
+### Quebra
+
+**O identificador de um achado de `loading` muda.** Ele é derivado da mensagem,
+e a mensagem não carrega mais as quebras de linha que o pdfium colocava nela.
+
+> Só achados de um documento que não pôde ser lido são afetados — nenhum check
+> seu produz um desses. Se alguma baseline aprova esse identificador, ele
+> precisa ser registrado de novo. É por isso que esta versão é minor e não
+> patch: identificador é a base de uma baseline, então não muda em silêncio.
 
 ### Corrigido
 
@@ -29,11 +39,6 @@ em silêncio.
 - Um erro do pdfium chegava ao relatório como um enum do Rust impresso em três
   linhas. Um diagnóstico é um campo de uma linha de CSV e um atributo de XML,
   então agora ele é dobrado numa única linha.
-
-### Vale saber
-
-- O identificador de um achado de `loading` muda, porque ele é derivado da
-  mensagem e a mensagem não carrega mais essas quebras de linha.
 
 ---
 

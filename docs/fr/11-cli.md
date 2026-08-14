@@ -2,7 +2,7 @@
 
 [← Bibliothèque standard](10-stdlib.md) · [Sommaire](README.md) · [Suivant : recettes →](12-recipes.md)
 
-Treize commandes : cinq pour les PDF, cinq pour les scripts, deux pour la
+Treize commandes : six pour les PDF, quatre pour les scripts, deux pour la
 distribution et une pour le shell.
 
 | Commande | Rôle |

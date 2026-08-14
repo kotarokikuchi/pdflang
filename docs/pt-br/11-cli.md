@@ -2,7 +2,7 @@
 
 [← Biblioteca padrão](10-stdlib.md) · [Índice](README.md) · [Próximo: Receitas →](12-receitas.md)
 
-Treze comandos: cinco que trabalham com PDFs, cinco sobre os scripts, dois de
+Treze comandos: seis que trabalham com PDFs, quatro sobre os scripts, dois de
 distribuição e um para o shell.
 
 | Comando | O que faz |

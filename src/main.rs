@@ -382,25 +382,43 @@ fn load_program(script: &Path) -> Result<Vec<ast::Stmt>, ExitCode> {
     })
 }
 
-/// Loads the PDF; a failure still prints a report, but exits in the
+/// Loads the PDF; a failure still produces a report, but exits in the
 /// infrastructure range — the document was never judged.
+///
+/// The report goes through `emit_report` like any other, so the failure path
+/// honours `--output` and `--output-file`. Printing JSON here instead meant a
+/// pipeline that asked for JUnit in a file got neither: no file, and JSON on a
+/// stdout it was not reading, which reads as a run that never happened.
 fn load_doc(
     input: &Path,
     script_name: &str,
+    format: OutputFormat,
+    output_file: Option<&PathBuf>,
 ) -> Result<std::rc::Rc<interpreter::DocData>, ExitCode> {
     pdf::load_document(input).map_err(|e| {
+        let message = one_line(&format!("{e:#}"));
         let diag = Diagnostic {
-            id: report::fingerprint("loading", &format!("{e:#}"), 1),
+            id: report::fingerprint("loading", &message, 1),
             severity: Severity::Error,
             check_name: "loading".into(),
-            message: format!("{e:#}"),
+            message,
             line: None,
         };
         let report =
             Report::new(script_name.into(), input.to_string_lossy().into_owned(), None, 0, vec![diag]);
-        println!("{}", report.to_json());
+        emit_report(&report, format, output_file, input);
         ExitCode::from(EXIT_INFRASTRUCTURE)
     })
+}
+
+/// Collapses a message onto one line.
+///
+/// Errors coming back from pdfium arrive as a pretty-printed Rust enum —
+/// `PdfiumLibraryInternalError(\n    FormatError,\n)` — and a diagnostic is a
+/// single field in a CSV row and an XML attribute. Keeping the words and
+/// dropping the layout is what makes it fit.
+fn one_line(message: &str) -> String {
+    message.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// `--jobs 0` means "one per CPU". Anything else is taken as written: a person
@@ -691,7 +709,7 @@ fn run_cmd(
         Err(code) => return code,
     };
     let script_name = file_name(script);
-    let doc = match load_doc(input, &script_name) {
+    let doc = match load_doc(input, &script_name, format, output_file) {
         Ok(d) => d,
         Err(code) => return code,
     };
@@ -746,7 +764,7 @@ fn fix_cmd(
         Err(code) => return code,
     };
     let script_name = file_name(script);
-    let doc = match load_doc(input, &script_name) {
+    let doc = match load_doc(input, &script_name, format, report_file) {
         Ok(d) => d,
         Err(code) => return code,
     };
@@ -798,11 +816,11 @@ fn compare_cmd(
     output_file: Option<&PathBuf>,
     opts: compare::CompareOptions,
 ) -> ExitCode {
-    let doc1 = match load_doc(v1, "compare") {
+    let doc1 = match load_doc(v1, "compare", format, output_file) {
         Ok(d) => d,
         Err(code) => return code,
     };
-    let doc2 = match load_doc(v2, "compare") {
+    let doc2 = match load_doc(v2, "compare", format, output_file) {
         Ok(d) => d,
         Err(code) => return code,
     };
@@ -1128,6 +1146,52 @@ mod tests {
         // Overlaps collapse rather than comparing a page twice.
         assert_eq!(parse_page_range("1-3,2-4").unwrap(), vec![1, 2, 3, 4]);
         assert_eq!(parse_page_range(" 2 , 1 ").unwrap(), vec![1, 2]);
+    }
+
+    /// A document that cannot be read still owes the caller the format it
+    /// asked for. Emitting JSON from the failure path meant a pipeline that
+    /// asked for JUnit got JSON — or, with --output-file, got no file at all
+    /// and a report on stdout it was not reading.
+    #[test]
+    fn a_load_failure_is_reported_in_the_chosen_format() {
+        let dir = std::env::temp_dir().join("pdfl-load-failure-format");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("the temp dir is writable");
+        let missing = dir.join("not-a-document.pdf");
+        std::fs::write(&missing, b"this is not a PDF").expect("the fixture is written");
+
+        for (format, target, starts_with) in [
+            (OutputFormat::Junit, "report.xml", "<?xml"),
+            (OutputFormat::Csv, "report.csv", "id,severity"),
+            (OutputFormat::Sarif, "report.sarif", "{"),
+        ] {
+            let out = dir.join(target);
+            let code = load_doc(&missing, "profile.pdfl", format, Some(&out));
+            assert!(code.is_err(), "an unreadable document must not load");
+
+            let written = std::fs::read_to_string(&out)
+                .unwrap_or_else(|e| panic!("{target} should have been written: {e}"));
+            assert!(
+                written.starts_with(starts_with),
+                "{target} should start with {starts_with:?}, got: {}",
+                &written[..written.len().min(60)]
+            );
+            // The reason has to survive the format change, or the file is
+            // correctly shaped and useless.
+            assert!(written.contains("could not open PDF"), "{target} lost the reason");
+        }
+
+        // A message that spans lines would break the CSV row and the XML
+        // attribute it lands in.
+        let sarif = std::fs::read_to_string(dir.join("report.sarif")).expect("written above");
+        let value: serde_json::Value = serde_json::from_str(&sarif).expect("SARIF stays valid JSON");
+        let message = value["runs"][0]["results"][0]["message"]["text"]
+            .as_str()
+            .expect("the finding carries a message")
+            .to_string();
+        assert!(!message.contains('\n'), "the message must be one line, got: {message:?}");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// An 8×8 page, white except for the first `changed` pixels. No pdfium

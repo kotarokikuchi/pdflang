@@ -10,6 +10,27 @@ nichts stillschweigend.
 
 ---
 
+## Noch nicht veröffentlicht
+
+### Behoben
+
+- `--output` und `--output-file` wurden ignoriert, wenn die PDF nicht lesbar
+  war. `run`, `fix` und `compare` gaben JSON auf stdout aus, egal was verlangt
+  wurde: Eine Pipeline, die JUnit in einer Datei anforderte, bekam gar keine
+  Datei und einen Bericht auf einem Strom, den sie nicht las — eine defekte
+  Eingabe sah aus wie ein Lauf, den es nie gab, während der Exit-Code korrekt
+  `10` sagte. Der Fehlerbericht geht jetzt denselben Weg wie jeder andere.
+- Ein Fehler von pdfium erreichte den Bericht als über drei Zeilen
+  ausgedrucktes Rust-Enum. Eine Diagnose ist ein Feld einer CSV-Zeile und ein
+  XML-Attribut, deshalb wird sie jetzt auf eine Zeile gefaltet.
+
+### Gut zu wissen
+
+- Die Kennung eines `loading`-Befunds ändert sich, denn sie leitet sich aus der
+  Meldung ab, und die Meldung trägt diese Zeilenumbrüche nicht mehr.
+
+---
+
 ## 0.17.0
 
 ### Neu

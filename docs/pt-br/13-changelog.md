@@ -10,6 +10,28 @@ em silêncio.
 
 ---
 
+## Ainda não publicado
+
+### Corrigido
+
+- O `--output` e o `--output-file` eram ignorados quando o PDF não podia ser
+  lido. O `run`, o `fix` e o `compare` imprimiam JSON no stdout qualquer que
+  fosse o pedido, então uma pipeline que pedia JUnit em arquivo não recebia
+  arquivo nenhum e sim um relatório num fluxo que ela não estava lendo — um
+  arquivo corrompido parecia uma execução que nunca aconteceu, embora o código
+  de saída dissesse `10` corretamente. O relatório de falha agora sai pelo
+  mesmo caminho de todos os outros.
+- Um erro do pdfium chegava ao relatório como um enum do Rust impresso em três
+  linhas. Um diagnóstico é um campo de uma linha de CSV e um atributo de XML,
+  então agora ele é dobrado numa única linha.
+
+### Vale saber
+
+- O identificador de um achado de `loading` muda, porque ele é derivado da
+  mensagem e a mensagem não carrega mais essas quebras de linha.
+
+---
+
 ## 0.17.0
 
 ### Novo

@@ -2,7 +2,7 @@
 
 [← Standard library](10-stdlib.md) · [Index](README.md) · [Next: Recipes →](12-recipes.md)
 
-Thirteen commands: five that work on PDFs, five on scripts, two for
+Thirteen commands: six that work on PDFs, four on scripts, two for
 distribution and one for the shell.
 
 | Command | What it does |

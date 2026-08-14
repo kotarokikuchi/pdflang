@@ -427,7 +427,7 @@ impl Report {
         const TOP: f32 = 277.0; // mm
         const BOTTOM: f32 = 20.0;
         const LEFT: f32 = 20.0;
-        const WRAP: usize = 100; // caracteres por linha (Helvetica 9pt em 170mm)
+        const WRAP: usize = 100; // characters per line (Helvetica 9pt across 170mm)
 
         struct Line {
             text: String,
@@ -586,6 +586,43 @@ mod tests {
             message: "m".into(),
             line: None,
         }
+    }
+
+    /// The PDF report was the one format nothing exercised — no unit test and
+    /// no CI step — while being the only one that writes a binary a person
+    /// then has to open.
+    #[test]
+    fn pdf_is_a_pdf_and_carries_the_findings() {
+        let mut d = diag(Severity::Error);
+        d.message = "page 3 is missing from reprint.pdf".into();
+        let r = Report::new("profile.pdfl".into(), "doc.pdf".into(), None, 3, vec![d]);
+        let bytes = r.to_pdf();
+
+        assert!(bytes.starts_with(b"%PDF-"), "must be a PDF");
+        assert!(bytes.ends_with(b"%%EOF\n") || bytes.ends_with(b"%%EOF"), "must be terminated");
+        assert!(bytes.len() > 500, "a report with a finding is not 500 bytes: {}", bytes.len());
+    }
+
+    /// A finding is written into the page as a literal, and printpdf builds
+    /// that from whatever we hand it. Anything outside Latin-1 has to be
+    /// folded first — a report is not the place to discover an encoding.
+    #[test]
+    fn pdf_folds_what_it_cannot_encode() {
+        assert_eq!(pdf_sanitize("a → b"), "a -> b");
+        assert_eq!(pdf_sanitize("em—dash"), "em-dash");
+        assert_eq!(pdf_sanitize("and so…"), "and so...");
+        assert_eq!(pdf_sanitize("\u{201C}quoted\u{201D}"), "\"quoted\"");
+        assert_eq!(pdf_sanitize("it\u{2019}s"), "it's");
+        // Accented Latin-1 survives; anything above it becomes a placeholder
+        // rather than a broken glyph or a panic.
+        assert_eq!(pdf_sanitize("reimpressão"), "reimpressão");
+        assert_eq!(pdf_sanitize("見本"), "??");
+
+        // And the whole path holds with such a message in it.
+        let mut d = diag(Severity::Error);
+        d.message = "見本 → \u{201C}proof\u{201D}".into();
+        let bytes = Report::new("p.pdfl".into(), "doc.pdf".into(), None, 1, vec![d]).to_pdf();
+        assert!(bytes.starts_with(b"%PDF-"));
     }
 
     #[test]

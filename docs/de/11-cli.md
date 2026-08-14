@@ -2,7 +2,7 @@
 
 [← Standardbibliothek](10-stdlib.md) · [Inhalt](README.md) · [Weiter: Rezepte →](12-recipes.md)
 
-Dreizehn Befehle: fünf für PDFs, fünf für Skripte, zwei für die Verteilung und
+Dreizehn Befehle: sechs für PDFs, vier für Skripte, zwei für die Verteilung und
 einer für die Shell.
 
 | Befehl | Zweck |

@@ -10,6 +10,27 @@ quietly.
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- `--output` and `--output-file` were ignored when the PDF could not be read.
+  `run`, `fix` and `compare` printed JSON to stdout whatever was asked for, so
+  a pipeline that asked for JUnit in a file got no file at all and a report on
+  a stream it was not reading — a corrupt input looked like a run that never
+  happened, while the exit code correctly said `10`. The failure report now
+  goes out through the same path as every other report.
+- A pdfium error reached the report as a pretty-printed Rust enum spread over
+  three lines. A diagnostic is one field of a CSV row and one XML attribute, so
+  it is now folded onto a single line.
+
+### Worth knowing
+
+- The identifier of a `loading` finding changes, because it is derived from the
+  message and the message no longer carries those line breaks.
+
+---
+
 ## 0.17.0
 
 ### Added

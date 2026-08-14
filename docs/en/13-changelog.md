@@ -12,6 +12,8 @@ quietly.
 
 ## Unreleased
 
+## 0.16.0
+
 ### Added
 
 - `pdfl pixelcompare` compares two PDFs by what they look like rather than by

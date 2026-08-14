@@ -1,7 +1,7 @@
 # Documentation PDFLang — Français
 
 Guide complet du langage `.pdfl` et de l'outil en ligne de commande `pdfl` —
-version 0.15.0.
+version 0.16.0.
 
 Chaque exemple de cette documentation est du code exécutable et commenté. Si
 vous découvrez le langage, commencez par le manuel du chapitre 1 ; les autres

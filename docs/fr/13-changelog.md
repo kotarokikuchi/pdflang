@@ -12,6 +12,8 @@ adapter. Rien ne change ici en silence.
 
 ## Non publié
 
+## 0.16.0
+
 ### Ajouté
 
 - `pdfl pixelcompare` compare deux PDF sur leur apparence plutôt que sur leur

@@ -12,6 +12,8 @@ em silêncio.
 
 ## Ainda não publicado
 
+## 0.16.0
+
 ### Novo
 
 - O `pdfl pixelcompare` compara dois PDFs pela aparência, e não pelo texto,

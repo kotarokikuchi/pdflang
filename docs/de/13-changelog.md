@@ -12,6 +12,8 @@ nichts stillschweigend.
 
 ## Noch nicht veröffentlicht
 
+## 0.16.0
+
 ### Neu
 
 - `pdfl pixelcompare` vergleicht zwei PDFs danach, wie sie aussehen, statt nach

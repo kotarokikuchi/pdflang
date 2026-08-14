@@ -10,7 +10,7 @@ quietly.
 
 ---
 
-## Unreleased
+## 0.17.0
 
 ### Added
 

@@ -10,7 +10,7 @@ nichts stillschweigend.
 
 ---
 
-## Noch nicht veröffentlicht
+## 0.17.0
 
 ### Neu
 

@@ -10,7 +10,7 @@ em silêncio.
 
 ---
 
-## Ainda não publicado
+## 0.17.0
 
 ### Novo
 

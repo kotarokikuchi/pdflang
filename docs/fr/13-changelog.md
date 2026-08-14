@@ -10,7 +10,7 @@ adapter. Rien ne change ici en silence.
 
 ---
 
-## Non publié
+## 0.17.0
 
 ### Ajouté
 

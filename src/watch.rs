@@ -672,7 +672,11 @@ mod tests {
     /// run` — nothing in the language can hang the interpreter on purpose
     /// (recursion is depth-limited), so a slow *process* is the honest stand-in
     /// for what actually hangs: pdfium on adversarial input.
-    #[test]
+    // Drives a real subprocess through a POSIX shell, so it runs where
+    // there is one. The behaviour itself is not platform-specific; the
+    // stand-in for `pdfl` is.
+    #[cfg(unix)]
+#[test]
     fn a_slow_child_is_killed_at_the_deadline() {
         let mut cmd = std::process::Command::new("sleep");
         cmd.arg("5");
@@ -686,7 +690,11 @@ mod tests {
         assert!(elapsed < Duration::from_secs(2), "{elapsed:?}");
     }
 
-    #[test]
+    // Drives a real subprocess through a POSIX shell, so it runs where
+    // there is one. The behaviour itself is not platform-specific; the
+    // stand-in for `pdfl` is.
+    #[cfg(unix)]
+#[test]
     fn a_child_finishing_before_the_deadline_is_not_killed() {
         let mut cmd = std::process::Command::new("sh");
         cmd.args(["-c", "echo hi"]);
@@ -700,7 +708,11 @@ mod tests {
         }
     }
 
-    #[test]
+    // Drives a real subprocess through a POSIX shell, so it runs where
+    // there is one. The behaviour itself is not platform-specific; the
+    // stand-in for `pdfl` is.
+    #[cfg(unix)]
+#[test]
     fn no_timeout_waits_for_a_slow_child_to_finish() {
         let mut cmd = std::process::Command::new("sh");
         cmd.args(["-c", "sleep 0.2; echo done"]);
@@ -718,7 +730,11 @@ mod tests {
     /// every file would fail with "was not provided", regardless of its
     /// content. Checked against a real subprocess standing in for `pdfl`,
     /// consistent with how the rest of this module is tested.
-    #[test]
+    // Drives a real subprocess through a POSIX shell, so it runs where
+    // there is one. The behaviour itself is not platform-specific; the
+    // stand-in for `pdfl` is.
+    #[cfg(unix)]
+#[test]
     fn run_bounded_forwards_vars_to_the_child() {
         let dir = tempdir("run-bounded-vars");
         let echo_var = dir.join("fake-pdfl.sh");

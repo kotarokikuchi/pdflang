@@ -9,6 +9,35 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # The releases ship macOS and Windows, but nothing tested them until the tag
+  # was pushed: a break there surfaced as a failed release rather than a failed
+  # push. This job is deliberately small — no pdfium, no fixtures — because the
+  # unit tests do not need them, and the platform-specific failures worth
+  # catching (paths, separators, a missing POSIX shell) show up here anyway.
+  portability:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Unit tests (no pdfium)
+        run: cargo test --workspace
+
+      - name: Build without warnings
+        run: cargo build
+        env:
+          RUSTFLAGS: -Dwarnings
+
   test:
     runs-on: ubuntu-latest
     steps:

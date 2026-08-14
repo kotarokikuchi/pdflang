@@ -320,6 +320,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     fn tempdir(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("pdfl-testcmd-{tag}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -330,6 +331,7 @@ mod tests {
     /// A shell script standing in for the `pdfl` binary, echoing back the value
     /// of the first `--var` it sees: a real subprocess, not a mock of one,
     /// consistent with how `spawn_bounded` is tested in `watch.rs`.
+    #[cfg(unix)]
     fn fake_pdfl_echoing_var(dir: &Path) -> PathBuf {
         let path = dir.join("fake-pdfl.sh");
         std::fs::write(
@@ -352,7 +354,11 @@ mod tests {
 
     /// Without this, a script reading `vars.*` could never be tested at all —
     /// every case would fail with "was not provided", regardless of the PDF.
-    #[test]
+    // Drives a real subprocess through a POSIX shell, so it runs where
+    // there is one. The behaviour itself is not platform-specific; the
+    // stand-in for `pdfl` is.
+    #[cfg(unix)]
+#[test]
     fn vars_reach_the_child_run() {
         let dir = tempdir("vars");
         let pdf = dir.join("a.pdf");
@@ -363,7 +369,11 @@ mod tests {
         assert!(json.contains("\"seen_var\": \"order=SO-1\""), "{json}");
     }
 
-    #[test]
+    // Drives a real subprocess through a POSIX shell, so it runs where
+    // there is one. The behaviour itself is not platform-specific; the
+    // stand-in for `pdfl` is.
+    #[cfg(unix)]
+#[test]
     fn no_vars_means_no_var_flag_is_sent() {
         let dir = tempdir("no-vars");
         let pdf = dir.join("a.pdf");

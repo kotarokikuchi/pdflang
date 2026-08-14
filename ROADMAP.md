@@ -193,6 +193,12 @@ server mode, C ABI, Python/Node bindings, WASM, telemetry.
 The repository ships GitHub Actions workflows for its own CI, which is not the
 same thing as a published action other people can use.
 
+That CI runs the unit tests on Linux, macOS and Windows — the three platforms
+the releases ship — and the end-to-end smoke on Linux only, since that part
+needs pdfium and the fixtures. Until this was added, nothing exercised macOS or
+Windows before a tag was pushed, so a break on either surfaced as a failed
+release rather than a failed push.
+
 ### Robustness and determinism
 
 | Feature | State |

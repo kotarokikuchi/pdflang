@@ -19,6 +19,18 @@ nichts stillschweigend.
   stderr ein Terminal ist, denn der Balken überschreibt seine eigene Zeile und
   eine Logdatei hat keinen Cursor; umgeleitet bleibt er still. `--quiet`
   schaltet ihn überall ab.
+- `--jobs <n>` bei `pdfl pixelcompare` vergleicht so viele Seiten gleichzeitig
+  und steht standardmäßig auf einer pro CPU: 41 Seiten mit 150 dpi gehen von
+  3,6s auf 1,2s. Nur der Vergleich läuft parallel — pdfium serialisiert jeden
+  Aufruf hinter einem einzigen globalen Lock, das Rastern kann es also nicht,
+  und deshalb ist der Gewinn dreifach statt achtfach. Der Bericht hängt nicht
+  vom Wert ab: die Seiten werden in Seitenreihenfolge zusammengeführt, also
+  sind die Diagnosen, ihre Reihenfolge und ihre Fingerabdrücke identisch — und
+  die Dateien des Betrachters ebenso.
+
+  > Hier ist der Standard eine pro CPU, während `test` und `watch` auf
+  > `--jobs 1` stehen. Dort ist ein Job ein Kindprozess mit eigenem Dokument;
+  > hier liegen die Seiten schon im Speicher und die Threads teilen sie sich.
 
 ---
 

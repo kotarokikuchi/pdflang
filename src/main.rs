@@ -172,6 +172,9 @@ enum Command {
         /// Box-blur radius applied before comparing, to absorb anti-aliasing
         #[arg(long, default_value_t = 0)]
         blur: u32,
+        /// Pages to compare at the same time (0 = one per CPU)
+        #[arg(long, default_value_t = 0)]
+        jobs: usize,
     },
     /// Watches a folder and validates each new or changed PDF
     Watch {
@@ -443,6 +446,7 @@ fn main() -> ExitCode {
             pages,
             no_align,
             blur,
+            jobs,
         } => {
             let pages = match pages.as_deref().map(parse_page_range) {
                 Some(Ok(p)) => p,
@@ -467,6 +471,7 @@ fn main() -> ExitCode {
                     blur,
                     ..Default::default()
                 },
+                resolve_jobs(jobs),
             )
         }
         Command::Watch {
@@ -855,6 +860,7 @@ fn pixelcompare_cmd(
     pages: &[i64],
     max_diff: f64,
     opts: pixelcmp::Options,
+    jobs: usize,
 ) -> ExitCode {
     // Rasterising is where the minutes go, so each file gets its own bar. The
     // page count is not known until the document is open, which is why the bar
@@ -901,33 +907,44 @@ fn pixelcompare_cmd(
         n.dedup();
         n
     };
-    let find = |list: &[pdf::RenderedPage], want: i64| {
-        list.iter()
-            .find(|p| p.number == want)
-            .map(|p| pixelcmp::Page::new(p.width, p.height, p.rgba.clone()))
-    };
-
     let mut diagnostics = Vec::new();
     let mut diffs = Vec::new();
     let mut assets = Vec::new();
     let mut seen = std::collections::HashMap::new();
 
-    // Comparing is the second slow stage: every pixel of every page, plus the
-    // shift search. With a viewer it also encodes three PNGs per page, which
-    // costs more than the comparison — so the label says so rather than
-    // leaving someone to wonder why "comparing" is taking that long.
+    // Comparing is the slow stage — measured at roughly four fifths of the run
+    // — and unlike rasterising it never enters pdfium, so it is the one that
+    // threads can actually shorten. With a viewer it also encodes three PNGs
+    // per page, which is why the label says so rather than leaving someone to
+    // wonder what "comparing" is doing for that long.
     let mut comparing = progress::Progress::new(
         if viewer_dir.is_some() { "comparing and encoding" } else { "comparing" },
         numbers.len(),
     );
-    for n in numbers {
-        let (a, b) = (find(&before, n), find(&after, n));
-        let (a, b) = match (a, b) {
-            (Some(a), Some(b)) => (a, b),
+    let outcomes = compare_pages(
+        &numbers,
+        &before,
+        &after,
+        opts,
+        viewer_dir.is_some(),
+        jobs,
+        &mut comparing,
+    );
+    comparing.finish();
+
+    // Folded back in page order, so which thread finished first changes
+    // nothing: not the order of the diagnostics, and not the occurrence
+    // counter the fingerprints are derived from.
+    for (n, outcome) in numbers.iter().copied().zip(outcomes) {
+        let (diff, page_assets) = match outcome {
+            Err(e) => {
+                eprintln!("error: {e}");
+                return ExitCode::from(EXIT_INFRASTRUCTURE);
+            }
             // A page in one file and not the other is a finding on its own;
             // there is nothing to compare it against.
-            (only, _) => {
-                let which = if only.is_some() { v2 } else { v1 };
+            Ok(PageOutcome::Missing { present_in_v1 }) => {
+                let which = if present_in_v1 { v2 } else { v1 };
                 let message = format!("page {n} is missing from {}", file_name(which));
                 let occurrence = bump(&mut seen, &message);
                 diagnostics.push(Diagnostic {
@@ -937,12 +954,11 @@ fn pixelcompare_cmd(
                     message,
                     line: None,
                 });
-                comparing.tick();
                 continue;
             }
+            Ok(PageOutcome::Compared { diff, assets }) => (diff, assets),
         };
 
-        let diff = pixelcmp::compare(&a, &b, opts, n);
         if diff.diff_percent > max_diff {
             let message = format!(
                 "page {n}: {:.2}% of the pixels differ, in {} area(s){}",
@@ -963,31 +979,11 @@ fn pixelcompare_cmd(
             });
         }
 
-        if viewer_dir.is_some() {
-            let encode = |w, h, px: &[u8]| viewer::encode_png(w, h, px);
-            match (
-                encode(a.width, a.height, &a.rgba),
-                encode(b.width, b.height, &b.rgba),
-                encode(diff.width, diff.height, &diff.overlay),
-            ) {
-                (Ok(before_png), Ok(after_png), Ok(overlay_png)) => {
-                    assets.push(viewer::PageAssets {
-                        page: n,
-                        before: before_png,
-                        after: after_png,
-                        overlay: overlay_png,
-                    });
-                }
-                (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
-                    eprintln!("error: {e:#}");
-                    return ExitCode::from(EXIT_INFRASTRUCTURE);
-                }
-            }
+        if let Some(page_assets) = page_assets {
+            assets.push(page_assets);
         }
         diffs.push(diff);
-        comparing.tick();
     }
-    comparing.finish();
 
     if let Some(dir) = viewer_dir {
         let mut writing = progress::Progress::new("writing the viewer", assets.len());
@@ -1023,6 +1019,95 @@ fn pixelcompare_cmd(
     ExitCode::from(report.exit_code(false) as u8)
 }
 
+/// What one page turned out to be, with nothing named or numbered yet: the
+/// identifiers depend on the order pages are folded in, so they are assigned
+/// later, on one thread.
+enum PageOutcome {
+    /// The page is in one document and not the other.
+    Missing { present_in_v1: bool },
+    Compared { diff: pixelcmp::PageDiff, assets: Option<viewer::PageAssets> },
+}
+
+/// Everything one page costs: the pixel comparison, the shift search, and —
+/// with a viewer — the three PNGs. No pdfium, no shared state, no output.
+fn compare_page(
+    n: i64,
+    before: &[pdf::RenderedPage],
+    after: &[pdf::RenderedPage],
+    opts: pixelcmp::Options,
+    want_assets: bool,
+) -> Result<PageOutcome, String> {
+    let find = |list: &[pdf::RenderedPage]| {
+        list.iter()
+            .find(|p| p.number == n)
+            .map(|p| pixelcmp::Page::new(p.width, p.height, p.rgba.clone()))
+    };
+    let (a, b) = match (find(before), find(after)) {
+        (Some(a), Some(b)) => (a, b),
+        (only, _) => return Ok(PageOutcome::Missing { present_in_v1: only.is_some() }),
+    };
+
+    let diff = pixelcmp::compare(&a, &b, opts, n);
+    let assets = if want_assets {
+        let encode = |w, h, px: &[u8]| viewer::encode_png(w, h, px).map_err(|e| format!("{e:#}"));
+        Some(viewer::PageAssets {
+            page: n,
+            before: encode(a.width, a.height, &a.rgba)?,
+            after: encode(b.width, b.height, &b.rgba)?,
+            overlay: encode(diff.width, diff.height, &diff.overlay)?,
+        })
+    } else {
+        None
+    };
+    Ok(PageOutcome::Compared { diff, assets })
+}
+
+/// Compares the pages `jobs` at a time and returns the outcomes in page order.
+///
+/// Threads are worth it here in a way they are not for rasterising: pdfium
+/// serialises every call behind one global mutex, so a second thread in front
+/// of it only waits, while this stage is our own arithmetic over buffers that
+/// are already in memory. The rendered pages are borrowed, not copied, so a
+/// job costs one page's working set rather than another whole document.
+fn compare_pages(
+    numbers: &[i64],
+    before: &[pdf::RenderedPage],
+    after: &[pdf::RenderedPage],
+    opts: pixelcmp::Options,
+    want_assets: bool,
+    jobs: usize,
+    progress: &mut progress::Progress,
+) -> Vec<Result<PageOutcome, String>> {
+    if jobs <= 1 || numbers.len() <= 1 {
+        return numbers
+            .iter()
+            .map(|&n| {
+                let outcome = compare_page(n, before, after, opts, want_assets);
+                progress.tick();
+                outcome
+            })
+            .collect();
+    }
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let bar = std::sync::Mutex::new(progress);
+    let done: std::sync::Mutex<Vec<(usize, Result<PageOutcome, String>)>> =
+        std::sync::Mutex::new(Vec::with_capacity(numbers.len()));
+    std::thread::scope(|scope| {
+        for _ in 0..jobs.min(numbers.len()) {
+            scope.spawn(|| loop {
+                let i = next.fetch_add(1, Ordering::Relaxed);
+                let Some(&n) = numbers.get(i) else { return };
+                let outcome = compare_page(n, before, after, opts, want_assets);
+                bar.lock().expect("no panic holds this lock").tick();
+                done.lock().expect("no panic holds this lock").push((i, outcome));
+            });
+        }
+    });
+    let mut results = done.into_inner().expect("the threads are joined");
+    results.sort_by_key(|(i, _)| *i);
+    results.into_iter().map(|(_, outcome)| outcome).collect()
+}
+
 /// How many times this exact message has already been produced — the
 /// occurrence that keeps two identical findings from sharing an identifier.
 fn bump(seen: &mut std::collections::HashMap<String, u32>, message: &str) -> u32 {
@@ -1043,6 +1128,69 @@ mod tests {
         // Overlaps collapse rather than comparing a page twice.
         assert_eq!(parse_page_range("1-3,2-4").unwrap(), vec![1, 2, 3, 4]);
         assert_eq!(parse_page_range(" 2 , 1 ").unwrap(), vec![1, 2]);
+    }
+
+    /// An 8×8 page, white except for the first `changed` pixels. No pdfium
+    /// involved: `RenderedPage` is a plain buffer, so the comparison stage can
+    /// be tested on its own.
+    fn synthetic(number: i64, changed: usize) -> pdf::RenderedPage {
+        let (width, height) = (8u32, 8u32);
+        let mut rgba = vec![255u8; (width * height * 4) as usize];
+        for i in 0..changed {
+            rgba[i * 4] = 0;
+            rgba[i * 4 + 1] = 0;
+            rgba[i * 4 + 2] = 0;
+        }
+        pdf::RenderedPage { number, width, height, rgba }
+    }
+
+    /// The whole promise of `--jobs`: the report must not depend on it. Each
+    /// page is given a different number of changed pixels, so a fold that took
+    /// results in completion order rather than page order lands a page's
+    /// percentage on its neighbour — a mismatch this catches every run, rather
+    /// than only when a race happens to lose.
+    #[test]
+    fn the_outcome_order_does_not_depend_on_the_thread_count() {
+        let numbers: Vec<i64> = (1..=12).collect();
+        let before: Vec<pdf::RenderedPage> = numbers.iter().map(|&n| synthetic(n, 0)).collect();
+        // Page 5 is in the first document only.
+        let after: Vec<pdf::RenderedPage> =
+            numbers.iter().filter(|&&n| n != 5).map(|&n| synthetic(n, n as usize)).collect();
+
+        let describe = |o: &Result<PageOutcome, String>| match o {
+            Ok(PageOutcome::Missing { present_in_v1 }) => format!("missing/{present_in_v1}"),
+            Ok(PageOutcome::Compared { diff, .. }) => {
+                format!("{}:{:.4}", diff.page, diff.diff_percent)
+            }
+            Err(e) => format!("error/{e}"),
+        };
+        let run = |jobs| {
+            let mut bar = progress::Progress::new("comparing", numbers.len());
+            compare_pages(
+                &numbers,
+                &before,
+                &after,
+                pixelcmp::Options::default(),
+                false,
+                jobs,
+                &mut bar,
+            )
+            .iter()
+            .map(describe)
+            .collect::<Vec<_>>()
+        };
+
+        let sequential = run(1);
+        // Not a vacuous comparison of two empty runs: the sequential result is
+        // pinned first, including the page only one document has.
+        assert_eq!(sequential.len(), 12);
+        assert_eq!(sequential[4], "missing/true");
+        assert!(sequential[0].starts_with("1:"));
+        assert!(sequential[11].starts_with("12:"));
+
+        assert_eq!(sequential, run(4));
+        assert_eq!(sequential, run(8));
+        assert_eq!(sequential, run(32));
     }
 
     /// A typo must not quietly widen the job to every page.

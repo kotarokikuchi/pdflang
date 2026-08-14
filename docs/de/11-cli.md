@@ -224,6 +224,7 @@ pdfl pixelcompare <original.pdf> <neu.pdf> [optionen]
 | `--pages <bereich>` | alle | `1-10` oder `1,3,7-12` |
 | `--no-align` | — | Gleicht eine globale Verschiebung nicht aus |
 | `--blur <radius>` | `0` | Weichzeichnen vor dem Vergleich, gegen Kantenglättung |
+| `--jobs <n>` | eine pro CPU | Gleichzeitig verglichene Seiten |
 
 `pdfl compare` beantwortet „hat sich Text oder Struktur geändert". Dies
 beantwortet eine andere Frage — „sieht es noch genauso aus" — und die beiden
@@ -321,9 +322,42 @@ Cursor, ein umgeleiteter Lauf sammelte also Tausende Fragmente. Umgeleitet
 bleibt er still, die gewöhnlichen Meldungen kommen weiterhin durch. `--quiet`
 schaltet ihn überall ab.
 
+### Geschwindigkeit
+
+Der Vergleich läuft standardmäßig auf allen CPUs. Bei 41 Seiten mit 150 dpi:
+
+| `--jobs` | Zeit |
+|---|---|
+| `1` | 3,6s |
+| `4` | 1,7s |
+| `8` | 1,2s |
+| `20` | 1,3s |
+
+Ab etwa acht bringt es nichts mehr, denn diese Stufe wird von der
+Speicherbandbreite begrenzt, nicht von der Rechenarbeit — sie schiebt ganze
+Seiten durch die CPU. Danach warten die Threads nur noch auf denselben
+Speicher. Mehr zu verlangen schadet nicht, nützt aber nichts.
+
+Beachten Sie, was **nicht** parallel läuft: das Rastern. pdfium serialisiert
+jeden Aufruf hinter einem einzigen globalen Lock, ein zweiter Thread davor
+wartet also nur. Das setzt dem Lauf einen Boden — etwa 0,8s der obigen Zahlen —
+und deshalb ist `--jobs 8` dreimal schneller und nicht achtmal.
+
+Hier ist der Standard eine pro CPU, während `pdfl test` und `pdfl watch`
+`--jobs 1` verwenden. Der Unterschied ist echt: dort ist ein Job ein
+Kindprozess mit einem eigenen Dokument, also jedes Mal ein weiteres Dokument im
+Speicher. Hier liegen die Seiten bereits im Speicher und die Threads teilen sie
+sich, ein Job kostet also den Arbeitsbereich einer Seite. Verringern Sie den
+Wert, wenn Sie sich die Maschine teilen.
+
 Exit-Codes: `0` keine Seite änderte sich um mehr als `--max-diff`, `2`
 mindestens eine, `10` eine Datei war nicht lesbar oder der Betrachter nicht
 schreibbar.
+
+Der Bericht hängt nicht von `--jobs` ab. Die Seiten werden in Seitenreihenfolge
+zusammengeführt, deshalb kommen die Diagnosen, ihre Reihenfolge und ihre
+Fingerabdrücke bei jedem Wert identisch heraus — ein Test sichert das ab, und
+die Dateien des Betrachters entstehen Byte für Byte gleich.
 
 ---
 

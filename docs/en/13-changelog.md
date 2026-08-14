@@ -18,6 +18,17 @@ quietly.
   file, comparing, writing the viewer. It is drawn only when stderr is a
   terminal, because the bar overwrites its own line and a log file has no
   cursor to move; redirected, it stays silent. `--quiet` silences it anywhere.
+- `--jobs <n>` on `pdfl pixelcompare` compares that many pages at a time, and
+  defaults to one per CPU: 41 pages at 150 dpi go from 3.6s to 1.2s. Only the
+  comparison is parallel — pdfium serialises every call behind one global lock,
+  so rasterising cannot be, which is why the gain is threefold rather than
+  eightfold. The report is unaffected by the value: pages are folded back in
+  page order, so the diagnostics, their order and their fingerprints are
+  identical, and so are the viewer's files.
+
+  > This defaults to every CPU while `test` and `watch` default to `--jobs 1`.
+  > There a job is a child process holding its own document; here the pages are
+  > already in memory and the threads share them.
 
 ---
 

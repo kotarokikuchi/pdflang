@@ -19,6 +19,18 @@ em silêncio.
   quando o stderr é um terminal, porque a barra sobrescreve a própria linha e um
   arquivo de log não tem cursor para mover; redirecionada, fica em silêncio. O
   `--quiet` silencia em qualquer caso.
+- O `--jobs <n>` no `pdfl pixelcompare` compara essa quantidade de páginas ao
+  mesmo tempo, e por padrão usa uma por CPU: 41 páginas a 150 dpi caem de 3,6s
+  para 1,2s. Só a comparação é paralela — o pdfium serializa toda chamada atrás
+  de um único lock global, então a rasterização não pode ser, e é por isso que o
+  ganho é de três vezes e não de oito. O relatório não muda com o valor: as
+  páginas são recompostas na ordem de página, então os diagnósticos, sua ordem e
+  suas impressões digitais saem idênticos — e os arquivos do visualizador
+  também.
+
+  > Aqui o padrão é uma por CPU, enquanto `test` e `watch` usam `--jobs 1`. Lá
+  > cada job é um processo filho segurando o próprio documento; aqui as páginas
+  > já estão na memória e as threads as compartilham.
 
 ---
 

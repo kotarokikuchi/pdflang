@@ -235,6 +235,7 @@ pdfl pixelcompare <original.pdf> <novo.pdf> [opções]
 | `--pages <intervalo>` | todas | `1-10` ou `1,3,7-12` |
 | `--no-align` | — | Não compensa um deslocamento global entre as páginas |
 | `--blur <raio>` | `0` | Desfoque antes de comparar, para absorver o antialiasing |
+| `--jobs <n>` | um por CPU | Páginas comparadas ao mesmo tempo |
 
 O `pdfl compare` responde "o texto ou a estrutura mudaram". Este responde outra
 pergunta — "continua com a mesma cara" — e as duas discordam mais do que se
@@ -330,9 +331,41 @@ então uma execução redirecionada acumularia milhares de fragmentos. Redirecio
 ela fica em silêncio e as mensagens normais continuam saindo. O `--quiet`
 silencia em qualquer caso.
 
+### Velocidade
+
+A comparação usa todas as CPUs por padrão. Em 41 páginas a 150 dpi:
+
+| `--jobs` | Tempo |
+|---|---|
+| `1` | 3,6s |
+| `4` | 1,7s |
+| `8` | 1,2s |
+| `20` | 1,3s |
+
+Para de melhorar por volta de oito porque essa etapa é limitada pela banda de
+memória, não pela aritmética — ela varre páginas inteiras pela CPU — então
+daí em diante as threads apenas disputam a mesma memória. Pedir mais não faz
+mal, só não adianta.
+
+Repare no que **não** é paralelo: a rasterização. O pdfium serializa toda
+chamada atrás de um único lock global, então uma segunda thread na frente dele
+só espera. Isso cria um piso para a execução — cerca de 0,8s dos números acima
+— e é por isso que `--jobs 8` é três vezes mais rápido, e não oito.
+
+Aqui o padrão é uma por CPU, enquanto `pdfl test` e `pdfl watch` usam
+`--jobs 1`. A diferença é real: lá cada job é um processo filho segurando o
+próprio documento, ou seja, mais um documento na memória. Aqui as páginas já
+estão na memória e as threads as compartilham, então um job custa o espaço de
+trabalho de uma página. Reduza se a máquina for compartilhada.
+
 Códigos de saída: `0` nenhuma página mudou mais que `--max-diff`, `2` pelo
 menos uma mudou, `10` um arquivo não pôde ser lido ou o visualizador não pôde
 ser gravado.
+
+O relatório não depende de `--jobs`. As páginas são recompostas na ordem de
+página, então os diagnósticos, sua ordem e suas impressões digitais saem
+idênticos com qualquer valor — há um teste que garante isso, e os arquivos do
+visualizador saem byte a byte iguais.
 
 ---
 

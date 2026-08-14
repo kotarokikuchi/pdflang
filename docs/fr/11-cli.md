@@ -223,6 +223,7 @@ pdfl pixelcompare <original.pdf> <nouveau.pdf> [options]
 | `--pages <plage>` | toutes | `1-10` ou `1,3,7-12` |
 | `--no-align` | — | Ne compense pas un décalage global entre les pages |
 | `--blur <rayon>` | `0` | Flou avant comparaison, pour absorber l'anticrénelage |
+| `--jobs <n>` | un par CPU | Pages comparées en même temps |
 
 `pdfl compare` répond à « le texte ou la structure ont-ils changé ». Ceci répond
 à une autre question — « est-ce que ça se ressemble toujours » — et les deux se
@@ -320,8 +321,41 @@ exécution redirigée accumulerait donc des milliers de fragments. Redirigée, e
 reste muette et les messages ordinaires passent toujours. `--quiet` la fait taire
 partout.
 
+### Vitesse
+
+La comparaison utilise tous les CPU par défaut. Sur 41 pages à 150 dpi :
+
+| `--jobs` | Temps |
+|---|---|
+| `1` | 3,6s |
+| `4` | 1,7s |
+| `8` | 1,2s |
+| `20` | 1,3s |
+
+Cela cesse de progresser vers huit, car cette étape est limitée par la bande
+passante mémoire et non par le calcul — elle fait défiler des pages entières
+dans le CPU. Au-delà, les threads font la queue devant la même mémoire. En
+demander plus n'est pas nuisible, seulement inutile.
+
+Notez ce qui n'est **pas** parallèle : la rastérisation. pdfium sérialise
+chaque appel derrière un unique verrou global ; un second thread devant lui ne
+fait qu'attendre. Cela pose un plancher — environ 0,8s des chiffres ci-dessus —
+et c'est pourquoi `--jobs 8` va trois fois plus vite, et non huit.
+
+Ici la valeur par défaut est un par CPU, alors que `pdfl test` et `pdfl watch`
+utilisent `--jobs 1`. La différence est réelle : là-bas une tâche est un
+processus enfant qui tient son propre document, donc un document de plus en
+mémoire à chaque fois. Ici les pages sont déjà en mémoire et les threads se les
+partagent : une tâche coûte l'espace de travail d'une page. Baissez-la si vous
+partagez la machine.
+
 Codes de sortie : `0` aucune page n'a changé de plus que `--max-diff`, `2` au
 moins une, `10` un fichier illisible ou une visionneuse non écrite.
+
+Le rapport ne dépend pas de `--jobs`. Les pages sont réassemblées dans l'ordre
+des pages : les diagnostics, leur ordre et leurs empreintes sortent identiques
+quelle que soit la valeur — un test le garantit — et les fichiers de la
+visionneuse sortent octet pour octet identiques.
 
 ---
 

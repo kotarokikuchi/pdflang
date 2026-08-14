@@ -198,7 +198,7 @@ same thing as a published action other people can use.
 | Feature | State |
 |---|---|
 | Same script + same PDF = same bytes | 🟩 yes — CI asserts it on every push |
-| Deterministic parallel output | 🟩 yes — `pdfl test --jobs` and `pdfl watch --jobs` both judge files in the order they were found, whichever child finished first; CI compares the parallel and sequential runs for each |
+| Deterministic parallel output | 🟩 yes — `pdfl test --jobs` and `pdfl watch --jobs` judge files in the order they were found, whichever child finished first, and `pixelcompare --jobs` folds pages back in page order so even the fingerprints are unchanged; CI compares a parallel run against a sequential one for each |
 | Seeded sampling, reproducible builds | 🟥 no — there is no sampling |
 | Strict vs lenient parsing, repair diagnostics | 🟥 no — a corrupt PDF fails with one error |
 | Partial result on timeout | 🟧 partial — `watch --timeout` kills a hung file and substitutes a "timeout" finding for it; `pdfl run` alone has no timeout, and there is no version that keeps whatever diagnostics ran before the hang |
@@ -253,11 +253,19 @@ actually did.
 report, and compares the JSON it already knows how to produce.
 
 Parallelism needed none either, but not for the expected reason. Threads inside
-one process do not help: pdfium serialises every call behind a single mutex, and
-a threaded run of eight 41-page files measured *slower* than sequential (12.2s
-against 8.3s). Separate processes finished the same work in 1.2s. So `--jobs`
-spawns children rather than threads, on `pdfl test` and on `pdfl watch` alike,
-and `rayon` never came up.
+one process do not help *for work that goes through pdfium*: it serialises every
+call behind a single mutex, and a threaded run of eight 41-page files measured
+*slower* than sequential (12.2s against 8.3s). Separate processes finished the
+same work in 1.2s. So `--jobs` spawns children rather than threads, on
+`pdfl test` and on `pdfl watch` alike, and `rayon` never came up.
+
+The qualifier turned out to matter. `pixelcompare` was measured stage by stage
+and the shape is inverted: rasterising is a fifth of the run, the pixel
+comparison four fifths, and the comparison never enters pdfium — it is our own
+arithmetic over buffers already in memory. There threads are exactly right, and
+`pixelcompare --jobs` uses them (3.6s to 1.2s on 41 pages), with `std::thread`
+rather than a dependency. The rule is not "threads never help"; it is "pdfium
+cannot be threaded", which leaves the stage in front of it free.
 
 `watch` was restructured to match: a child analyses each file and this process
 renders every format from the JSON that comes back. One code path for all six

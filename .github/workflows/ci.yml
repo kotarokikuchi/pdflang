@@ -149,3 +149,10 @@ jobs:
           ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \
             tests/fixtures/suspeito.pdf --dpi 72 >/dev/null 2>/tmp/px.err || true
           test ! -s /tmp/px.err
+          # --jobs may make it faster, never make it say something else: the
+          # fingerprints are in here, so this catches a fold taken out of order
+          ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \
+            tests/fixtures/suspeito.pdf --dpi 72 --jobs 1 > /tmp/px1.json || true
+          ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \
+            tests/fixtures/suspeito.pdf --dpi 72 --jobs 8 > /tmp/px8.json || true
+          cmp /tmp/px1.json /tmp/px8.json

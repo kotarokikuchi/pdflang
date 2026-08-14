@@ -237,6 +237,7 @@ pdfl pixelcompare <original.pdf> <new.pdf> [options]
 | `--pages <range>` | all | `1-10` or `1,3,7-12` |
 | `--no-align` | — | Do not compensate a global shift between the pages |
 | `--blur <radius>` | `0` | Box blur before comparing, to absorb anti-aliasing |
+| `--jobs <n>` | one per CPU | Pages compared at the same time |
 
 `pdfl compare` answers "did the text or the structure change". This answers a
 different question — "does it still look the same" — and they disagree more
@@ -332,8 +333,40 @@ redirected run would collect thousands of fragments instead. Redirected, it
 stays silent and the ordinary messages still come through. `--quiet` silences it
 everywhere.
 
+### Speed
+
+The comparison runs on every CPU by default. On 41 pages at 150 dpi:
+
+| `--jobs` | Time |
+|---|---|
+| `1` | 3.6s |
+| `4` | 1.7s |
+| `8` | 1.2s |
+| `20` | 1.3s |
+
+It stops improving around eight because the stage is limited by memory
+bandwidth, not by arithmetic — it streams whole pages through the CPU — so
+past that point the threads are queueing for the same memory. Asking for more
+is not harmful, only pointless.
+
+Note what is **not** parallel: rasterising. pdfium serialises every call behind
+one global lock, so a second thread in front of it does nothing but wait. That
+puts a floor under the run — about 0.8s of the numbers above — and it is why
+`--jobs 8` is three times faster rather than eight.
+
+This defaults to every CPU while `pdfl test` and `pdfl watch` default to
+`--jobs 1`. The difference is real: there a job is a child process holding its
+own document, so each one costs another document in memory. Here the pages are
+already in memory and the threads share them, so a job costs one page's working
+set. Lower it if you are sharing the machine.
+
 Exit codes: `0` no page changed by more than `--max-diff`, `2` at least one
 did, `10` a file could not be read or the viewer could not be written.
+
+The report does not depend on `--jobs`. Pages are folded back in page order, so
+the diagnostics, their order and their fingerprints come out identical whatever
+you set — a test asserts it, and the viewer's files come out byte for byte the
+same.
 
 ---
 

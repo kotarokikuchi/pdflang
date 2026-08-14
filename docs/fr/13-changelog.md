@@ -19,6 +19,19 @@ adapter. Rien ne change ici en silence.
   n'est tracée que si stderr est un terminal, car la barre réécrit sa propre
   ligne et un fichier de log n'a pas de curseur ; redirigée, elle reste muette.
   `--quiet` la fait taire partout.
+- `--jobs <n>` sur `pdfl pixelcompare` compare autant de pages en même temps, et
+  vaut par défaut un par CPU : 41 pages à 150 dpi passent de 3,6s à 1,2s. Seule
+  la comparaison est parallèle — pdfium sérialise chaque appel derrière un
+  unique verrou global, la rastérisation ne peut donc pas l'être, et c'est
+  pourquoi le gain est de trois et non de huit. Le rapport ne dépend pas de la
+  valeur : les pages sont réassemblées dans l'ordre des pages, donc les
+  diagnostics, leur ordre et leurs empreintes sont identiques — les fichiers de
+  la visionneuse aussi.
+
+  > Ici la valeur par défaut est un par CPU, alors que `test` et `watch`
+  > utilisent `--jobs 1`. Là-bas une tâche est un processus enfant tenant son
+  > propre document ; ici les pages sont déjà en mémoire et les threads se les
+  > partagent.
 
 ---
 

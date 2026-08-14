@@ -21,7 +21,9 @@ em silêncio.
 - O `--viewer <pasta>` do `pixelcompare` grava uma aplicação autocontida — sem
   CDN, sem bundler, sem servidor — para varrer, alternar ou misturar os dois
   arquivos com as diferenças pintadas no lugar: vermelho para tinta que sumiu,
-  verde para tinta nova, azul para o mesmo peso em outra cor.
+  verde para tinta nova, azul para o mesmo peso em outra cor. A faixa de páginas
+  filtra para **Changed only**, e as setas seguem o filtro — num documento longo,
+  passar pelas páginas que não mexeram é a parte lenta.
 
 ---
 

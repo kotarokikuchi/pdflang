@@ -21,7 +21,9 @@ adapter. Rien ne change ici en silence.
 - `--viewer <dossier>` sur `pixelcompare` écrit une application autonome — sans
   CDN, sans bundler, sans serveur — pour balayer, permuter ou fondre entre les
   deux fichiers, différences peintes sur place : rouge pour l'encre disparue,
-  vert pour la nouvelle, bleu pour la même graisse dans une autre couleur.
+  vert pour la nouvelle, bleu pour la même graisse dans une autre couleur. La
+  bande de pages se filtre sur **Changed only**, et les flèches suivent le
+  filtre — sur un long document, parcourir les pages inchangées est le plus lent.
 
 ---
 

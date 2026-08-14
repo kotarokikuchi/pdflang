@@ -192,7 +192,10 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
   }}
   .chip[aria-current="true"] {{ border-color: var(--accent); color: var(--accent); font-weight: 600; }}
   .chip.identical {{ color: var(--muted); }}
+  .chip[hidden] {{ display: none; }}
   .chip .pct {{ font-variant-numeric: tabular-nums; opacity: .75; margin-left: 5px; font-size: 12px; }}
+  button[disabled] {{ opacity: .45; cursor: not-allowed; }}
+  #empty {{ padding: 0 20px 20px; text-align: center; color: var(--muted); }}
   footer {{ padding: 0 20px 28px; color: var(--muted); font-size: 12.5px; text-align: center; }}
   .key {{ display: inline-flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }}
   .key span {{ display: inline-flex; gap: 5px; align-items: center; }}
@@ -233,6 +236,11 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
       <option value="2">200%</option>
     </select>
   </div>
+  <div class="group">
+    <label>Pages</label>
+    <button id="f-all" aria-pressed="true">All</button>
+    <button id="f-changed" aria-pressed="false">Changed only</button>
+  </div>
   <div class="group" id="showing"></div>
 </div>
 
@@ -246,6 +254,7 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
 </main>
 
 <div class="pages" id="pages"></div>
+<div id="empty" hidden>Every page compared is identical.</div>
 
 <footer>
   <div>
@@ -265,9 +274,35 @@ const AFTER = {after_js};
 
 const el = id => document.getElementById(id);
 const stage = el("stage"), handle = el("handle");
-let index = 0, mode = "wipe", split = 50, flipShowsAfter = false;
+let index = 0, mode = "wipe", split = 50, flipShowsAfter = false, filter = "all";
 
 function pad(n) {{ return String(n).padStart(3, "0"); }}
+
+/// The indices the filter admits. On a long document most pages are usually
+/// untouched, and paging through them to reach the two that changed is the
+/// slow part of the job.
+function shown() {{
+  return PAGES.map((p, i) => i).filter(i => filter === "all" || PAGES[i].diff > 0);
+}}
+
+function applyFilter() {{
+  const visible = shown();
+  for (const chip of document.querySelectorAll(".chip")) {{
+    chip.hidden = !visible.includes(Number(chip.dataset.i));
+  }}
+  el("f-all").setAttribute("aria-pressed", String(filter === "all"));
+  el("f-changed").setAttribute("aria-pressed", String(filter === "changed"));
+  // Filtering to nothing would leave a blank strip and no way back, so say so
+  // and keep the page on screen.
+  el("empty").hidden = visible.length > 0;
+  // The page being looked at may be one the filter just hid: move to the
+  // nearest one it admits rather than showing a page no chip points at.
+  if (visible.length > 0 && !visible.includes(index)) {{
+    index = visible.reduce((best, i) =>
+      Math.abs(i - index) < Math.abs(best - index) ? i : best, visible[0]);
+    render();
+  }}
+}}
 
 function render() {{
   const p = PAGES[index];
@@ -357,9 +392,25 @@ el("ov").addEventListener("input", () => {{
 }});
 el("zoom").addEventListener("change", applyZoom);
 
+for (const f of ["all", "changed"]) {{
+  el("f-" + f).addEventListener("click", () => {{ filter = f; applyFilter(); }});
+}}
+
+/// Moves `delta` places through the pages the filter admits, so the arrows
+/// skip what the chips are hiding rather than landing on it.
+function step(delta) {{
+  const visible = shown();
+  const at = visible.indexOf(index);
+  const next = visible[(at < 0 ? 0 : at) + delta];
+  if (next !== undefined) {{
+    index = next;
+    render();
+  }}
+}}
+
 document.addEventListener("keydown", e => {{
-  if (e.key === "ArrowRight" && index < PAGES.length - 1) {{ index++; render(); }}
-  else if (e.key === "ArrowLeft" && index > 0) {{ index--; render(); }}
+  if (e.key === "ArrowRight") {{ step(1); }}
+  else if (e.key === "ArrowLeft") {{ step(-1); }}
   else if (e.key === " ") {{
     e.preventDefault();
     if (mode !== "flip") {{ mode = "flip"; }}
@@ -382,7 +433,15 @@ PAGES.forEach((p, i) => {{
   list.appendChild(b);
 }});
 
+// Nothing to filter down to: offer the button but say why it does nothing,
+// rather than letting someone press it and get an empty strip.
+if (!PAGES.some(p => p.diff > 0)) {{
+  el("f-changed").disabled = true;
+  el("f-changed").title = "No page differs";
+}}
+
 el("overlay-layer").style.opacity = 1;
+applyFilter();
 render();
 </script>
 </body>

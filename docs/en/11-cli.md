@@ -308,6 +308,14 @@ The slider next to **Differences** fades that overlay out, so you can check the
 page underneath without leaving the viewer. `←` and `→` change page, `space`
 flips, `d` toggles the overlay.
 
+**Pages** filters the strip at the bottom: **All**, or **Changed only**. On a
+two-hundred-page document where three pages moved, paging through the other
+hundred and ninety-seven is the slow part of the job. The arrows follow the
+filter — they step over what the strip is hiding rather than landing on it —
+and switching to *Changed only* while looking at an unchanged page moves to the
+nearest one that did change. When nothing differs the button says so and stays
+disabled, instead of filtering the strip down to nothing.
+
 Exit codes: `0` no page changed by more than `--max-diff`, `2` at least one
 did, `10` a file could not be read or the viewer could not be written.
 

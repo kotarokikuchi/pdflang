@@ -306,6 +306,14 @@ O controle ao lado de **Differences** apaga essa camada aos poucos, para
 conferir a página por baixo sem sair do visualizador. `←` e `→` mudam de
 página, `space` alterna, `d` liga e desliga a camada.
 
+**Pages** filtra a faixa lá embaixo: **All**, ou **Changed only**. Num documento
+de duzentas páginas em que três se mexeram, passar pelas outras cento e noventa
+e sete é a parte lenta do trabalho. As setas seguem o filtro — pulam o que a
+faixa está escondendo em vez de parar nele — e trocar para *Changed only*
+olhando uma página que não mudou leva para a mais próxima que mudou. Quando nada
+difere, o botão avisa e fica desabilitado, em vez de filtrar a faixa até não
+sobrar nada.
+
 Códigos de saída: `0` nenhuma página mudou mais que `--max-diff`, `2` pelo
 menos uma mudou, `10` um arquivo não pôde ser lido ou o visualizador não pôde
 ser gravado.

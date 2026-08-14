@@ -22,7 +22,9 @@ nichts stillschweigend.
   — kein CDN, kein Bundler, kein Server — zum Wischen, Umschalten oder
   Überblenden zwischen beiden Dateien, mit den Unterschieden an Ort und Stelle
   eingefärbt: Rot für fehlende Farbe, Grün für neue, Blau für gleiches Gewicht
-  in anderer Farbe.
+  in anderer Farbe. Die Seitenleiste filtert auf **Changed only**, und die
+  Pfeiltasten folgen dem Filter — bei einem langen Dokument ist das Blättern an
+  den unveränderten Seiten vorbei die langsame Arbeit.
 
 ---
 

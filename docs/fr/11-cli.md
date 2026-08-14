@@ -297,6 +297,13 @@ Le curseur près de **Differences** estompe ce calque, pour vérifier la page
 dessous sans quitter la visionneuse. `←` et `→` changent de page, `space`
 permute, `d` bascule le calque.
 
+**Pages** filtre la bande du bas : **All**, ou **Changed only**. Sur un document
+de deux cents pages dont trois ont bougé, parcourir les cent quatre-vingt-dix-
+sept autres est la partie lente du travail. Les flèches suivent le filtre —
+elles enjambent ce que la bande masque — et passer à *Changed only* depuis une
+page inchangée amène à la plus proche qui a changé. Quand rien ne diffère, le
+bouton le dit et reste désactivé, au lieu de réduire la bande à rien.
+
 Codes de sortie : `0` aucune page n'a changé de plus que `--max-diff`, `2` au
 moins une, `10` un fichier illisible ou une visionneuse non écrite.
 

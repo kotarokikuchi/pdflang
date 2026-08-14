@@ -302,7 +302,9 @@ build all leave the text identical.
 — no CDN, no bundler, no server. Wipe across the page, hold to flip between the
 files, or fade between them, with the differences painted in place: **red** ink
 that is gone, **green** ink that is new, **blue** the same weight in another
-colour.
+colour. The page strip filters to **Changed only** and the arrow keys follow the
+filter, so a document where three pages moved out of two hundred does not have
+to be paged through.
 
 ## Command `pdfl watch`
 

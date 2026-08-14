@@ -21,7 +21,9 @@ quietly.
 - `--viewer <folder>` on `pixelcompare` writes a self-contained application —
   no CDN, no bundler, no server — to wipe, flip or fade between the two files
   with the differences painted in place: red for ink that is gone, green for
-  ink that is new, blue for the same weight in another colour.
+  ink that is new, blue for the same weight in another colour. The page strip
+  filters to **Changed only**, and the arrow keys follow the filter — on a long
+  document, paging past the pages that did not move is the slow part.
 
 ---
 

@@ -297,6 +297,14 @@ Der Regler neben **Differences** blendet diese Ebene aus, um die Seite darunter
 zu prüfen, ohne den Betrachter zu verlassen. `←` und `→` wechseln die Seite,
 `space` schaltet um, `d` blendet die Ebene ein und aus.
 
+**Pages** filtert die Leiste unten: **All** oder **Changed only**. Bei einem
+Dokument mit zweihundert Seiten, von denen drei sich geändert haben, ist das
+Durchblättern der übrigen hundertsiebenundneunzig die langsame Arbeit. Die Pfeile
+folgen dem Filter — sie überspringen, was die Leiste verbirgt — und wer während
+einer unveränderten Seite auf *Changed only* schaltet, landet auf der nächsten
+geänderten. Ändert sich nichts, sagt der Knopf das und bleibt deaktiviert, statt
+die Leiste auf nichts zu filtern.
+
 Exit-Codes: `0` keine Seite änderte sich um mehr als `--max-diff`, `2`
 mindestens eine, `10` eine Datei war nicht lesbar oder der Betrachter nicht
 schreibbar.

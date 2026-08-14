@@ -96,6 +96,13 @@ profile "basic-validation" {
       assert font.is_embedded, "Font #{font.name} is not embedded"
     }
   }
+
+  check "Cover" {
+    // if also guards statements, with no else
+    if doc.page_count > 1 {
+      require doc.pages.first().width > 0
+    }
+  }
 }
 ```
 
@@ -105,6 +112,11 @@ profile "basic-validation" {
   (`const BLEED = 3mm`); `300%` keeps the numeric value
 - **Functions**: `function double(x) { x * 2 }` — the value is that of the last
   expression; call it from any check (`require double(21) == 42`)
+- **Conditionals**: `if` / `else if` / `else` is an *expression* — its value is
+  the last expression of the branch that ran, so it serves as a value
+  (`const LIMIT = if doc.page_count > 1 { 300 } else { 260 }`) and as a guard
+  around statements, with no second syntax. A branch that does not run yields
+  `null`
 - **Imports**: `import "library.pdfl"` — path relative to the script; loads
   functions, constants and checks (each file is imported only once)
 - `doc` — the loaded PDF: `page_count`, `title`, `author`, `pages`, `fonts`, `extract_text()`

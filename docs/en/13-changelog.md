@@ -12,6 +12,8 @@ quietly.
 
 ## Unreleased
 
+## 0.15.0
+
 ### Added
 
 - `if` / `else if` / `else`, as an **expression**: its value is the last

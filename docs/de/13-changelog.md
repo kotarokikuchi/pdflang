@@ -12,6 +12,8 @@ nichts stillschweigend.
 
 ## Noch nicht veröffentlicht
 
+## 0.15.0
+
 ### Neu
 
 - `if` / `else if` / `else` als **Ausdruck**: der Wert ist der letzte Ausdruck

@@ -12,6 +12,8 @@ em silêncio.
 
 ## Ainda não publicado
 
+## 0.15.0
+
 ### Novo
 
 - `if` / `else if` / `else`, como **expressão**: o valor é a última expressão do

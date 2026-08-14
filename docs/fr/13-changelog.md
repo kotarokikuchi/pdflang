@@ -12,6 +12,8 @@ adapter. Rien ne change ici en silence.
 
 ## Non publié
 
+## 0.15.0
+
 ### Ajouté
 
 - `if` / `else if` / `else`, en tant qu'**expression** : sa valeur est la

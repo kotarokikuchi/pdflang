@@ -14,6 +14,12 @@ adapter. Rien ne change ici en silence.
 
 ### Corrigé
 
+- `pdfl pack` enregistrait un fichier imbriqué avec le séparateur de la machine
+  qui construisait le paquet — sous Windows, `donnees\lots.csv`. Un paquet est
+  construit sur une machine et installé sur une autre : tout autre chose que `/`
+  donne un paquet qui s'installe puis ne retrouve pas ses propres fichiers, et
+  notre vérification non plus. Les paquets construits sous Linux et macOS n'ont
+  jamais été touchés.
 - `--output` et `--output-file` étaient ignorés quand le PDF ne pouvait pas
   être lu. `run`, `fix` et `compare` imprimaient du JSON sur stdout quelle que
   soit la demande : une chaîne qui demandait du JUnit dans un fichier

@@ -14,6 +14,11 @@ quietly.
 
 ### Fixed
 
+- `pdfl pack` recorded a nested file with the separator of the machine that
+  built the package — on Windows, `data\batches.csv`. A package is built on one
+  machine and installed on another, so anything but `/` is a package that
+  installs and then cannot find its own files; our own verification could not
+  find them either. Packages built on Linux and macOS were never affected.
 - `--output` and `--output-file` were ignored when the PDF could not be read.
   `run`, `fix` and `compare` printed JSON to stdout whatever was asked for, so
   a pipeline that asked for JUnit in a file got no file at all and a report on

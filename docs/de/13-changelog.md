@@ -14,6 +14,12 @@ nichts stillschweigend.
 
 ### Behoben
 
+- `pdfl pack` schrieb eine verschachtelte Datei mit dem Trennzeichen der
+  bauenden Maschine auf — unter Windows `daten\chargen.csv`. Ein Paket wird auf
+  der einen Maschine gebaut und auf einer anderen installiert: alles außer `/`
+  ergibt ein Paket, das sich installiert und dann seine eigenen Dateien nicht
+  findet, auch unsere Prüfung nicht. Unter Linux und macOS gebaute Pakete waren
+  nie betroffen.
 - `--output` und `--output-file` wurden ignoriert, wenn die PDF nicht lesbar
   war. `run`, `fix` und `compare` gaben JSON auf stdout aus, egal was verlangt
   wurde: Eine Pipeline, die JUnit in einer Datei anforderte, bekam gar keine

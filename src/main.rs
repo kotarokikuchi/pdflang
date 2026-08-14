@@ -1176,9 +1176,13 @@ mod tests {
                 "{target} should start with {starts_with:?}, got: {}",
                 &written[..written.len().min(60)]
             );
-            // The reason has to survive the format change, or the file is
-            // correctly shaped and useless.
-            assert!(written.contains("could not open PDF"), "{target} lost the reason");
+            // The finding has to survive the format change, or the file is
+            // correctly shaped and useless. Asserted on the check name, which
+            // is ours: this test runs before pdfium is downloaded in CI, so
+            // whether the failure is "cannot open this file" or "cannot bind
+            // the library" is not something it can pin down — and does not
+            // need to. Either way it is a document that never got judged.
+            assert!(written.contains("loading"), "{target} lost the finding");
         }
 
         // A message that spans lines would break the CSV row and the XML

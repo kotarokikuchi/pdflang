@@ -1,0 +1,12 @@
+# A PDF is bytes, and its cross-reference table records byte offsets. Checked
+# out on Windows, where git's autocrlf is on by default, every LF inside these
+# files becomes CRLF: the offsets stop matching and the file no longer parses —
+# "invalid file trailer", from a fixture that is fine in the repository. Marking
+# them binary is what keeps a checkout byte-for-byte identical everywhere.
+*.pdf binary
+
+# Scripts run by a shell need LF, whatever the checkout does with the rest.
+*.sh text eol=lf
+
+# Everything else is text; git may normalise it as it likes.
+* text=auto

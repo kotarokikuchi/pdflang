@@ -49,11 +49,23 @@ pub fn pack(folder: &Path, output: &Path, name: &str, version: &str) -> Result<M
         bail!("no packable file in {} (extensions: {})", folder.display(), EXTENSIONS.join(", "));
     }
 
+    // A package is an interchange format: it is built on one machine and
+    // installed on another. `Path` renders with the separator of whichever
+    // machine built it, so on Windows both the manifest and the archive
+    // recorded `data\batches.csv`, which no other platform — and not our own
+    // verification — would find again. Tar and zip have used `/` all along.
+    fn slash_path(rel: &Path) -> String {
+        rel.components()
+            .map(|c| c.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join("/")
+    }
+
     let mut files = Vec::new();
     for rel in &paths {
         let bytes = std::fs::read(folder.join(rel))?;
         files.push(ManifestFile {
-            path: rel.to_string_lossy().into_owned(),
+            path: slash_path(rel),
             sha256: format!("{:x}", Sha256::digest(&bytes)),
         });
     }
@@ -77,7 +89,7 @@ pub fn pack(folder: &Path, output: &Path, name: &str, version: &str) -> Result<M
     add_entry("manifest.json", manifest_json.as_bytes())?;
     for rel in &paths {
         let bytes = std::fs::read(folder.join(rel))?;
-        add_entry(&rel.to_string_lossy(), &bytes)?;
+        add_entry(&slash_path(rel), &bytes)?;
     }
     tar.into_inner()?.finish()?;
     Ok(manifest)
@@ -175,6 +187,15 @@ mod tests {
         let pkg = tempdir("pkg").join("perfil.pdflpkg");
         let manifest = pack(&src, &pkg, "perfil-teste", "1.2.0").unwrap();
         assert_eq!(manifest.files.len(), 2); // .exe fora
+
+        // A nested entry is recorded with `/`, whatever the machine that built
+        // it calls a separator. Windows recorded `dados\lotes.csv`, which the
+        // verification below then could not find — the package installed and
+        // was useless. This assertion is trivially true on Unix and is the
+        // whole point of the test on Windows.
+        let recorded: Vec<&str> = manifest.files.iter().map(|f| f.path.as_str()).collect();
+        assert!(recorded.contains(&"dados/lotes.csv"), "recorded as: {recorded:?}");
+        assert!(!recorded.iter().any(|p| p.contains('\\')), "recorded as: {recorded:?}");
 
         // determinism: packing again gives the same bytes
         let pkg2 = tempdir("pkg2").join("p2.pdflpkg");

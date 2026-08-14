@@ -14,6 +14,11 @@ em silêncio.
 
 ### Corrigido
 
+- O `pdfl pack` gravava um arquivo aninhado com o separador da máquina que
+  montou o pacote — no Windows, `dados\lotes.csv`. Um pacote é montado numa
+  máquina e instalado em outra, então qualquer coisa diferente de `/` é um
+  pacote que instala e depois não acha os próprios arquivos; nem a nossa
+  verificação achava. Pacotes montados em Linux e macOS nunca foram afetados.
 - O `--output` e o `--output-file` eram ignorados quando o PDF não podia ser
   lido. O `run`, o `fix` e o `compare` imprimiam JSON no stdout qualquer que
   fosse o pedido, então uma pipeline que pedia JUnit em arquivo não recebia

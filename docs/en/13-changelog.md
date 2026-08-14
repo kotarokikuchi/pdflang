@@ -12,6 +12,15 @@ quietly.
 
 ## Unreleased
 
+### Added
+
+- `pdfl pixelcompare` shows a progress bar for each stage — rasterising either
+  file, comparing, writing the viewer. It is drawn only when stderr is a
+  terminal, because the bar overwrites its own line and a log file has no
+  cursor to move; redirected, it stays silent. `--quiet` silences it anywhere.
+
+---
+
 ## 0.16.0
 
 ### Added

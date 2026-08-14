@@ -304,6 +304,22 @@ elles enjambent ce que la bande masque — et passer à *Changed only* depuis un
 page inchangée amène à la plus proche qui a changé. Quand rien ne diffère, le
 bouton le dit et reste désactivé, au lieu de réduire la bande à rien.
 
+### Progression
+
+Rastériser un long document à 300 dpi prend des minutes : chaque étape trace donc
+une barre sur stderr — une par fichier rastérisé, une pour la comparaison, une
+pour l'écriture de la visionneuse.
+
+```
+rasterising approuve.pdf  [############------------]  98/207
+```
+
+Elle n'est tracée que si stderr est un terminal. La barre revient en début de
+ligne et la réécrit ; un fichier de log n'a pas de curseur à déplacer, une
+exécution redirigée accumulerait donc des milliers de fragments. Redirigée, elle
+reste muette et les messages ordinaires passent toujours. `--quiet` la fait taire
+partout.
+
 Codes de sortie : `0` aucune page n'a changé de plus que `--max-diff`, `2` au
 moins une, `10` un fichier illisible ou une visionneuse non écrite.
 

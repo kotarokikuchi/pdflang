@@ -12,6 +12,16 @@ nichts stillschweigend.
 
 ## Noch nicht veröffentlicht
 
+### Neu
+
+- `pdfl pixelcompare` zeigt je Stufe einen Fortschrittsbalken — Rastern beider
+  Dateien, Vergleichen, Schreiben des Betrachters. Gezeichnet wird nur, wenn
+  stderr ein Terminal ist, denn der Balken überschreibt seine eigene Zeile und
+  eine Logdatei hat keinen Cursor; umgeleitet bleibt er still. `--quiet`
+  schaltet ihn überall ab.
+
+---
+
 ## 0.16.0
 
 ### Neu

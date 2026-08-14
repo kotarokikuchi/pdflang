@@ -316,6 +316,22 @@ and switching to *Changed only* while looking at an unchanged page moves to the
 nearest one that did change. When nothing differs the button says so and stays
 disabled, instead of filtering the strip down to nothing.
 
+### Progress
+
+Rasterising a long document at 300 dpi takes minutes, so each stage draws a bar
+on stderr: one for each file being rasterised, one for the comparison, and one
+for writing the viewer.
+
+```
+rasterising approved.pdf  [############------------]  98/207
+```
+
+It is drawn only when stderr is a terminal. The bar works by returning to the
+start of the line and overwriting it; a log file has no cursor to move, so a
+redirected run would collect thousands of fragments instead. Redirected, it
+stays silent and the ordinary messages still come through. `--quiet` silences it
+everywhere.
+
 Exit codes: `0` no page changed by more than `--max-diff`, `2` at least one
 did, `10` a file could not be read or the viewer could not be written.
 

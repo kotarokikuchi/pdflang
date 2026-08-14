@@ -314,6 +314,22 @@ olhando uma página que não mudou leva para a mais próxima que mudou. Quando n
 difere, o botão avisa e fica desabilitado, em vez de filtrar a faixa até não
 sobrar nada.
 
+### Progresso
+
+Rasterizar um documento longo a 300 dpi leva minutos, então cada etapa desenha
+uma barra no stderr: uma para cada arquivo sendo rasterizado, uma para a
+comparação e uma para gravar o visualizador.
+
+```
+rasterising aprovado.pdf  [############------------]  98/207
+```
+
+Ela só é desenhada quando o stderr é um terminal. A barra funciona voltando ao
+início da linha e sobrescrevendo-a; um arquivo de log não tem cursor para mover,
+então uma execução redirecionada acumularia milhares de fragmentos. Redirecionada,
+ela fica em silêncio e as mensagens normais continuam saindo. O `--quiet`
+silencia em qualquer caso.
+
 Códigos de saída: `0` nenhuma página mudou mais que `--max-diff`, `2` pelo
 menos uma mudou, `10` um arquivo não pôde ser lido ou o visualizador não pôde
 ser gravado.

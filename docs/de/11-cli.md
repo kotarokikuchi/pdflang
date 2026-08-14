@@ -305,6 +305,22 @@ einer unveränderten Seite auf *Changed only* schaltet, landet auf der nächsten
 geänderten. Ändert sich nichts, sagt der Knopf das und bleibt deaktiviert, statt
 die Leiste auf nichts zu filtern.
 
+### Fortschritt
+
+Ein langes Dokument bei 300 dpi zu rastern dauert Minuten, deshalb zeichnet jede
+Stufe einen Balken auf stderr: einen je gerasterter Datei, einen für den
+Vergleich und einen für das Schreiben des Betrachters.
+
+```
+rasterising freigegeben.pdf  [############------------]  98/207
+```
+
+Gezeichnet wird nur, wenn stderr ein Terminal ist. Der Balken arbeitet, indem er
+an den Zeilenanfang zurückgeht und überschreibt; eine Logdatei hat keinen
+Cursor, ein umgeleiteter Lauf sammelte also Tausende Fragmente. Umgeleitet
+bleibt er still, die gewöhnlichen Meldungen kommen weiterhin durch. `--quiet`
+schaltet ihn überall ab.
+
 Exit-Codes: `0` keine Seite änderte sich um mehr als `--max-diff`, `2`
 mindestens eine, `10` eine Datei war nicht lesbar oder der Betrachter nicht
 schreibbar.

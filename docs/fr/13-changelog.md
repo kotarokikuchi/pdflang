@@ -12,6 +12,16 @@ adapter. Rien ne change ici en silence.
 
 ## Non publié
 
+### Ajouté
+
+- `pdfl pixelcompare` affiche une barre de progression à chaque étape —
+  rastérisation de chaque fichier, comparaison, écriture de la visionneuse. Elle
+  n'est tracée que si stderr est un terminal, car la barre réécrit sa propre
+  ligne et un fichier de log n'a pas de curseur ; redirigée, elle reste muette.
+  `--quiet` la fait taire partout.
+
+---
+
 ## 0.16.0
 
 ### Ajouté

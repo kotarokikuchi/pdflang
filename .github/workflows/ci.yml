@@ -144,3 +144,8 @@ jobs:
           # the viewer carries its own CSS and JS: no network, no bundler
           grep -q "PAGES = \[" /tmp/px/index.html
           ! grep -qE '<(script|link)[^>]+(src|href)="https?:' /tmp/px/index.html
+          # the progress bar must never reach a redirected stderr: it works by
+          # overwriting its line, and a log has no cursor to move
+          ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \
+            tests/fixtures/suspeito.pdf --dpi 72 >/dev/null 2>/tmp/px.err || true
+          test ! -s /tmp/px.err

@@ -586,12 +586,30 @@ pub struct RenderedPage {
     pub rgba: Vec<u8>,
 }
 
-pub fn render_pages_rgba(path: &Path, pages: &[i64], dpi: u16) -> Result<Vec<RenderedPage>> {
+/// `on_page` is called once the page count is known and once per page
+/// rendered, so a caller can show progress. Rendering is where the time goes —
+/// minutes for a long document at 300 dpi — and it is the caller, not this
+/// function, that decides whether anyone is watching.
+pub fn render_pages_rgba(
+    path: &Path,
+    pages: &[i64],
+    dpi: u16,
+    on_page: &mut dyn FnMut(RenderEvent),
+) -> Result<Vec<RenderedPage>> {
     let pdfium = bind_pdfium()?;
     let document = pdfium
         .load_pdf_from_file(path, None)
         .with_context(|| format!("could not open PDF: {}", path.display()))?;
     let config = PdfRenderConfig::new().scale_page_by_factor(dpi as f32 / 72.0);
+
+    let selected = if pages.is_empty() {
+        document.pages().len() as usize
+    } else {
+        // Only the requested pages that the document actually has: a range
+        // running past the end must not inflate the total.
+        pages.iter().filter(|n| **n >= 1 && **n <= document.pages().len() as i64).count()
+    };
+    on_page(RenderEvent::Starting { pages: selected });
 
     let mut out = Vec::new();
     for (index, page) in document.pages().iter().enumerate() {
@@ -608,8 +626,18 @@ pub fn render_pages_rgba(path: &Path, pages: &[i64], dpi: u16) -> Result<Vec<Ren
             height: bitmap.height() as u32,
             rgba: bitmap.as_rgba_bytes(),
         });
+        on_page(RenderEvent::Rendered);
     }
     Ok(out)
+}
+
+/// What `render_pages_rgba` reports as it goes.
+pub enum RenderEvent {
+    /// The document is open and the page count is known — which it is not
+    /// until then, so a bar cannot be sized any earlier.
+    Starting { pages: usize },
+    /// One more page is in memory.
+    Rendered,
 }
 
 /// Scans barcodes/QR codes by rendering each page at high resolution.

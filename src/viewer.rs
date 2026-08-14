@@ -34,12 +34,15 @@ pub fn encode_png(width: u32, height: u32, rgba: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// Writes the viewer folder: one PNG trio per page plus `index.html`.
+/// `on_page` is called once per page written: three PNGs a page at 300 dpi is
+/// gigabytes for a long document, slow enough to be worth showing.
 pub fn write(
     dir: &Path,
     before_name: &str,
     after_name: &str,
     diffs: &[PageDiff],
     assets: &[PageAssets],
+    on_page: &mut dyn FnMut(),
 ) -> Result<()> {
     std::fs::create_dir_all(dir)
         .with_context(|| format!("could not create {}", dir.display()))?;
@@ -52,6 +55,7 @@ pub fn write(
             std::fs::write(dir.join(&name), bytes)
                 .with_context(|| format!("could not write {name}"))?;
         }
+        on_page();
     }
 
     let html = index_html(before_name, after_name, diffs);
@@ -521,7 +525,7 @@ mod tests {
             after: b"png-b".to_vec(),
             overlay: b"png-d".to_vec(),
         }];
-        write(&dir, "a.pdf", "b.pdf", &[diff(1, 1.0)], &assets).unwrap();
+        write(&dir, "a.pdf", "b.pdf", &[diff(1, 1.0)], &assets, &mut || {}).unwrap();
 
         assert!(dir.join("index.html").is_file());
         assert!(dir.join("page-001-before.png").is_file());

@@ -12,6 +12,16 @@ em silêncio.
 
 ## Ainda não publicado
 
+### Novo
+
+- O `pdfl pixelcompare` mostra uma barra de progresso em cada etapa —
+  rasterizar cada arquivo, comparar, gravar o visualizador. Ela só é desenhada
+  quando o stderr é um terminal, porque a barra sobrescreve a própria linha e um
+  arquivo de log não tem cursor para mover; redirecionada, fica em silêncio. O
+  `--quiet` silencia em qualquer caso.
+
+---
+
 ## 0.16.0
 
 ### Novo

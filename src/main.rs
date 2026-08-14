@@ -16,6 +16,7 @@ mod lexer;
 mod parser;
 mod pdf;
 mod pixelcmp;
+mod progress;
 mod prepressns;
 mod report;
 mod structns;
@@ -49,6 +50,12 @@ pub fn note(message: String) {
     if !QUIET.load(Ordering::Relaxed) {
         eprintln!("{message}");
     }
+}
+
+/// Whether `--quiet` was given. The progress bar asks, because a bar is
+/// exactly the kind of stderr chatter that flag exists to remove.
+pub fn quiet() -> bool {
+    QUIET.load(Ordering::Relaxed)
 }
 
 #[derive(Parser)]
@@ -849,7 +856,29 @@ fn pixelcompare_cmd(
     max_diff: f64,
     opts: pixelcmp::Options,
 ) -> ExitCode {
-    let render = |path: &Path| pdf::render_pages_rgba(path, pages, dpi);
+    // Rasterising is where the minutes go, so each file gets its own bar. The
+    // page count is not known until the document is open, which is why the bar
+    // is created from inside the callback rather than before the call.
+    let render = |path: &Path| {
+        let mut bar: Option<progress::Progress> = None;
+        let result = pdf::render_pages_rgba(path, pages, dpi, &mut |event| match event {
+            pdf::RenderEvent::Starting { pages } => {
+                bar = Some(progress::Progress::new(
+                    format!("rasterising {}", file_name(path)),
+                    pages,
+                ));
+            }
+            pdf::RenderEvent::Rendered => {
+                if let Some(b) = bar.as_mut() {
+                    b.tick();
+                }
+            }
+        });
+        if let Some(b) = bar.as_mut() {
+            b.finish();
+        }
+        result
+    };
     let (before, after) = match (render(v1), render(v2)) {
         (Ok(a), Ok(b)) => (a, b),
         (Err(e), _) | (_, Err(e)) => {
@@ -883,6 +912,14 @@ fn pixelcompare_cmd(
     let mut assets = Vec::new();
     let mut seen = std::collections::HashMap::new();
 
+    // Comparing is the second slow stage: every pixel of every page, plus the
+    // shift search. With a viewer it also encodes three PNGs per page, which
+    // costs more than the comparison — so the label says so rather than
+    // leaving someone to wonder why "comparing" is taking that long.
+    let mut comparing = progress::Progress::new(
+        if viewer_dir.is_some() { "comparing and encoding" } else { "comparing" },
+        numbers.len(),
+    );
     for n in numbers {
         let (a, b) = (find(&before, n), find(&after, n));
         let (a, b) = match (a, b) {
@@ -900,6 +937,7 @@ fn pixelcompare_cmd(
                     message,
                     line: None,
                 });
+                comparing.tick();
                 continue;
             }
         };
@@ -947,12 +985,18 @@ fn pixelcompare_cmd(
             }
         }
         diffs.push(diff);
+        comparing.tick();
     }
+    comparing.finish();
 
     if let Some(dir) = viewer_dir {
-        if let Err(e) =
-            viewer::write(dir, &file_name(v1), &file_name(v2), &diffs, &assets)
-        {
+        let mut writing = progress::Progress::new("writing the viewer", assets.len());
+        let result =
+            viewer::write(dir, &file_name(v1), &file_name(v2), &diffs, &assets, &mut || {
+                writing.tick();
+            });
+        writing.finish();
+        if let Err(e) = result {
             eprintln!("error: {e:#}");
             return ExitCode::from(EXIT_INFRASTRUCTURE);
         }

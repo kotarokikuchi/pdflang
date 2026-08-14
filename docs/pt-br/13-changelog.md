@@ -12,6 +12,19 @@ em silêncio.
 
 ## Ainda não publicado
 
+### Novo
+
+- O `pdfl pixelcompare` compara dois PDFs pela aparência, e não pelo texto,
+  página por página, e informa a fração de pixels que difere. Ele alinha uma
+  página que apenas se deslocou antes de comparar, para que um pixel fora do
+  lugar não enterre a mudança que importa.
+- O `--viewer <pasta>` do `pixelcompare` grava uma aplicação autocontida — sem
+  CDN, sem bundler, sem servidor — para varrer, alternar ou misturar os dois
+  arquivos com as diferenças pintadas no lugar: vermelho para tinta que sumiu,
+  verde para tinta nova, azul para o mesmo peso em outra cor.
+
+---
+
 ## 0.15.0
 
 ### Novo

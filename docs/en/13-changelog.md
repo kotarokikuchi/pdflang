@@ -12,6 +12,19 @@ quietly.
 
 ## Unreleased
 
+### Added
+
+- `pdfl pixelcompare` compares two PDFs by what they look like rather than by
+  their text, page by page, and reports the share of pixels that differ. It
+  aligns a page that only moved before comparing it, so a one-pixel offset does
+  not bury the change that matters.
+- `--viewer <folder>` on `pixelcompare` writes a self-contained application —
+  no CDN, no bundler, no server — to wipe, flip or fade between the two files
+  with the differences painted in place: red for ink that is gone, green for
+  ink that is new, blue for the same weight in another colour.
+
+---
+
 ## 0.15.0
 
 ### Added

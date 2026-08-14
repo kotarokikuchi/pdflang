@@ -2,13 +2,14 @@
 
 [← Standard library](10-stdlib.md) · [Index](README.md) · [Next: Recipes →](12-recipes.md)
 
-Twelve commands: four that work on PDFs, five on scripts, two for
+Thirteen commands: five that work on PDFs, five on scripts, two for
 distribution and one for the shell.
 
 | Command | What it does |
 |---|---|
 | [`run`](#pdfl-run) | Validates a PDF with a script |
 | [`compare`](#pdfl-compare) | Compares two versions of a PDF |
+| [`pixelcompare`](#pdfl-pixelcompare) | Compares two PDFs pixel by pixel, with a viewer to see the change |
 | [`watch`](#pdfl-watch) | Watches a folder and validates what arrives |
 | [`fix`](#pdfl-fix) | Applies corrections and saves a new PDF |
 | [`inspect`](#pdfl-inspect) | Quick summary of a PDF |
@@ -214,6 +215,101 @@ pdfl compare v1.pdf v2.pdf --similarity-threshold 99 \
 ```
 page 4 → 4: similarity 97.8% | -original title | +revised title
 ```
+
+---
+
+## `pdfl pixelcompare`
+
+Compares two PDFs by what they *look* like, page by page.
+
+```bash
+pdfl pixelcompare <original.pdf> <new.pdf> [options]
+```
+
+| Option | Default | What it does |
+|---|---|---|
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Report format |
+| `--output-file <file>` | — | Writes the report to a file |
+| `--viewer <folder>` | — | Writes a self-contained viewer: the pages, the differences, and an `index.html` to look at them |
+| `--dpi <n>` | `150` | Render resolution. Higher sees more and costs more |
+| `--threshold <0.0-1.0>` | `0.05` | Colour distance at which two pixels count as different |
+| `--max-diff <percent>` | `0.0` | How much of a page may change before it is reported |
+| `--pages <range>` | all | `1-10` or `1,3,7-12` |
+| `--no-align` | — | Do not compensate a global shift between the pages |
+| `--blur <radius>` | `0` | Box blur before comparing, to absorb anti-aliasing |
+
+`pdfl compare` answers "did the text or the structure change". This answers a
+different question — "does it still look the same" — and they disagree more
+often than you would think. A logo nudged 2mm, a hairline that vanished, a
+spot colour swapped for a CMYK build of it: the text is identical in all three.
+
+```bash
+# The whole document, reported as JSON
+pdfl pixelcompare approved.pdf reprint.pdf
+
+# With somewhere to actually look at the differences
+pdfl pixelcompare approved.pdf reprint.pdf --viewer diff/
+
+# Tolerate a little noise, look harder at what is left
+pdfl pixelcompare approved.pdf reprint.pdf --max-diff 0.1 --dpi 300
+```
+
+One finding per page that changed, with the share of pixels and how many
+separate areas they fall into:
+
+```
+page 7: 0.51% of the pixels differ, in 29 area(s)
+```
+
+A page present in one file and not the other is its own finding — there is
+nothing to compare it against. The report's `similarity` is the mean across
+the pages compared, so one rebuilt page in two hundred does not read as a
+different document; the per-page figures are in the diagnostics.
+
+### Alignment, and why it is on
+
+A file exported again from the same source often lands a pixel or two off.
+Without compensating for that, every glyph edge on the page is "different" and
+the one change that matters is buried. `pixelcompare` looks for a single global
+shift — coarsely on a downsampled copy first, then refined — and reports it
+when it finds one:
+
+```
+page 3: 2.10% of the pixels differ, in 44 area(s) (aligned by 2, -1 px)
+```
+
+Turn it off with `--no-align` when the position *is* the thing being checked.
+
+### The viewer
+
+`--viewer diff/` writes a folder holding three PNGs per page and one
+`index.html`. It has no dependencies of any kind — no CDN, no bundler, no
+server. Open the file, or zip the folder and send it to whoever has to approve
+the reprint.
+
+Three ways to look at the same pair:
+
+- **Wipe** — drag across the page to sweep the new file over the old one. The
+  fastest way to check whether something moved.
+- **Flip** — hold the pointer down to swap between them in place. What moved
+  jumps; what stayed still does not.
+- **Fade** — blend the two, for judging a colour or weight change.
+
+Over any of them, the differences are painted in place, and the colour says
+which kind:
+
+| Colour | Meaning |
+|---|---|
+| Red | Ink that is gone from the new file |
+| Green | Ink that is new in it |
+| Blue | Same weight, different colour |
+
+The slider next to **Differences** fades that overlay out, so you can check the
+page underneath without leaving the viewer. `←` and `→` change page, `space`
+flips, `d` toggles the overlay.
+
+Exit codes: `0` no page changed by more than `--max-diff`, `2` at least one
+did, `10` a file could not be read or the viewer could not be written.
 
 ---
 

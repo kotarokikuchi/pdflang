@@ -28,7 +28,7 @@ Kapitel 1; die übrigen Kapitel sind zum Nachschlagen gedacht.
 | [8. `fix::`](08-fix.md) | Normalisierung: Rahmen, Seiten, Wasserzeichen, Zusammenführen/Teilen, Optimierung |
 | [9. `data::`](09-data.md) | Externe Daten: Glossare, Datensätze, Nachschlagetabellen |
 | [10. Standardbibliothek](10-stdlib.md) | Listen- und Zeichenkettenmethoden, globale Funktionen |
-| [11. Kommandozeile](11-cli.md) | `run`, `compare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add`, `test`, `completions` |
+| [11. Kommandozeile](11-cli.md) | `run`, `compare`, `pixelcompare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add`, `test`, `completions` |
 | [12. Rezepte](12-recipes.md) | Vollständige Fälle: Druckerei, Rechtsverlag, Pharmalabor, CI/CD |
 | [13. Änderungen](13-changelog.md) | Was sich in jeder Version geändert hat und was brechen kann |
 

@@ -26,7 +26,7 @@ conforme a necessidade.
 | [8. `fix::`](08-fix.md) | Normalização: caixas, páginas, marca d'água, merge/split, otimizações |
 | [9. `data::`](09-data.md) | Dados externos: glossários, datasets e bases de consulta |
 | [10. Biblioteca padrão](10-stdlib.md) | Métodos de listas e strings, funções globais |
-| [11. Comandos do CLI](11-cli.md) | `run`, `compare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add`, `test`, `completions` |
+| [11. Comandos do CLI](11-cli.md) | `run`, `compare`, `pixelcompare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add`, `test`, `completions` |
 | [12. Receitas](12-receitas.md) | Casos completos: gráfica, editora jurídica, laboratório, CI/CD |
 | [13. Mudanças](13-changelog.md) | O que mudou em cada versão, e o que isso pode quebrar |
 

@@ -28,7 +28,7 @@ chapitres se consultent comme une référence.
 | [8. `fix::`](08-fix.md) | Normalisation : boîtes, pages, filigranes, fusion/découpe, optimisation |
 | [9. `data::`](09-data.md) | Données externes : glossaires, jeux de données, tables de consultation |
 | [10. Bibliothèque standard](10-stdlib.md) | Méthodes de listes et de chaînes, fonctions globales |
-| [11. Ligne de commande](11-cli.md) | `run`, `compare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add`, `test`, `completions` |
+| [11. Ligne de commande](11-cli.md) | `run`, `compare`, `pixelcompare`, `watch`, `fix`, `inspect`, `lint`, `fmt`, `doc`, `pack`, `add`, `test`, `completions` |
 | [12. Recettes](12-recipes.md) | Cas complets : imprimerie, édition juridique, laboratoire, CI/CD |
 | [13. Changements](13-changelog.md) | Ce qui a changé à chaque version, et ce que cela peut casser |
 

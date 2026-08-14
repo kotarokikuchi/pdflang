@@ -572,6 +572,46 @@ pub fn render_pages_gray(
     Ok(out)
 }
 
+/// Renders pages in colour, at `dpi` (72 dpi = the PDF's own point grid).
+/// An empty `pages` means all of them. Returns (page number, width, height,
+/// RGBA pixels).
+///
+/// Greyscale is enough to *measure* a difference, which is why
+/// `render_pages_gray` exists; showing one to a person is a different job —
+/// a colour swapped for another of the same luminance is invisible in grey.
+pub struct RenderedPage {
+    pub number: i64,
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
+}
+
+pub fn render_pages_rgba(path: &Path, pages: &[i64], dpi: u16) -> Result<Vec<RenderedPage>> {
+    let pdfium = bind_pdfium()?;
+    let document = pdfium
+        .load_pdf_from_file(path, None)
+        .with_context(|| format!("could not open PDF: {}", path.display()))?;
+    let config = PdfRenderConfig::new().scale_page_by_factor(dpi as f32 / 72.0);
+
+    let mut out = Vec::new();
+    for (index, page) in document.pages().iter().enumerate() {
+        let n = index as i64 + 1;
+        if !pages.is_empty() && !pages.contains(&n) {
+            continue;
+        }
+        let bitmap = page
+            .render_with_config(&config)
+            .with_context(|| format!("could not render page {n} of {}", path.display()))?;
+        out.push(RenderedPage {
+            number: n,
+            width: bitmap.width() as u32,
+            height: bitmap.height() as u32,
+            rgba: bitmap.as_rgba_bytes(),
+        });
+    }
+    Ok(out)
+}
+
 /// Scans barcodes/QR codes by rendering each page at high resolution.
 /// Called on demand by the `codes::` namespace.
 pub fn scan_barcodes(path: &Path) -> Result<Vec<Rc<BarcodeData>>> {

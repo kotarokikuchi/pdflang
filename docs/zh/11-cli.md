@@ -2,12 +2,13 @@
 
 [← 标准库](10-stdlib.md) · [目录](README.md) · [下一章：实用范例 →](12-recipes.md)
 
-共 12 个命令：4 个处理 PDF，5 个处理脚本，2 个用于分发，1 个用于 shell。
+共 13 个命令：5 个处理 PDF，5 个处理脚本，2 个用于分发，1 个用于 shell。
 
 | 命令 | 功能 |
 |---|---|
 | [`run`](#pdfl-run) | 用脚本校验 PDF |
 | [`compare`](#pdfl-compare) | 比较两个版本 |
+| [`pixelcompare`](#pdfl-pixelcompare) | 逐像素比较两个 PDF，并附带查看差异的浏览器应用 |
 | [`watch`](#pdfl-watch) | 监视文件夹并校验新到的文件 |
 | [`fix`](#pdfl-fix) | 应用修改并保存新的 PDF |
 | [`inspect`](#pdfl-inspect) | 快速查看 PDF 概要 |
@@ -188,6 +189,92 @@ pdfl compare v1.pdf v2.pdf --similarity-threshold 99 \
 ```
 page 4 → 4: similarity 97.8% | -original title | +revised title
 ```
+
+---
+
+## `pdfl pixelcompare`
+
+按两个 PDF *看起来*的样子逐页比较。
+
+```bash
+pdfl pixelcompare <original.pdf> <new.pdf> [options]
+```
+
+| 选项 | 默认 | 功能 |
+|---|---|---|
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | 报告格式 |
+| `--output-file <文件>` | — | 把报告写入文件 |
+| `--viewer <文件夹>` | — | 写出一个自包含的查看器：各页、差异，以及用来看的 `index.html` |
+| `--dpi <n>` | `150` | 渲染分辨率。越高看得越细，代价也越大 |
+| `--threshold <0.0-1.0>` | `0.05` | 两个像素被判为不同的色距 |
+| `--max-diff <百分比>` | `0.0` | 一页可以变动多少才会被报告 |
+| `--pages <范围>` | 全部 | `1-10` 或 `1,3,7-12` |
+| `--no-align` | — | 不补偿页面之间的整体位移 |
+| `--blur <半径>` | `0` | 比较前先模糊，用来吸收抗锯齿 |
+
+`pdfl compare` 回答的是"文字或结构变了没有"。这个命令回答的是另一个问题——"看上去
+还一样吗"——而这两者不一致的情况比想象中多。挪了 2mm 的 logo、消失的细线、被 CMYK
+叠印替换掉的专色：这三种情况文字都完全相同。
+
+```bash
+# 整个文档，输出 JSON
+pdfl pixelcompare approved.pdf reprint.pdf
+
+# 附带一个真正能看差异的地方
+pdfl pixelcompare approved.pdf reprint.pdf --viewer diff/
+
+# 容忍一点噪声，再仔细看剩下的
+pdfl pixelcompare approved.pdf reprint.pdf --max-diff 0.1 --dpi 300
+```
+
+每一个变化的页面一条发现，给出像素占比以及它们分布在多少个独立区域：
+
+```
+page 7: 0.51% of the pixels differ, in 29 area(s)
+```
+
+只存在于其中一个文件里的页面本身就是一条发现——没有东西可以拿来比。报告里的
+`similarity` 是所比较页面的平均值，因此两百页里重做了一页并不会让它看起来像另一份
+文档；每页的具体数字在诊断里。
+
+### 对齐，以及它为什么默认开启
+
+从同一来源重新导出的文件，往往会偏移一两个像素。不做补偿的话，页面上每一个字形
+边缘都会"不同"，真正要紧的那一处改动就被淹没了。`pixelcompare` 只寻找一个整体
+位移——先在缩小的副本上粗找，再精修——找到就报告出来：
+
+```
+page 3: 2.10% of the pixels differ, in 44 area(s) (aligned by 2, -1 px)
+```
+
+当要检查的正是位置本身时，用 `--no-align` 关掉它。
+
+### 查看器
+
+`--viewer diff/` 会写出一个文件夹，每页三张 PNG，外加一个 `index.html`。它没有
+任何依赖——不用 CDN，不用打包器，不用服务器。直接打开文件，或者把文件夹打包发给
+需要批准重印的人。
+
+看同一对文件的三种方式：
+
+- **Wipe** — 在页面上拖动，把新文件从旧文件上扫过去。判断有没有东西移位最快的
+  办法。
+- **Flip** — 按住指针，在原位切换两者。移动过的会跳，没动的不会。
+- **Fade** — 把两者混合，适合判断颜色或字重的变化。
+
+无论哪种方式，差异都会就地着色，颜色说明它属于哪一类：
+
+| 颜色 | 含义 |
+|---|---|
+| 红 | 新文件里消失的墨 |
+| 绿 | 新文件里新增的墨 |
+| 蓝 | 同样的分量，不同的颜色 |
+
+**Differences** 旁边的滑块可以把这一层淡出，好在不离开查看器的情况下看清底下的
+页面。`←` `→` 翻页，`space` 切换，`d` 开关这一层。
+
+退出码：`0` 没有任何一页变动超过 `--max-diff`，`2` 至少有一页超过，`10` 文件读不了
+或查看器写不出来。
 
 ---
 

@@ -2,13 +2,14 @@
 
 [← Standardbibliothek](10-stdlib.md) · [Inhalt](README.md) · [Weiter: Rezepte →](12-recipes.md)
 
-Zwölf Befehle: vier für PDFs, fünf für Skripte, zwei für die Verteilung und
+Dreizehn Befehle: fünf für PDFs, fünf für Skripte, zwei für die Verteilung und
 einer für die Shell.
 
 | Befehl | Zweck |
 |---|---|
 | [`run`](#pdfl-run) | Prüft ein PDF mit einem Skript |
 | [`compare`](#pdfl-compare) | Vergleicht zwei Fassungen |
+| [`pixelcompare`](#pdfl-pixelcompare) | Vergleicht zwei PDFs Pixel für Pixel, mit einem Betrachter für die Änderung |
 | [`watch`](#pdfl-watch) | Überwacht einen Ordner und prüft, was eintrifft |
 | [`fix`](#pdfl-fix) | Wendet Änderungen an und speichert ein neues PDF |
 | [`inspect`](#pdfl-inspect) | Schneller Überblick über ein PDF |
@@ -201,6 +202,104 @@ pdfl compare v1.pdf v2.pdf --similarity-threshold 99 \
 ```
 page 4 → 4: similarity 97.8% | -original title | +revised title
 ```
+
+---
+
+## `pdfl pixelcompare`
+
+Vergleicht zwei PDFs danach, wie sie *aussehen*, Seite für Seite.
+
+```bash
+pdfl pixelcompare <original.pdf> <neu.pdf> [optionen]
+```
+
+| Option | Vorgabe | Zweck |
+|---|---|---|
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format des Berichts |
+| `--output-file <datei>` | — | Schreibt den Bericht in eine Datei |
+| `--viewer <ordner>` | — | Schreibt einen eigenständigen Betrachter: die Seiten, die Unterschiede und eine `index.html` dazu |
+| `--dpi <n>` | `150` | Auflösung beim Rendern. Höher sieht mehr und kostet mehr |
+| `--threshold <0.0-1.0>` | `0.05` | Farbabstand, ab dem zwei Pixel als verschieden gelten |
+| `--max-diff <prozent>` | `0.0` | Wie viel einer Seite sich ändern darf, bevor es gemeldet wird |
+| `--pages <bereich>` | alle | `1-10` oder `1,3,7-12` |
+| `--no-align` | — | Gleicht eine globale Verschiebung nicht aus |
+| `--blur <radius>` | `0` | Weichzeichnen vor dem Vergleich, gegen Kantenglättung |
+
+`pdfl compare` beantwortet „hat sich Text oder Struktur geändert". Dies
+beantwortet eine andere Frage — „sieht es noch genauso aus" — und die beiden
+widersprechen sich öfter als man denkt. Ein um 2mm verschobenes Logo, eine
+verschwundene Haarlinie, eine Sonderfarbe durch ihren CMYK-Aufbau ersetzt: in
+allen drei Fällen ist der Text identisch.
+
+```bash
+# Das ganze Dokument, als JSON
+pdfl pixelcompare freigegeben.pdf nachdruck.pdf
+
+# Mit einem Ort, an dem man die Unterschiede wirklich ansehen kann
+pdfl pixelcompare freigegeben.pdf nachdruck.pdf --viewer diff/
+
+# Etwas Rauschen dulden und den Rest genauer ansehen
+pdfl pixelcompare freigegeben.pdf nachdruck.pdf --max-diff 0.1 --dpi 300
+```
+
+Ein Befund je geänderter Seite, mit dem Anteil der Pixel und der Zahl der
+getrennten Bereiche:
+
+```
+page 7: 0.51% of the pixels differ, in 29 area(s)
+```
+
+Eine Seite, die es in einer Datei gibt und in der anderen nicht, ist ein
+eigener Befund — es gibt nichts, womit man sie vergleichen könnte. Das
+`similarity` des Berichts ist der Mittelwert über die verglichenen Seiten, eine
+neu gebaute Seite unter zweihundert macht also kein anderes Dokument daraus;
+die Zahlen je Seite stehen in den Diagnosen.
+
+### Ausrichtung, und warum sie an ist
+
+Eine Datei, die aus derselben Quelle neu exportiert wurde, liegt oft ein bis
+zwei Pixel daneben. Ohne Ausgleich ist jede Glyphenkante der Seite
+„unterschiedlich" und die eine Änderung, auf die es ankommt, geht darin unter.
+`pixelcompare` sucht eine einzige globale Verschiebung — erst grob auf einer
+verkleinerten Kopie, dann verfeinert — und meldet sie, wenn es eine findet:
+
+```
+page 3: 2.10% of the pixels differ, in 44 area(s) (aligned by 2, -1 px)
+```
+
+Mit `--no-align` abschalten, wenn gerade die Position das Geprüfte *ist*.
+
+### Der Betrachter
+
+`--viewer diff/` schreibt einen Ordner mit drei PNGs je Seite und einer
+`index.html`. Er hat keinerlei Abhängigkeiten — kein CDN, kein Bundler, kein
+Server. Datei öffnen, oder den Ordner zippen und dem schicken, der den
+Nachdruck freigeben muss.
+
+Drei Arten, dasselbe Paar anzusehen:
+
+- **Wipe** — über die Seite ziehen und die neue Datei über die alte wischen.
+  Der schnellste Weg zu sehen, ob sich etwas verschoben hat.
+- **Flip** — Zeiger gedrückt halten, um an Ort und Stelle umzuschalten. Was
+  sich bewegt hat, springt; was liegen blieb, nicht.
+- **Fade** — beide überblenden, gut für Farb- oder Gewichtsänderungen.
+
+Über allen dreien werden die Unterschiede an Ort und Stelle eingefärbt, und die
+Farbe sagt, welcher Art sie sind:
+
+| Farbe | Bedeutung |
+|---|---|
+| Rot | Farbe, die in der neuen Datei fehlt |
+| Grün | Farbe, die dort neu ist |
+| Blau | Gleiches Gewicht, andere Farbe |
+
+Der Regler neben **Differences** blendet diese Ebene aus, um die Seite darunter
+zu prüfen, ohne den Betrachter zu verlassen. `←` und `→` wechseln die Seite,
+`space` schaltet um, `d` blendet die Ebene ein und aus.
+
+Exit-Codes: `0` keine Seite änderte sich um mehr als `--max-diff`, `2`
+mindestens eine, `10` eine Datei war nicht lesbar oder der Betrachter nicht
+schreibbar.
 
 ---
 

@@ -12,6 +12,20 @@ nichts stillschweigend.
 
 ## Noch nicht veröffentlicht
 
+### Neu
+
+- `pdfl pixelcompare` vergleicht zwei PDFs danach, wie sie aussehen, statt nach
+  ihrem Text, Seite für Seite, und meldet den Anteil abweichender Pixel. Eine
+  nur verschobene Seite wird vor dem Vergleich ausgerichtet, damit ein Pixel
+  Versatz nicht die Änderung begräbt, auf die es ankommt.
+- `--viewer <ordner>` bei `pixelcompare` schreibt eine eigenständige Anwendung
+  — kein CDN, kein Bundler, kein Server — zum Wischen, Umschalten oder
+  Überblenden zwischen beiden Dateien, mit den Unterschieden an Ort und Stelle
+  eingefärbt: Rot für fehlende Farbe, Grün für neue, Blau für gleiches Gewicht
+  in anderer Farbe.
+
+---
+
 ## 0.15.0
 
 ### Neu

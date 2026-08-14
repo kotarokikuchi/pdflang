@@ -276,6 +276,34 @@ pdfl compare v1.pdf v2.pdf [--output json|csv|html|pdf|sarif|junit] [--normalize
 - The report carries an overall `similarity` (0–100); exit codes: 0 identical,
   1 warnings only, 2 differences beyond what is tolerated
 
+## Command `pdfl pixelcompare`
+
+Compares two PDFs by what they *look* like rather than by their text:
+
+```bash
+pdfl pixelcompare original.pdf new.pdf [--dpi 150] [--threshold 0.05] \
+  [--max-diff 0.0] [--pages 1-10] [--no-align] [--blur 0] [--viewer diff/]
+```
+
+`compare` answers "did the text or the structure change"; this answers "does it
+still look the same", and the two disagree more often than you would think — a
+logo nudged 2mm, a hairline that vanished, a spot colour swapped for its CMYK
+build all leave the text identical.
+
+- One finding per page, with the share of pixels that differ and how many
+  separate areas they fall into
+- A page that only *moved* is aligned before comparing, so a one-pixel offset
+  does not bury the change that matters (`--no-align` when position is the thing
+  being checked)
+- `similarity` is the mean across compared pages; exit codes: 0 nothing beyond
+  `--max-diff`, 2 at least one page past it
+
+`--viewer diff/` writes a folder with three PNGs per page and one `index.html`
+— no CDN, no bundler, no server. Wipe across the page, hold to flip between the
+files, or fade between them, with the differences painted in place: **red** ink
+that is gone, **green** ink that is new, **blue** the same weight in another
+colour.
+
 ## Command `pdfl watch`
 
 Watches a folder and validates each new or changed PDF, writing the report next

@@ -13,7 +13,7 @@ found to disagree with the code more than once. Where a claim could not be
 verified, it is marked **partial** with the doubt stated, never rounded up to a
 yes.
 
-State at **0.13.0**.
+State at **0.15.0**, plus `pixelcompare` on the branch that adds it.
 
 ---
 
@@ -25,7 +25,7 @@ tree-walking interpreter, all shipping.
 | Area | State |
 |---|---|
 | Language core (lexer → parser → AST → interpreter) | 🟩 complete |
-| CLI commands | 12 — see the coverage table for what is missing |
+| CLI commands | 13 — see the coverage table for what is missing |
 | Standard library | 135 functions across 7 namespaces |
 | Domain types | 7 (`Document`, `Page`, `Region`, `Font`, `Image`, `List`, `Str`) + `Diagnostic` |
 | Report formats | 6 of 10 (JSON, CSV, HTML, PDF, SARIF, JUnit) |
@@ -213,7 +213,7 @@ same thing as a published action other people can use.
 | Core and inspection | 🟩 **yes** — domain types, `check`/`rule`, imports, metadata, SHA-256, normalized text extraction, glossaries, region masks, personal data with valid check digits |
 | Conditionals | 🟩 yes — `if`/`else if`/`else` as an **expression**, so a function can finally yield one value or another instead of only composing booleans |
 | Diagnostics in more than one language | 🟥 no — output is English-only |
-| Comparison | 🟧 partial — text diff with LCS page alignment, pHash, SSIM, pixel diff, Delta-E; **no** typography/table/vector diff, no anchor alignment, no moved-vs-changed semantics, no accept/reject/review triage |
+| Comparison | 🟧 partial — text diff with LCS page alignment, pHash, SSIM, pixel diff, Delta-E; `pixelcompare` adds a rendered per-page diff with global-shift alignment, added/removed/recoloured classification and a wipe-and-flip viewer; **no** typography/table/vector diff, no anchor alignment, no per-element moved-vs-changed semantics, no accept/reject/review triage |
 | Preflight | 🟩 **largely yes** — exact TAC from real separations, hairlines, overprint, bleed, spot colors, rich black, output intent, font details |
 | PDF/A/X/UA conformance, signature validation, Braille, OCR, spell check | 🟥 no — signatures are detected as present, never validated |
 | `fix::` normalization | 🟧 partial — boxes, rotate, delete, duplicate, reorder, watermark, page numbers, split, merge, image downsample/recompress; **no** RGB→CMYK, font embedding, flattening, Bates numbering, redaction, imposition |

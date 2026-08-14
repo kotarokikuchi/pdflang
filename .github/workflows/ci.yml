@@ -125,3 +125,22 @@ jobs:
             --output-dir /tmp/wv --once --var client=AcmeCorp --jobs 0
           test -z "$(grep -l '"error_count": [1-9]' /tmp/wv/*.json || true)"
           test "$(wc -l < /tmp/batch.jsonl)" -eq 5
+          # pixelcompare: a file against itself has to come out identical, or
+          # every difference it reports elsewhere is suspect
+          ec=0
+          ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \
+            tests/fixtures/prepress.pdf --dpi 72 > /tmp/same.json || ec=$?
+          test "$ec" -eq 0
+          grep -q '"similarity": 100' /tmp/same.json
+          # two different files must differ, and the viewer must be complete
+          rm -rf /tmp/px && ec=0
+          ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \
+            tests/fixtures/suspeito.pdf --dpi 72 --viewer /tmp/px > /dev/null || ec=$?
+          test "$ec" -eq 2
+          test -f /tmp/px/index.html
+          test -f /tmp/px/page-001-before.png
+          test -f /tmp/px/page-001-after.png
+          test -f /tmp/px/page-001-diff.png
+          # the viewer carries its own CSS and JS: no network, no bundler
+          grep -q "PAGES = \[" /tmp/px/index.html
+          ! grep -qE '<(script|link)[^>]+(src|href)="https?:' /tmp/px/index.html

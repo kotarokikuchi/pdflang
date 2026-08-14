@@ -2,13 +2,14 @@
 
 [← Bibliothèque standard](10-stdlib.md) · [Sommaire](README.md) · [Suivant : recettes →](12-recipes.md)
 
-Douze commandes : quatre pour les PDF, cinq pour les scripts, deux pour la
+Treize commandes : cinq pour les PDF, cinq pour les scripts, deux pour la
 distribution et une pour le shell.
 
 | Commande | Rôle |
 |---|---|
 | [`run`](#pdfl-run) | Valide un PDF avec un script |
 | [`compare`](#pdfl-compare) | Compare deux versions |
+| [`pixelcompare`](#pdfl-pixelcompare) | Compare deux PDF pixel par pixel, avec une visionneuse pour voir le changement |
 | [`watch`](#pdfl-watch) | Surveille un dossier et valide ce qui arrive |
 | [`fix`](#pdfl-fix) | Applique des modifications et enregistre un nouveau PDF |
 | [`inspect`](#pdfl-inspect) | Vue d'ensemble rapide d'un PDF |
@@ -200,6 +201,104 @@ pdfl compare v1.pdf v2.pdf --similarity-threshold 99 \
 ```
 page 4 → 4: similarity 97.8% | -original title | +revised title
 ```
+
+---
+
+## `pdfl pixelcompare`
+
+Compare deux PDF sur ce à quoi ils *ressemblent*, page par page.
+
+```bash
+pdfl pixelcompare <original.pdf> <nouveau.pdf> [options]
+```
+
+| Option | Défaut | Rôle |
+|---|---|---|
+| `--output json\|csv\|html\|pdf\|sarif\|junit` | `json` | Format du rapport |
+| `--output-file <fichier>` | — | Écrit le rapport dans un fichier |
+| `--viewer <dossier>` | — | Écrit une visionneuse autonome : les pages, les différences et un `index.html` pour les regarder |
+| `--dpi <n>` | `150` | Résolution de rendu. Plus haute voit plus et coûte plus |
+| `--threshold <0.0-1.0>` | `0.05` | Distance de couleur à partir de laquelle deux pixels diffèrent |
+| `--max-diff <pourcent>` | `0.0` | Ce qu'une page peut changer avant d'être signalée |
+| `--pages <plage>` | toutes | `1-10` ou `1,3,7-12` |
+| `--no-align` | — | Ne compense pas un décalage global entre les pages |
+| `--blur <rayon>` | `0` | Flou avant comparaison, pour absorber l'anticrénelage |
+
+`pdfl compare` répond à « le texte ou la structure ont-ils changé ». Ceci répond
+à une autre question — « est-ce que ça se ressemble toujours » — et les deux se
+contredisent plus souvent qu'on ne croit. Un logo décalé de 2mm, un filet
+disparu, un ton direct remplacé par sa composition CMJN : dans les trois cas le
+texte est identique.
+
+```bash
+# Tout le document, en JSON
+pdfl pixelcompare approuve.pdf retirage.pdf
+
+# Avec un endroit où regarder vraiment les différences
+pdfl pixelcompare approuve.pdf retirage.pdf --viewer diff/
+
+# Tolérer un peu de bruit, puis regarder de plus près ce qui reste
+pdfl pixelcompare approuve.pdf retirage.pdf --max-diff 0.1 --dpi 300
+```
+
+Un constat par page modifiée, avec la part de pixels et le nombre de zones
+distinctes :
+
+```
+page 7: 0.51% of the pixels differ, in 29 area(s)
+```
+
+Une page présente dans un fichier et absente de l'autre est un constat à part :
+il n'y a rien à quoi la comparer. Le `similarity` du rapport est la moyenne sur
+les pages comparées, une page refaite sur deux cents ne fait donc pas un autre
+document ; les chiffres par page sont dans les diagnostics.
+
+### L'alignement, et pourquoi il est actif
+
+Un fichier réexporté depuis la même source tombe souvent à un ou deux pixels
+près. Sans compensation, chaque bord de glyphe de la page devient « différent »
+et le seul changement qui compte s'y noie. `pixelcompare` cherche un décalage
+global unique — d'abord grossièrement sur une copie réduite, puis affiné — et
+le signale quand il en trouve un :
+
+```
+page 3: 2.10% of the pixels differ, in 44 area(s) (aligned by 2, -1 px)
+```
+
+Désactivez-le avec `--no-align` quand c'est justement la position qui est
+vérifiée.
+
+### La visionneuse
+
+`--viewer diff/` écrit un dossier contenant trois PNG par page et un
+`index.html`. Elle n'a aucune dépendance : ni CDN, ni bundler, ni serveur.
+Ouvrez le fichier, ou zippez le dossier et envoyez-le à qui doit approuver le
+retirage.
+
+Trois façons de regarder la même paire :
+
+- **Wipe** — glissez sur la page pour balayer le nouveau fichier par-dessus
+  l'ancien. Le plus rapide pour voir si quelque chose a bougé.
+- **Flip** — maintenez le pointeur pour permuter sur place. Ce qui a bougé
+  saute aux yeux ; ce qui n'a pas bougé, non.
+- **Fade** — fondu entre les deux, pratique pour juger une couleur ou une
+  graisse.
+
+Par-dessus l'un ou l'autre, les différences sont peintes sur place, et la
+couleur dit de quel genre :
+
+| Couleur | Sens |
+|---|---|
+| Rouge | Encre absente du nouveau fichier |
+| Vert | Encre nouvelle dedans |
+| Bleu | Même graisse, autre couleur |
+
+Le curseur près de **Differences** estompe ce calque, pour vérifier la page
+dessous sans quitter la visionneuse. `←` et `→` changent de page, `space`
+permute, `d` bascule le calque.
+
+Codes de sortie : `0` aucune page n'a changé de plus que `--max-diff`, `2` au
+moins une, `10` un fichier illisible ou une visionneuse non écrite.
 
 ---
 

@@ -15,11 +15,13 @@ mod interpreter;
 mod lexer;
 mod parser;
 mod pdf;
+mod pixelcmp;
 mod prepressns;
 mod report;
 mod structns;
 mod testcmd;
 mod textns;
+mod viewer;
 mod visualns;
 mod watch;
 
@@ -127,6 +129,42 @@ enum Command {
         /// Minimum similarity (0-100) to pass
         #[arg(long, default_value_t = 100.0)]
         similarity_threshold: f64,
+    },
+    /// Compares two PDFs pixel by pixel, page by page
+    Pixelcompare {
+        /// Original version
+        v1: PathBuf,
+        /// New version
+        v2: PathBuf,
+        /// Output format
+        #[arg(long, default_value = "json")]
+        output: OutputFormat,
+        /// Writes the report to a file
+        #[arg(long)]
+        output_file: Option<PathBuf>,
+        /// Folder for a self-contained viewer: the rendered pages, the
+        /// difference overlays and an index.html to wipe and flip between them
+        #[arg(long)]
+        viewer: Option<PathBuf>,
+        /// Render resolution. Higher sees more and costs more
+        #[arg(long, default_value_t = 150)]
+        dpi: u16,
+        /// Per-pixel colour distance (0.0-1.0) above which two pixels differ
+        #[arg(long, default_value_t = 0.05)]
+        threshold: f64,
+        /// Percentage of changed pixels a page may have before it is reported
+        /// as an error
+        #[arg(long, default_value_t = 0.0)]
+        max_diff: f64,
+        /// Pages to compare, e.g. 1-10 or 1,3,7-12 (default: all)
+        #[arg(long)]
+        pages: Option<String>,
+        /// Do not compensate a global shift between the pages
+        #[arg(long)]
+        no_align: bool,
+        /// Box-blur radius applied before comparing, to absorb anti-aliasing
+        #[arg(long, default_value_t = 0)]
+        blur: u32,
     },
     /// Watches a folder and validates each new or changed PDF
     Watch {
@@ -385,6 +423,44 @@ fn main() -> ExitCode {
                 ignore_dates,
                 similarity_threshold,
             })
+        }
+        Command::Pixelcompare {
+            v1,
+            v2,
+            output,
+            output_file,
+            viewer,
+            dpi,
+            threshold,
+            max_diff,
+            pages,
+            no_align,
+            blur,
+        } => {
+            let pages = match pages.as_deref().map(parse_page_range) {
+                Some(Ok(p)) => p,
+                Some(Err(bad)) => {
+                    eprintln!("error: --pages expects something like 1-10 or 1,3,7-12, got '{bad}'");
+                    return ExitCode::from(EXIT_INFRASTRUCTURE);
+                }
+                None => Vec::new(),
+            };
+            pixelcompare_cmd(
+                &v1,
+                &v2,
+                output,
+                output_file.as_ref(),
+                viewer.as_deref(),
+                dpi,
+                &pages,
+                max_diff,
+                pixelcmp::Options {
+                    threshold,
+                    align: !no_align,
+                    blur,
+                    ..Default::default()
+                },
+            )
         }
         Command::Watch {
             folder,
@@ -733,9 +809,206 @@ fn compare_cmd(
     ExitCode::from(report.exit_code(false) as u8)
 }
 
+/// `1-10` or `1,3,7-12` into a sorted list of page numbers. Returns the
+/// offending fragment on bad input rather than silently comparing everything —
+/// a typo that quietly widened the job is the kind of thing nobody notices.
+fn parse_page_range(spec: &str) -> Result<Vec<i64>, String> {
+    let mut pages = Vec::new();
+    for part in spec.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+        match part.split_once('-') {
+            Some((from, to)) => {
+                let (from, to) = (from.trim(), to.trim());
+                let (Ok(a), Ok(b)) = (from.parse::<i64>(), to.parse::<i64>()) else {
+                    return Err(part.to_string());
+                };
+                if a < 1 || b < a {
+                    return Err(part.to_string());
+                }
+                pages.extend(a..=b);
+            }
+            None => match part.parse::<i64>() {
+                Ok(n) if n >= 1 => pages.push(n),
+                _ => return Err(part.to_string()),
+            },
+        }
+    }
+    pages.sort_unstable();
+    pages.dedup();
+    Ok(pages)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn pixelcompare_cmd(
+    v1: &Path,
+    v2: &Path,
+    format: OutputFormat,
+    output_file: Option<&PathBuf>,
+    viewer_dir: Option<&Path>,
+    dpi: u16,
+    pages: &[i64],
+    max_diff: f64,
+    opts: pixelcmp::Options,
+) -> ExitCode {
+    let render = |path: &Path| pdf::render_pages_rgba(path, pages, dpi);
+    let (before, after) = match (render(v1), render(v2)) {
+        (Ok(a), Ok(b)) => (a, b),
+        (Err(e), _) | (_, Err(e)) => {
+            eprintln!("error: {e:#}");
+            return ExitCode::from(EXIT_INFRASTRUCTURE);
+        }
+    };
+
+    if before.is_empty() && after.is_empty() {
+        eprintln!("error: no page to compare — check --pages against the documents' length");
+        return ExitCode::from(EXIT_INFRASTRUCTURE);
+    }
+
+    // Compared by page number, not by position: with --pages the two lists
+    // hold the same numbers, and without it a document that is short is
+    // missing pages rather than shifted.
+    let numbers: Vec<i64> = {
+        let mut n: Vec<i64> = before.iter().chain(after.iter()).map(|p| p.number).collect();
+        n.sort_unstable();
+        n.dedup();
+        n
+    };
+    let find = |list: &[pdf::RenderedPage], want: i64| {
+        list.iter()
+            .find(|p| p.number == want)
+            .map(|p| pixelcmp::Page::new(p.width, p.height, p.rgba.clone()))
+    };
+
+    let mut diagnostics = Vec::new();
+    let mut diffs = Vec::new();
+    let mut assets = Vec::new();
+    let mut seen = std::collections::HashMap::new();
+
+    for n in numbers {
+        let (a, b) = (find(&before, n), find(&after, n));
+        let (a, b) = match (a, b) {
+            (Some(a), Some(b)) => (a, b),
+            // A page in one file and not the other is a finding on its own;
+            // there is nothing to compare it against.
+            (only, _) => {
+                let which = if only.is_some() { v2 } else { v1 };
+                let message = format!("page {n} is missing from {}", file_name(which));
+                let occurrence = bump(&mut seen, &message);
+                diagnostics.push(Diagnostic {
+                    id: report::fingerprint("page count", &message, occurrence),
+                    severity: Severity::Error,
+                    check_name: "page count".into(),
+                    message,
+                    line: None,
+                });
+                continue;
+            }
+        };
+
+        let diff = pixelcmp::compare(&a, &b, opts, n);
+        if diff.diff_percent > max_diff {
+            let message = format!(
+                "page {n}: {:.2}% of the pixels differ, in {} area(s){}",
+                diff.diff_percent,
+                diff.regions.len(),
+                match diff.shift {
+                    (0, 0) => String::new(),
+                    (dx, dy) => format!(" (aligned by {dx}, {dy} px)"),
+                }
+            );
+            let occurrence = bump(&mut seen, &message);
+            diagnostics.push(Diagnostic {
+                id: report::fingerprint("pixel difference", &message, occurrence),
+                severity: Severity::Error,
+                check_name: "pixel difference".into(),
+                message,
+                line: None,
+            });
+        }
+
+        if viewer_dir.is_some() {
+            let encode = |w, h, px: &[u8]| viewer::encode_png(w, h, px);
+            match (
+                encode(a.width, a.height, &a.rgba),
+                encode(b.width, b.height, &b.rgba),
+                encode(diff.width, diff.height, &diff.overlay),
+            ) {
+                (Ok(before_png), Ok(after_png), Ok(overlay_png)) => {
+                    assets.push(viewer::PageAssets {
+                        page: n,
+                        before: before_png,
+                        after: after_png,
+                        overlay: overlay_png,
+                    });
+                }
+                (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
+                    eprintln!("error: {e:#}");
+                    return ExitCode::from(EXIT_INFRASTRUCTURE);
+                }
+            }
+        }
+        diffs.push(diff);
+    }
+
+    if let Some(dir) = viewer_dir {
+        if let Err(e) =
+            viewer::write(dir, &file_name(v1), &file_name(v2), &diffs, &assets)
+        {
+            eprintln!("error: {e:#}");
+            return ExitCode::from(EXIT_INFRASTRUCTURE);
+        }
+        note(format!("viewer written to {}", dir.join("index.html").display()));
+    }
+
+    let compared = diffs.len();
+    let mut report = Report::new(
+        "pixelcompare".into(),
+        format!("{} → {}", v1.display(), v2.display()),
+        None,
+        compared as i64,
+        diagnostics,
+    );
+    // The mean, not the worst: "how alike are these documents" is the question
+    // this answers, and one rebuilt page out of two hundred should not read as
+    // a different document. The per-page figures are in the diagnostics.
+    report.similarity = Some(if compared == 0 {
+        0.0
+    } else {
+        100.0 - diffs.iter().map(|d| d.diff_percent).sum::<f64>() / compared as f64
+    });
+    emit_report(&report, format, output_file, v1);
+    ExitCode::from(report.exit_code(false) as u8)
+}
+
+/// How many times this exact message has already been produced — the
+/// occurrence that keeps two identical findings from sharing an identifier.
+fn bump(seen: &mut std::collections::HashMap<String, u32>, message: &str) -> u32 {
+    let n = seen.entry(message.to_string()).or_insert(0);
+    *n += 1;
+    *n
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn page_ranges() {
+        assert_eq!(parse_page_range("1-4").unwrap(), vec![1, 2, 3, 4]);
+        assert_eq!(parse_page_range("3").unwrap(), vec![3]);
+        assert_eq!(parse_page_range("1,3,7-9").unwrap(), vec![1, 3, 7, 8, 9]);
+        // Overlaps collapse rather than comparing a page twice.
+        assert_eq!(parse_page_range("1-3,2-4").unwrap(), vec![1, 2, 3, 4]);
+        assert_eq!(parse_page_range(" 2 , 1 ").unwrap(), vec![1, 2]);
+    }
+
+    /// A typo must not quietly widen the job to every page.
+    #[test]
+    fn a_bad_page_range_names_the_fragment() {
+        assert_eq!(parse_page_range("1-x").unwrap_err(), "1-x");
+        assert_eq!(parse_page_range("4-2").unwrap_err(), "4-2");
+        assert_eq!(parse_page_range("0").unwrap_err(), "0");
+        assert_eq!(parse_page_range("abc").unwrap_err(), "abc");
+    }
 
     /// clap's own consistency check: catches a flag that collides with another,
     /// which is easy to introduce with `global = true`.

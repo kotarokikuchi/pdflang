@@ -328,6 +328,25 @@ mod tests {
         dir
     }
 
+    /// Runs a case, retrying past ETXTBSY. These tests write an executable and
+    /// then run it, in a process where other tests are spawning children of
+    /// their own: a fork landing between our write and its close inherits the
+    /// write handle, and Linux will not exec a file held open for writing.
+    /// Only ever a property of the test — in use the child is the pdfl binary.
+    #[cfg(unix)]
+    fn run_case_retrying(exe: &Path, pdf: &Path, vars: &[String]) -> String {
+        for _ in 0..50 {
+            match run_case(exe, Path::new("p.pdfl"), pdf, vars) {
+                Ok(json) => return json,
+                Err(e) if e.contains("Text file busy") => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                Err(e) => panic!("{e}"),
+            }
+        }
+        panic!("the fake child stayed busy for half a second");
+    }
+
     /// A shell script standing in for the `pdfl` binary, echoing back the value
     /// of the first `--var` it sees: a real subprocess, not a mock of one,
     /// consistent with how `spawn_bounded` is tested in `watch.rs`.
@@ -358,14 +377,14 @@ mod tests {
     // there is one. The behaviour itself is not platform-specific; the
     // stand-in for `pdfl` is.
     #[cfg(unix)]
-#[test]
+    #[test]
     fn vars_reach_the_child_run() {
         let dir = tempdir("vars");
         let pdf = dir.join("a.pdf");
         std::fs::write(&pdf, b"bytes").unwrap();
         let exe = fake_pdfl_echoing_var(&dir);
 
-        let json = run_case(&exe, Path::new("p.pdfl"), &pdf, &["order=SO-1".to_string()]).unwrap();
+        let json = run_case_retrying(&exe, &pdf, &["order=SO-1".to_string()]);
         assert!(json.contains("\"seen_var\": \"order=SO-1\""), "{json}");
     }
 
@@ -373,14 +392,14 @@ mod tests {
     // there is one. The behaviour itself is not platform-specific; the
     // stand-in for `pdfl` is.
     #[cfg(unix)]
-#[test]
+    #[test]
     fn no_vars_means_no_var_flag_is_sent() {
         let dir = tempdir("no-vars");
         let pdf = dir.join("a.pdf");
         std::fs::write(&pdf, b"bytes").unwrap();
         let exe = fake_pdfl_echoing_var(&dir);
 
-        let json = run_case(&exe, Path::new("p.pdfl"), &pdf, &[]).unwrap();
+        let json = run_case_retrying(&exe, &pdf, &[]);
         assert!(json.contains("\"seen_var\": \"\""), "{json}");
     }
 }

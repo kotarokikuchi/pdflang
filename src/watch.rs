@@ -676,7 +676,7 @@ mod tests {
     // there is one. The behaviour itself is not platform-specific; the
     // stand-in for `pdfl` is.
     #[cfg(unix)]
-#[test]
+    #[test]
     fn a_slow_child_is_killed_at_the_deadline() {
         let mut cmd = std::process::Command::new("sleep");
         cmd.arg("5");
@@ -694,7 +694,7 @@ mod tests {
     // there is one. The behaviour itself is not platform-specific; the
     // stand-in for `pdfl` is.
     #[cfg(unix)]
-#[test]
+    #[test]
     fn a_child_finishing_before_the_deadline_is_not_killed() {
         let mut cmd = std::process::Command::new("sh");
         cmd.args(["-c", "echo hi"]);
@@ -712,7 +712,7 @@ mod tests {
     // there is one. The behaviour itself is not platform-specific; the
     // stand-in for `pdfl` is.
     #[cfg(unix)]
-#[test]
+    #[test]
     fn no_timeout_waits_for_a_slow_child_to_finish() {
         let mut cmd = std::process::Command::new("sh");
         cmd.args(["-c", "sleep 0.2; echo done"]);
@@ -734,7 +734,7 @@ mod tests {
     // there is one. The behaviour itself is not platform-specific; the
     // stand-in for `pdfl` is.
     #[cfg(unix)]
-#[test]
+    #[test]
     fn run_bounded_forwards_vars_to_the_child() {
         let dir = tempdir("run-bounded-vars");
         let echo_var = dir.join("fake-pdfl.sh");
@@ -752,13 +752,31 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&echo_var, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-        let outcome = run_bounded(
-            &echo_var,
-            Path::new("p.pdfl"),
-            Path::new("f.pdf"),
-            None,
-            &["client=AcmeCorp".to_string()],
-        );
+        // Retried past ETXTBSY. This test writes an executable and then runs
+        // it, inside a process where other tests are spawning their own
+        // children: a fork that lands between our write and its close inherits
+        // the write handle, and Linux refuses to exec a file any process holds
+        // open for writing. It made the suite fail about one run in three.
+        // Nothing to do with what is under test — in use the child is the
+        // pdfl binary, which nobody is writing to.
+        let mut outcome = RunOutcome::TimedOut;
+        for _ in 0..50 {
+            outcome = run_bounded(
+                &echo_var,
+                Path::new("p.pdfl"),
+                Path::new("f.pdf"),
+                None,
+                &["client=AcmeCorp".to_string()],
+            );
+            match &outcome {
+                RunOutcome::SpawnFailed(e)
+                    if e.kind() == std::io::ErrorKind::ExecutableFileBusy =>
+                {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                _ => break,
+            }
+        }
         match outcome {
             RunOutcome::Finished(_, stdout, _) => assert_eq!(stdout, b"client=AcmeCorp"),
             _ => panic!("expected the fake child to finish"),

@@ -1,3 +1,8 @@
+# The last matching line wins, so the general rule goes first and the
+# exceptions after it. Written the other way round, `* text=auto` overrode
+# `*.pdf binary` and the fixtures were still being converted.
+* text=auto
+
 # A PDF is bytes, and its cross-reference table records byte offsets. Checked
 # out on Windows, where git's autocrlf is on by default, every LF inside these
 # files becomes CRLF: the offsets stop matching and the file no longer parses —
@@ -7,6 +12,3 @@
 
 # Scripts run by a shell need LF, whatever the checkout does with the rest.
 *.sh text eol=lf
-
-# Everything else is text; git may normalise it as it likes.
-* text=auto

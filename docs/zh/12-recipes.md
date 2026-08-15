@@ -231,6 +231,20 @@ profile "visual-fidelity" {
 }
 ```
 
+再给要签字批准重印的人一个可以直接看的文件夹：
+
+```bash
+pdfl pixelcompare approved/catalogue_v1.pdf received/catalogue_v2.pdf \
+  --max-diff 0.05 --viewer proof/ --output-file pixels.json
+
+zip -r proof.zip proof/    # 一个 index.html，每页三个 PNG，别无他物
+```
+
+这个文件夹不需要服务器，也不需要网络：打开 `index.html` 的人会看到原件、新件，
+以及两者叠加并把差异着色的画面，而且它一打开就停在有差异的页面上——九十页的
+图册里只有两页动过，要看的就是那两页。移动鼠标就把新件从旧件上扫过；滚轮让三个
+面板一起缩放，拖动则一起移动，于是一根细线也能在 8 倍下当场定案，不必离开页面。
+
 ---
 
 ## 12.5 CI/CD：批量校验

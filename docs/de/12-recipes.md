@@ -239,6 +239,23 @@ profile "visual-fidelity" {
 }
 ```
 
+Und ein Ordner zum Ansehen, für die Person, die den Nachdruck freigibt:
+
+```bash
+pdfl pixelcompare freigegeben/katalog_v1.pdf erhalten/katalog_v2.pdf \
+  --max-diff 0.05 --viewer pruefung/ --output-file pixels.json
+
+zip -r pruefung.zip pruefung/    # eine index.html und drei PNGs je Seite, sonst nichts
+```
+
+Der Ordner braucht weder Server noch Netz: Wer `index.html` öffnet, sieht das
+Original, die neue Datei und beide zusammen mit den eingefärbten Unterschieden,
+und er öffnet auf den Seiten, die sich unterscheiden — bei einem Katalog, in
+dem sich zwei von neunzig Seiten geändert haben, geht es genau um diese zwei.
+Mausbewegung schiebt die neue Datei über die alte; das Rad zoomt alle drei
+Bereiche gemeinsam und Ziehen bewegt sie, eine Haarlinie lässt sich also bei
+8× klären, ohne die Seite zu verlassen.
+
 ---
 
 ## 12.5 CI/CD: Prüfung im Stapel

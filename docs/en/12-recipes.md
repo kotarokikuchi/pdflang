@@ -258,6 +258,22 @@ profile "visual-fidelity" {
 }
 ```
 
+And a folder to look at it in, for whoever has to sign the reprint off:
+
+```bash
+pdfl pixelcompare approved/catalogue_v1.pdf received/catalogue_v2.pdf \
+  --max-diff 0.05 --viewer proof/ --output-file pixels.json
+
+zip -r proof.zip proof/    # an index.html and three PNGs per page, nothing else
+```
+
+The folder needs no server and no network: whoever opens `index.html` sees the
+original, the new file and the two together with the differences painted on
+them, and it opens on the pages that differ — on a catalogue where two pages
+moved out of ninety, those two are the point. Moving the mouse sweeps the new
+file over the old one; the wheel zooms all three panes together and dragging
+moves them, so a hairline can be settled at 8× without leaving the page.
+
 ---
 
 ## 12.5 CI/CD: validating a whole batch

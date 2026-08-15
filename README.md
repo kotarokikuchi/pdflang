@@ -294,7 +294,8 @@ Compares two PDFs by what they *look* like rather than by their text:
 
 ```bash
 pdfl pixelcompare original.pdf new.pdf [--dpi 150] [--threshold 0.05] \
-  [--max-diff 0.0] [--pages 1-10] [--no-align] [--blur 0] [--viewer diff/]
+  [--max-diff 0.0] [--pages 1-10] [--no-align] [--blur 0] [--jobs 0] \
+  [--viewer diff/]
 ```
 
 `compare` answers "did the text or the structure change"; this answers "does it
@@ -314,16 +315,19 @@ build all leave the text identical.
 — no CDN, no bundler, no server. Three panes side by side on the same page: the
 original, the new file, and both together with the differences painted in place
 — **red** ink that is gone, **green** ink that is new, **blue** the same weight
-in another colour. All three carry the same crosshair and it moves in all three
-at once, both following the pointer. In the
-difference pane both cut, so the new file shows right of one and below the
-other and their crossing is the corner of the reveal; in the other two they are
-rulers on the same column and line of the page. The wheel zooms all three
-together and dragging with either mouse button moves the page, with **Reset
-view** to undo both. The panes are sized against the window, so
-the comparison fits the screen without scrolling, and it opens on the pages that
-differ: a document where three pages moved out of two hundred does not have to
-be paged through.
+in another colour.
+
+All three carry the same pair of bars, upright and flat, and all six follow the
+pointer at once: in the difference pane they cut, so the new file shows right of
+one and below the other; in the other two they are rulers on the same column and
+line of the page. The wheel zooms the three panes together up to 8×, dragging
+with either mouse button moves them, and **Reset view** undoes both — as does
+moving to another page. It opens on the pages that differ: a document where
+three pages moved out of two hundred does not have to be paged through.
+
+The comparison runs on every CPU by default (`--jobs`); 41 pages at 150 dpi go
+from 3.6s to 1.2s. Only the comparison is parallel, since pdfium serialises
+every call behind one lock, and the report is identical whatever the value.
 
 ## Command `pdfl watch`
 

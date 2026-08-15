@@ -260,6 +260,22 @@ profile "fidelidade-visual" {
 }
 ```
 
+E uma pasta para olhar, para quem tem de assinar a reimpressão:
+
+```bash
+pdfl pixelcompare aprovado/catalogo_v1.pdf recebido/catalogo_v2.pdf \
+  --max-diff 0.05 --viewer prova/ --output-file pixels.json
+
+zip -r prova.zip prova/    # um index.html e três PNGs por página, mais nada
+```
+
+A pasta não precisa de servidor nem de rede: quem abrir o `index.html` vê o
+original, o arquivo novo e os dois juntos com as diferenças pintadas por cima,
+e ela abre nas páginas que diferem — num catálogo em que duas páginas mudaram
+de noventa, são essas duas que interessam. Mover o mouse varre o arquivo novo
+sobre o antigo; a roda dá zoom nos três painéis juntos e arrastar move os três,
+então um fio de cabelo se resolve a 8× sem sair da página.
+
 ---
 
 ## 12.5 CI/CD: validando um lote inteiro

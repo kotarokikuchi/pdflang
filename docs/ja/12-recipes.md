@@ -238,6 +238,22 @@ profile "visual-fidelity" {
 }
 ```
 
+そして、再印刷を承認する人が実際に見るためのフォルダ：
+
+```bash
+pdfl pixelcompare approved/catalogue_v1.pdf received/catalogue_v2.pdf \
+  --max-diff 0.05 --viewer proof/ --output-file pixels.json
+
+zip -r proof.zip proof/    # index.html 1つと1ページにつき3つの PNG、それだけ
+```
+
+このフォルダにサーバもネットワークもいりません。`index.html` を開いた人は、
+元のファイル、新しいファイル、そして両方に差分を重ねて着色したものを見られ、
+違いのあるページに合わせて開きます——90ページのうち2ページが動いたカタログなら、
+その2ページこそが用件です。マウスを動かせば新しいファイルが古い方の上を滑り、
+ホイールで3つのペインが一緒にズームし、ドラッグで動かせるので、細い罫線の
+1本でもページを離れずに8倍で片が付きます。
+
 ---
 
 ## 12.5 CI/CD：一括検証

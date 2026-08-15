@@ -238,6 +238,23 @@ profile "visual-fidelity" {
 }
 ```
 
+Et un dossier pour le regarder, destiné à qui doit approuver le retirage :
+
+```bash
+pdfl pixelcompare approuve/catalogue_v1.pdf recu/catalogue_v2.pdf \
+  --max-diff 0.05 --viewer epreuve/ --output-file pixels.json
+
+zip -r epreuve.zip epreuve/    # un index.html et trois PNG par page, rien d'autre
+```
+
+Le dossier n'a besoin ni de serveur ni de réseau : qui ouvre `index.html` voit
+l'original, le nouveau fichier et les deux ensemble avec les différences
+peintes dessus, et il s'ouvre sur les pages qui diffèrent — sur un catalogue où
+deux pages ont bougé sur quatre-vingt-dix, ce sont ces deux-là qui comptent.
+Bouger la souris fait passer le nouveau fichier sur l'ancien ; la molette zoome
+les trois volets ensemble et le glissement les déplace, de sorte qu'un filet se
+tranche à 8× sans quitter la page.
+
 ---
 
 ## 12.5 CI/CD : validation par lot

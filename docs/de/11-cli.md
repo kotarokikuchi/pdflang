@@ -326,6 +326,11 @@ Proportionen der Seite. Wo die beiden Dateien sich über die Größe einer Seite
 uneinig sind — eine wurde quer gestellt —, wird jede ganz im gemeinsamen Rahmen
 gezeigt statt zum Füllen verzerrt.
 
+Ein Seitenwechsel beginnt wieder bei der ganzen Seite: Zoom und Verschiebung
+gehören zu der Seite, auf der sie gesetzt wurden, und mitgenommen landen sie
+dort, wo die nächste Seite zufällig etwas hat. Das gilt für jeden Weg dorthin —
+die Leiste, die Pfeile, die Schaltflächen.
+
 **Er öffnet auf den Seiten, die sich unterscheiden.** Bei zweihundert Seiten,
 von denen drei sich geändert haben, sind genau diese drei der Grund, warum man
 ihn geöffnet hat; **All** holt den Rest zurück. Die Pfeile und `←` `→` folgen

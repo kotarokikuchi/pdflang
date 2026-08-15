@@ -29,7 +29,8 @@ nichts stillschweigend.
 - Das Mausrad zoomt alle drei Bereiche gemeinsam, bis 8×, um den Punkt unter dem
   Zeiger, und endet beim Herauszoomen an der eingepassten Seite. Die Leisten behalten bei jedem Zoom ihre Stärke.
   Mit gehaltener **mittlerer Maustaste** zieht man die Seite selbst, in allen
-  drei Bereichen zugleich und im Tempo des Zeigers. **Reset view** setzt Zoom, Verschiebung und Leisten
+  drei Bereichen zugleich und im Tempo des Zeigers. Ein Seitenwechsel tut dasselbe: Zoom und Verschiebung gehören zu ihrer
+  Seite. **Reset view** setzt Zoom, Verschiebung und Leisten
   auf den Ausgangszustand zurück und ist deaktiviert, solange es nichts
   zurückzunehmen gibt.
 - Die Bereiche werden am Fenster bemessen: der ganze Vergleich passt ohne

@@ -323,6 +323,11 @@ que soit le format de la fenêtre. Là où les deux fichiers ne s'accordent pas
 sur la taille d'une page — l'une passée en paysage —, chacune est montrée
 entière dans le cadre commun plutôt qu'étirée pour le remplir.
 
+Passer à une autre page repart de la page entière : un zoom et un déplacement
+appartiennent à la page où ils ont été faits, et reportés ils tombent là où la
+suivante a quelque chose, par hasard. Cela vaut quel que soit le chemin — la
+bande, les flèches, les boutons.
+
 **Elle s'ouvre sur les pages qui diffèrent.** Sur un document de deux cents
 pages dont trois ont bougé, ces trois-là sont la raison de l'ouvrir ; **All**
 remet les autres. Les flèches et `←` `→` suivent le filtre et enjambent ce que

@@ -252,12 +252,13 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
   /* Divided by the zoom, so a bar stays a hairline and the dot stays a dot
      however far in the page is scaled — the scale is on their parent. */
   .handle, .hbar {{ position: absolute; background: var(--accent); z-index: 3; }}
+  /* One weight for all six lines. The upright and the flat one were already
+     the same — measured 2px each, painted — but the reference panes drew
+     theirs at 1px, and a ruler that reads lighter than the bar it is tracking
+     is a difference with nothing behind it. The pane headings already say
+     which pane is which. */
   .handle {{ top: 0; bottom: 0; width: calc(2px / var(--z, 1)); }}
   .hbar {{ left: 0; right: 0; height: calc(2px / var(--z, 1)); }}
-  /* Thinner lines in the two reference panes, so which pane does the cutting
-     stays obvious at a glance. */
-  .stage:not(#wipe) .handle {{ width: calc(1px / var(--z, 1)); opacity: .75; }}
-  .stage:not(#wipe) .hbar {{ height: calc(1px / var(--z, 1)); opacity: .75; }}
 
   #empty {{ flex: none; padding: 10px 12px; text-align: center; color: var(--muted); }}
 
@@ -356,8 +357,9 @@ function applyFilter() {{
   // The page being looked at may be one the filter just hid: move to the
   // nearest one it admits rather than showing a page no chip points at.
   if (visible.length > 0 && !visible.includes(index)) {{
-    index = visible.reduce((best, i) =>
-      Math.abs(i - index) < Math.abs(best - index) ? i : best, visible[0]);
+    goTo(visible.reduce((best, i) =>
+      Math.abs(i - index) < Math.abs(best - index) ? i : best, visible[0]));
+    return;
   }}
   render();
 }}
@@ -515,10 +517,22 @@ for (const id of STAGES) {{
 
 // Back to the whole page with the bars where they started: a zoomed-in corner
 // with a wipe halfway across it is easy to reach and tedious to undo by hand.
-el("reset").addEventListener("click", () => {{
+function resetView() {{
   zoom = 1; ox = 50; oy = 50; panX = 0; panY = 0; splitX = 50; splitY = 0;
-  applyWipe();
-}});
+}}
+el("reset").addEventListener("click", () => {{ resetView(); render(); }});
+
+/// Moves to a page, starting it from the whole page again. A zoom and a pan
+/// belong to the page they were set on: carried to the next one they land
+/// wherever that page happens to have something, which is not a view anyone
+/// chose.
+function goTo(i) {{
+  if (i !== index) {{
+    index = i;
+    resetView();
+  }}
+  render();
+}}
 
 for (const f of ["all", "changed"]) {{
   el("f-" + f).addEventListener("click", () => {{ filter = f; applyFilter(); }});
@@ -531,8 +545,7 @@ function step(delta) {{
   const at = visible.indexOf(index);
   const next = visible[(at < 0 ? 0 : at) + delta];
   if (next !== undefined) {{
-    index = next;
-    render();
+    goTo(next);
   }}
 }}
 el("prev").addEventListener("click", () => step(-1));
@@ -549,7 +562,7 @@ PAGES.forEach((p, i) => {{
   b.className = "chip" + (p.diff === 0 ? " identical" : "");
   b.dataset.i = i;
   b.innerHTML = `Page ${{p.page}}<span class="pct">${{p.diff === 0 ? "—" : p.diff.toFixed(2) + "%"}}</span>`;
-  b.addEventListener("click", () => {{ index = i; render(); }});
+  b.addEventListener("click", () => goTo(i));
   list.appendChild(b);
 }});
 
@@ -708,6 +721,36 @@ mod tests {
         assert!(!html.contains("(dx / zoom)"), "the pan divides by the zoom again");
         // Reset has to undo it too, or a page dragged off-screen is stuck there.
         assert!(html.contains("panX = 0; panY = 0;"), "reset leaves the pan applied");
+    }
+
+    /// A zoom and a pan belong to the page they were set on.
+    #[test]
+    fn moving_to_another_page_starts_from_the_whole_page() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 0.0), diff(2, 3.0)]);
+        assert!(html.contains("function goTo(i)"), "there is no single way to change page");
+        assert!(
+            html.contains("if (i !== index) {") && html.contains("resetView();"),
+            "changing page does not reset the view"
+        );
+        // Every route to another page goes through it: the strip, the arrows
+        // and the buttons, and the filter when it has to move off a hidden page.
+        assert!(html.contains("=> goTo(i))"), "the page strip bypasses it");
+        assert!(html.contains("goTo(next);"), "the arrows bypass it");
+        assert!(html.contains("goTo(visible.reduce("), "the filter bypasses it");
+    }
+
+    /// A ruler that reads lighter than the bar it tracks is a difference with
+    /// nothing behind it.
+    #[test]
+    fn every_line_has_the_same_weight() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
+        assert_eq!(
+            html.matches("calc(2px / var(--z, 1))").count(),
+            2,
+            "the upright and flat bars should be the only widths, and equal"
+        );
+        assert!(!html.contains("calc(1px / var(--z, 1))"), "a pane still draws thinner lines");
+        assert!(!html.contains(".stage:not(#wipe)"), "a pane is still styled apart");
     }
 
     /// The blue discs are gone: the bars mark the position on their own, and a

@@ -31,7 +31,8 @@ quietly.
   button** drags the page itself, in all three at once and at the speed of the
   pointer whatever the zoom. The bars keep their weight at any zoom. **Reset
   view** puts the zoom, the pan and the bars back where they started, and is
-  disabled while there is nothing to undo.
+  disabled while there is nothing to undo. Moving to another page does the same:
+  a zoom belongs to the page it was set on.
 - The panes are sized against the window: the whole comparison is on screen
   without scrolling, at any window shape, and each keeps the page's own
   proportions. Where the two files disagree about a page's size, each is shown

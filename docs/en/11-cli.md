@@ -335,6 +335,11 @@ shape. Where the two files disagree about a page's size — one turned
 landscape, say — each is shown whole inside the shared box rather than
 stretched to fill it.
 
+Moving to another page starts it from the whole page again: a zoom and a pan
+belong to the page they were set on, and carried over they land wherever the
+next page happens to have something. This applies however you get there — the
+strip, the arrows, the buttons.
+
 **It opens on the pages that differ.** On a two-hundred-page document where
 three pages moved, those three are the reason you opened it; **All** puts the
 rest back. The arrows and `←` `→` follow the filter, stepping over what the

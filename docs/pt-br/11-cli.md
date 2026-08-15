@@ -334,6 +334,11 @@ formato de janela. Onde os dois arquivos discordam do tamanho de uma página —
 uma virou paisagem, digamos — cada uma é mostrada inteira dentro da caixa
 comum, em vez de esticada para preenchê-la.
 
+Ir para outra página recomeça da página inteira: um zoom e uma panorâmica
+pertencem à página em que foram feitos, e levados adiante caem onde a próxima
+página por acaso tiver algo. Vale por qualquer caminho — a tira, as setas, os
+botões.
+
 **Ele abre nas páginas que diferem.** Num documento de duzentas páginas em que
 três mudaram, essas três são o motivo de você ter aberto; o **All** traz as
 outras de volta. As setas e `←` `→` seguem o filtro, pulando o que a faixa está

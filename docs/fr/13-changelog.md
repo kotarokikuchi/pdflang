@@ -29,7 +29,8 @@ adapter. Rien ne change ici en silence.
 - La molette zoome les trois volets ensemble, jusqu'à 8×, autour du point sous
   le pointeur, et s'arrête à la page ajustée en dézoomant. Les barres gardent leur épaisseur à tout niveau.
   Le **bouton du milieu** maintenu fait glisser la page elle-même, dans les
-  trois volets à la fois et à la vitesse du pointeur. **Reset view** remet le zoom, le déplacement et les
+  trois volets à la fois et à la vitesse du pointeur. Changer de page fait de même : un zoom appartient à la page où il a été
+  fait. **Reset view** remet le zoom, le déplacement et les
   barres à leur état de départ, et reste désactivé tant qu'il n'y a rien à défaire.
 - Les volets sont dimensionnés d'après la fenêtre : toute la comparaison tient
   à l'écran sans défilement, quel que soit le format de la fenêtre, et chacun

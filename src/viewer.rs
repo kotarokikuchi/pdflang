@@ -155,7 +155,7 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
   }}
   button[aria-pressed="true"] {{ background: var(--accent); border-color: var(--accent); color: #fff; }}
   button[disabled] {{ opacity: .45; cursor: not-allowed; }}
-  #showing {{ font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }}
+  #showing, #zoomlevel {{ font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }}
   .key {{ display: flex; gap: 10px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }}
   .key span {{ display: inline-flex; gap: 4px; align-items: center; }}
   .dot {{ width: 9px; height: 9px; border-radius: 2px; display: inline-block; }}
@@ -190,8 +190,12 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
     font-style: normal; font-weight: 400; text-transform: none; letter-spacing: 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }}
-  /* container-type: size makes cqw/cqh below resolve against this box. */
-  .fit {{ flex: 1 1 auto; min-height: 0; display: flex; container-type: size; }}
+  /* container-type: size makes cqw/cqh below resolve against this box.
+     overflow: hidden is what keeps a zoomed page inside its own pane. */
+  .fit {{
+    flex: 1 1 auto; min-height: 0; display: flex; container-type: size;
+    overflow: hidden;
+  }}
   /* Fitting a page into a box in both directions, without distorting it.
      `width: 100%` with `max-height` does not do this: when the height clamps,
      the width stays and the page is stretched — a wide, short window turned
@@ -221,6 +225,9 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
      without this each image is stretched to fill it. Contained, each keeps its
      own proportions inside the shared box, which is also what keeps the two
      halves of the wipe measuring the same thing. */
+  /* Zoom is paint, not layout: the box keeps the size the fit gave it and is
+     drawn larger, so nothing about the fitting maths has to know about it. */
+  .stage {{ transform: scale(var(--z, 1)); transform-origin: var(--ox, 50%) var(--oy, 50%); }}
   .stage img {{
     position: absolute; inset: 0; width: 100%; height: 100%; display: block;
     object-fit: contain;
@@ -239,21 +246,32 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
      difference pane they cut between the two files; in the other two they are
      rulers on the same column and the same line of the page, so what the wipe
      is cutting can be found in either original without measuring by eye. */
+  /* Divided by the zoom, so a bar stays a hairline and the dot stays a dot
+     however far in the page is scaled — the scale is on their parent. */
   .handle, .hbar {{ position: absolute; background: var(--accent); z-index: 3; }}
-  .handle {{ top: 0; bottom: 0; width: 2px; }}
-  .hbar {{ left: 0; right: 0; height: 2px; }}
+  .handle {{ top: 0; bottom: 0; width: calc(2px / var(--z, 1)); }}
+  .hbar {{ left: 0; right: 0; height: calc(2px / var(--z, 1)); }}
   /* The dot rides the upright bar at the height of the pointer, which puts it
      exactly where the two bars cross. */
   .handle::after {{
     content: ""; position: absolute; top: var(--doty, 50%); left: 50%;
-    width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+    width: calc(22px / var(--z, 1)); height: calc(22px / var(--z, 1));
+    margin: calc(-11px / var(--z, 1)) 0 0 calc(-11px / var(--z, 1));
+    border-radius: 50%;
     background: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    /* Translucent like the bars in the other two panes: the dot sits on the
+       part of the page being looked at, and an opaque disc hides exactly what
+       it is pointing at. */
+    opacity: .75;
   }}
   /* Only the pane that actually cuts carries the grab dot at full size; the
      other two show thinner lines, so which pane does what stays obvious. */
-  .stage:not(#wipe) .handle {{ width: 1px; opacity: .75; }}
-  .stage:not(#wipe) .hbar {{ height: 1px; opacity: .75; }}
-  .stage:not(#wipe) .handle::after {{ width: 12px; height: 12px; margin: -6px 0 0 -6px; }}
+  .stage:not(#wipe) .handle {{ width: calc(1px / var(--z, 1)); opacity: .75; }}
+  .stage:not(#wipe) .hbar {{ height: calc(1px / var(--z, 1)); opacity: .75; }}
+  .stage:not(#wipe) .handle::after {{
+    width: calc(12px / var(--z, 1)); height: calc(12px / var(--z, 1));
+    margin: calc(-6px / var(--z, 1)) 0 0 calc(-6px / var(--z, 1));
+  }}
   #empty {{ flex: none; padding: 10px 12px; text-align: center; color: var(--muted); }}
 
   /* Too narrow for three across: stack them and let the window scroll, rather
@@ -281,6 +299,10 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
     <button id="prev" title="Previous page (left arrow)">←</button>
     <button id="next" title="Next page (right arrow)">→</button>
     <span id="showing"></span>
+  </div>
+  <div class="group">
+    <button id="reset" title="Back to the whole page, bars where they started">Reset view</button>
+    <span id="zoomlevel"></span>
   </div>
   <div class="sep"></div>
   <div class="key">
@@ -325,7 +347,7 @@ const el = id => document.getElementById(id);
 // Opens on the pages that differ: on a long document those are the reason
 // anyone opened this at all. Falls back to every page when none differ.
 let filter = PAGES.some(p => p.diff > 0) ? "changed" : "all";
-let index = 0, splitX = 50, splitY = 0;
+let index = 0, splitX = 50, splitY = 0, zoom = 1, ox = 50, oy = 50;
 
 function pad(n) {{ return String(n).padStart(3, "0"); }}
 
@@ -389,6 +411,20 @@ const STAGES = ["s-before", "s-after", "wipe"];
 /// One position, three panes. Both splits are percentages of the page rather
 /// than of any pane, and every pane holds the page at the same proportions, so
 /// one pair of numbers lands on the same spot of the document in all three.
+/// The zoom, and the point it grows around. Applied to all three panes from one
+/// pair of numbers, so they stay on the same part of the page.
+const MAX_ZOOM = 8;
+function applyView() {{
+  for (const id of STAGES) {{
+    const st = el(id).style;
+    st.setProperty("--z", String(zoom));
+    st.setProperty("--ox", `${{ox}}%`);
+    st.setProperty("--oy", `${{oy}}%`);
+  }}
+  el("zoomlevel").textContent = zoom > 1.001 ? `${{Math.round(zoom * 100)}}%` : "";
+  el("reset").disabled = zoom <= 1.001 && splitX === 50 && splitY === 0;
+}}
+
 function applyWipe() {{
   const cut = el("wipe-after").style;
   cut.setProperty("--splitx", `${{splitX}}%`);
@@ -402,6 +438,7 @@ function applyWipe() {{
   for (const bar of document.querySelectorAll(".hbar")) {{
     bar.style.top = `calc(${{splitY}}% - 1px)`;
   }}
+  applyView();
 }}
 
 // The upright bar is dragged; the flat one follows the pointer wherever it is,
@@ -437,7 +474,28 @@ for (const id of STAGES) {{
       if (stage.hasPointerCapture(e.pointerId)) stage.releasePointerCapture(e.pointerId);
     }});
   }}
+  // The wheel zooms rather than scrolls. passive: false because the default
+  // has to be stopped — otherwise the gesture scrolls the page strip behind.
+  stage.addEventListener("wheel", e => {{
+    e.preventDefault();
+    const r = stage.getBoundingClientRect();
+    // Grow around the pointer, so what is under it stays under it. Read on
+    // every notch rather than remembered: a wheel gesture holds still, and
+    // this way the zoom follows the pointer if it does move.
+    ox = Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100));
+    oy = Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100));
+    const step = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    zoom = Math.min(MAX_ZOOM, Math.max(1, zoom * step));
+    applyView();
+  }}, {{ passive: false }});
 }}
+
+// Back to the whole page with the bars where they started: a zoomed-in corner
+// with a wipe halfway across it is easy to reach and tedious to undo by hand.
+el("reset").addEventListener("click", () => {{
+  zoom = 1; ox = 50; oy = 50; splitX = 50; splitY = 0;
+  applyWipe();
+}});
 
 for (const f of ["all", "changed"]) {{
   el("f-" + f).addEventListener("click", () => {{ filter = f; applyFilter(); }});
@@ -588,6 +646,39 @@ mod tests {
         // The three stages are sized from the page's own proportions, which is
         // what keeps a wipe at 50% at 50% of the page.
         assert!(html.contains("--arn"), "the panes lost their aspect sizing");
+    }
+
+    /// Zoom is one number for three panes, and the bars must not thicken with
+    /// it — they are children of what is being scaled.
+    #[test]
+    fn the_wheel_zooms_all_three_and_the_bars_keep_their_weight() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
+        assert!(html.contains(r#"stage.addEventListener("wheel""#), "the wheel does nothing");
+        // Without preventDefault the gesture scrolls the strip behind instead.
+        assert!(html.contains("{ passive: false }"), "the wheel keeps its default");
+        assert!(html.contains("transform: scale(var(--z, 1))"), "nothing is scaled");
+        for counter in [
+            "width: calc(2px / var(--z, 1))",
+            "height: calc(2px / var(--z, 1))",
+            "width: calc(22px / var(--z, 1))",
+        ] {
+            assert!(html.contains(counter), "the bars scale with the page: {counter}");
+        }
+        // The floor is the fitted page: zooming out past it only shrinks the
+        // page inside a pane already sized to hold it.
+        assert!(html.contains("Math.max(1, zoom * step)"), "zoom has no floor at fit");
+        assert!(html.contains(r#"id="reset""#), "no way back to the starting view");
+    }
+
+    /// The dot sits on the part of the page being looked at.
+    #[test]
+    fn the_dot_does_not_hide_what_it_points_at() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
+        let dot = html
+            .split(".handle::after {")
+            .nth(1)
+            .expect("the dot is styled");
+        assert!(dot.contains("opacity: .75"), "the dot is opaque");
     }
 
     /// On a long document the changed pages are the reason anyone opened this.

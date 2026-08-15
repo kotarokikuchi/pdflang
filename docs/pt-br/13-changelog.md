@@ -28,6 +28,13 @@ em silêncio.
   altura, marcando o ponto onde o ponteiro está segurando. A barra deitada
   começa no topo, o que deixa a em pé como um wipe simples de altura inteira
   até ela ser movida.
+- A roda do mouse dá zoom nos três painéis juntos, até 8×, em torno do ponto sob
+  o ponteiro, e para no ajuste à página ao diminuir. As barras mantêm a
+  espessura em qualquer zoom. O **Reset view** devolve o zoom e as barras ao
+  ponto de partida, e fica desabilitado enquanto não houver o que desfazer.
+- O círculo da barra em pé agora é translúcido, como as barras dos outros dois
+  painéis. Ele fica sobre a parte da página que está sendo olhada, e um disco
+  opaco esconde justamente aquilo que ele aponta.
 - Os painéis são dimensionados contra a janela: a comparação inteira cabe na
   tela sem rolagem, em qualquer formato de janela, e cada um mantém a proporção
   da página. Onde os dois arquivos discordam do tamanho de uma página, cada uma

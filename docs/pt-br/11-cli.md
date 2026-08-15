@@ -311,6 +311,13 @@ aquilo que o wipe está cortando, sem medir no olho.
 As duas posições são porcentagens da página, não de um painel, então sobrevivem
 a trocar de página e a redimensionar a janela.
 
+A roda do mouse dá zoom, até 8×, e os três painéis ampliam juntos em torno do
+ponto sob o ponteiro — então o que você estava olhando continua onde estava.
+Diminuir para no ajuste à página: abaixo disso não há nada de útil, o painel já
+tem o tamanho de segurar a página inteira. As barras mantêm a espessura em
+qualquer zoom. O **Reset view** devolve o zoom à página inteira e as barras à
+posição inicial; ele fica desabilitado enquanto não houver o que desfazer.
+
 As diferenças são pintadas no lugar, e a cor diz de que tipo:
 
 | Cor | Significado |

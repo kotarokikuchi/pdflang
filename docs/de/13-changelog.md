@@ -28,6 +28,14 @@ nichts stillschweigend.
   sitzt auf der stehenden Leiste in dieser Höhe und markiert, was der Zeiger
   hält. Die liegende Leiste beginnt oben, womit die stehende bis zur ersten
   Bewegung ein gewöhnlicher Wischer über die volle Höhe bleibt.
+- Das Mausrad zoomt alle drei Bereiche gemeinsam, bis 8×, um den Punkt unter dem
+  Zeiger, und endet beim Herauszoomen an der eingepassten Seite. Die Leisten
+  behalten bei jedem Zoom ihre Stärke. **Reset view** setzt Zoom und Leisten auf
+  den Ausgangszustand zurück und ist deaktiviert, solange es nichts
+  zurückzunehmen gibt.
+- Der Punkt auf der stehenden Leiste ist durchscheinend wie die Leisten in den
+  beiden anderen Bereichen. Er liegt auf dem Teil der Seite, den man betrachtet,
+  und eine deckende Scheibe verdeckt genau das, worauf sie zeigt.
 - Die Bereiche werden am Fenster bemessen: der ganze Vergleich passt ohne
   Scrollen auf den Schirm, bei jedem Fensterformat, und jeder behält die
   Proportionen der Seite. Wo die Dateien sich über die Seitengröße uneinig

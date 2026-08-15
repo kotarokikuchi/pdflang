@@ -28,6 +28,13 @@ adapter. Rien ne change ici en silence.
   pastille se place sur la verticale à cette hauteur, marquant l'endroit que
   tient le pointeur. L'horizontale part du haut, ce qui laisse la verticale en
   balayage pleine hauteur tant qu'on ne la déplace pas.
+- La molette zoome les trois volets ensemble, jusqu'à 8×, autour du point sous
+  le pointeur, et s'arrête à la page ajustée en dézoomant. Les barres gardent
+  leur épaisseur à tout niveau. **Reset view** remet le zoom et les barres à
+  leur état de départ, et reste désactivé tant qu'il n'y a rien à défaire.
+- La pastille de la barre verticale est translucide, comme les barres des deux
+  autres volets. Elle se pose sur la partie de la page que l'on regarde, et un
+  disque opaque cache précisément ce qu'il désigne.
 - Les volets sont dimensionnés d'après la fenêtre : toute la comparaison tient
   à l'écran sans défilement, quel que soit le format de la fenêtre, et chacun
   garde les proportions de la page. Là où les deux fichiers ne s'accordent pas

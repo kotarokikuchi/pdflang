@@ -27,6 +27,13 @@ quietly.
   upright bar at that height, marking the spot the pointer is holding. The flat
   bar starts at the top, which leaves the upright one a plain full-height wipe
   until it is moved.
+- The wheel zooms all three panes together, up to 8×, around the point under the
+  pointer, and stops at the fitted page on the way out. The bars keep their
+  weight at any zoom. **Reset view** puts the zoom and the bars back where they
+  started, and is disabled while there is nothing to undo.
+- The dot on the upright bar is translucent, like the bars in the other two
+  panes. It sits on the part of the page being looked at, and an opaque disc
+  hides exactly what it is pointing at.
 - The panes are sized against the window: the whole comparison is on screen
   without scrolling, at any window shape, and each keeps the page's own
   proportions. Where the two files disagree about a page's size, each is shown

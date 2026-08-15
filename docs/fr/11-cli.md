@@ -300,6 +300,14 @@ règles sur la même colonne et la même ligne de la page.
 Les deux positions sont des pourcentages de la page et non d'un volet : elles
 survivent au changement de page et au redimensionnement de la fenêtre.
 
+La molette zoome, jusqu'à 8×, et les trois volets zooment ensemble autour du
+point sous le pointeur : ce que vous regardiez reste où il était. Le
+dézoomage s'arrête à la page ajustée — en dessous il n'y a rien d'utile, le
+volet contient déjà la page entière. Les barres gardent leur épaisseur à tout
+niveau de zoom. **Reset view** remet le zoom sur la page entière et les barres
+à leur place de départ ; le bouton reste désactivé tant qu'il n'y a rien à
+défaire.
+
 Les différences sont peintes sur place, et la couleur dit laquelle :
 
 | Couleur | Signification |

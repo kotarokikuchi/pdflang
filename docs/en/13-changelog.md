@@ -10,7 +10,19 @@ quietly.
 
 ---
 
-## Unreleased
+## 0.19.0
+
+### Breaks
+
+**The viewer's modes are gone.** **Flip**, **Fade**, the **Blend** slider and
+the **Differences** slider, along with the `space` and `d` keys that drove
+them, are no longer there.
+
+> Only the generated viewer is affected — no report, exit code or flag
+> changes, so nothing reading `pdfl` output notices. Three panes answer what
+> those modes were for: the two files are on screen at once rather than one at
+> a time. If you have written instructions of your own that name a mode or a
+> key, they need a pass.
 
 ### Changed
 
@@ -39,10 +51,6 @@ quietly.
   whole inside the shared box rather than stretched to fill it.
 - It opens on the pages that differ, with **All** to put the rest back. On a
   long document those pages are the reason it was opened.
-- **Flip**, **Fade**, the **Blend** slider and the **Differences** slider are
-  gone, along with the `space` and `d` keys that drove them. Three panes answer
-  what those modes were for, and the controls now fit one thin bar, which is
-  space the pages get instead.
 
 ---
 

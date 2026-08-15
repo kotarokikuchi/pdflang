@@ -10,7 +10,19 @@ em silêncio.
 
 ---
 
-## Ainda não publicado
+## 0.19.0
+
+### Quebra
+
+**Os modos do visualizador foram removidos.** O **Flip**, o **Fade**, o slider
+**Blend** e o slider **Differences**, junto com as teclas `space` e `d` que os
+controlavam, não existem mais.
+
+> Só o visualizador gerado é afetado — nenhum relatório, código de saída ou
+> flag muda, então nada que lê a saída do `pdfl` percebe. Três painéis
+> respondem ao que aqueles modos serviam: os dois arquivos ficam na tela ao
+> mesmo tempo, em vez de um de cada vez. Se você escreveu instruções próprias
+> citando um modo ou uma tecla, elas precisam de revisão.
 
 ### Mudou
 
@@ -39,10 +51,6 @@ em silêncio.
   é mostrada inteira dentro da caixa comum, em vez de esticada para preenchê-la.
 - Ele abre nas páginas que diferem, com **All** para trazer as outras de volta.
   Num documento longo, são essas páginas o motivo de ele ter sido aberto.
-- **Flip**, **Fade**, o slider **Blend** e o slider **Differences** foram
-  removidos, junto com as teclas `space` e `d` que os controlavam. Três painéis
-  respondem ao que aqueles modos serviam, e os controles agora cabem numa faixa
-  fina — espaço que passa a ser das páginas.
 
 ---
 

@@ -10,7 +10,19 @@ adapter. Rien ne change ici en silence.
 
 ---
 
-## Non publié
+## 0.19.0
+
+### Casse
+
+**Les modes de la visionneuse ont disparu.** **Flip**, **Fade**, le curseur
+**Blend** et le curseur **Differences**, ainsi que les touches `space` et `d`
+qui les pilotaient, n'existent plus.
+
+> Seule la visionneuse générée est concernée — aucun rapport, code de sortie ou
+> option ne change, rien de ce qui lit la sortie de `pdfl` ne s'en aperçoit.
+> Trois volets répondent à ce que ces modes servaient : les deux fichiers sont
+> à l'écran en même temps plutôt que l'un après l'autre. Si vous avez rédigé
+> des consignes citant un mode ou une touche, elles sont à revoir.
 
 ### Changé
 
@@ -42,10 +54,6 @@ adapter. Rien ne change ici en silence.
   plutôt qu'étirée.
 - Elle s'ouvre sur les pages qui diffèrent, **All** remettant les autres. Sur un
   document long, ce sont ces pages-là qui ont motivé son ouverture.
-- **Flip**, **Fade**, le curseur **Blend** et le curseur **Differences** ont
-  disparu, ainsi que les touches `space` et `d`. Trois volets répondent à ce que
-  ces modes servaient, et les commandes tiennent maintenant dans une barre fine
-  — de la place rendue aux pages.
 
 ---
 

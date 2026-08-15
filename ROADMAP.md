@@ -13,7 +13,7 @@ found to disagree with the code more than once. Where a claim could not be
 verified, it is marked **partial** with the doubt stated, never rounded up to a
 yes.
 
-State at **0.18.0**.
+State at **0.19.0**.
 
 ---
 

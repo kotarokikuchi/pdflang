@@ -10,7 +10,19 @@ nichts stillschweigend.
 
 ---
 
-## Noch nicht veröffentlicht
+## 0.19.0
+
+### Bricht
+
+**Die Modi des Betrachters sind entfallen.** **Flip**, **Fade**, der
+**Blend**-Regler und der **Differences**-Regler samt den Tasten `space` und `d`
+gibt es nicht mehr.
+
+> Betroffen ist nur der erzeugte Betrachter — kein Bericht, kein Exit-Code und
+> keine Option ändert sich, wer die Ausgabe von `pdfl` liest, merkt also
+> nichts. Drei Bereiche beantworten, wofür diese Modi da waren: Beide Dateien
+> sind gleichzeitig auf dem Schirm statt nacheinander. Eigene Anleitungen, die
+> einen Modus oder eine Taste nennen, brauchen einen Durchgang.
 
 ### Geändert
 
@@ -41,10 +53,6 @@ nichts stillschweigend.
 - Er öffnet auf den Seiten, die sich unterscheiden; **All** holt den Rest
   zurück. In einem langen Dokument sind genau diese Seiten der Grund, ihn zu
   öffnen.
-- **Flip**, **Fade**, der **Blend**-Regler und der **Differences**-Regler sind
-  entfallen, samt den Tasten `space` und `d`. Drei Bereiche beantworten, wofür
-  diese Modi da waren, und die Bedienelemente passen jetzt in eine schmale
-  Leiste — Platz, den die Seiten bekommen.
 
 ---
 

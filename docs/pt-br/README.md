@@ -1,6 +1,6 @@
 # Documentação do PDFLang — Português (Brasil)
 
-Guia completo da linguagem `.pdfl` e do CLI `pdfl` — versão 0.18.0.
+Guia completo da linguagem `.pdfl` e do CLI `pdfl` — versão 0.19.0.
 
 Todo exemplo desta documentação é código executável e comentado. Se você nunca
 usou a linguagem, comece pelo manual (capítulo 1) e depois consulte a referência

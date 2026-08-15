@@ -10,7 +10,7 @@ em silêncio.
 
 ---
 
-## Ainda não publicado
+## 0.19.1
 
 ### Corrigido
 
@@ -37,6 +37,15 @@ em silêncio.
 - O `--pages 1-20000000` alocava os números de página antes mesmo de abrir um
   documento — 214 MB para depois não dizer nada. Intervalos acima de um milhão
   de páginas são recusados.
+
+### Vale saber
+
+- As correções acima colocam tetos onde não havia nenhum, então algumas coisas
+  antes aceitas deixam de ser: um script aninhado além de 128 níveis, um pacote
+  que expande além de 64 MB, um pacote que nomeia arquivo com `:` ou `\`, e um
+  intervalo de páginas acima de um milhão. Cada um está muito fora do que um
+  script, pacote ou documento real contém — mas nenhum deles falhava antes,
+  então ficam registrados em vez de serem descobertos.
 
 ---
 

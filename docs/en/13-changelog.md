@@ -10,7 +10,7 @@ quietly.
 
 ---
 
-## Unreleased
+## 0.19.1
 
 ### Fixed
 
@@ -36,6 +36,15 @@ quietly.
   any real package of scripts and lookup tables.
 - `--pages 1-20000000` allocated the page numbers before a document was even
   opened — 214 MB to then say nothing. Ranges over a million pages are refused.
+
+### Worth knowing
+
+- The fixes above put ceilings where there were none, so a few things that used
+  to be accepted now are not: a script nesting deeper than 128 levels, a package
+  expanding past 64 MB, a package naming a file with `:` or `\` in it, and a
+  page range over a million. Each is far outside what a real script, package or
+  document contains — but none of them used to fail, so they are written down
+  rather than left to be discovered.
 
 ---
 

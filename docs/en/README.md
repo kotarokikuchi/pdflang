@@ -1,6 +1,6 @@
 # PDFLang Documentation — English
 
-Complete guide to the `.pdfl` language and the `pdfl` CLI — version 0.19.0.
+Complete guide to the `.pdfl` language and the `pdfl` CLI — version 0.19.1.
 
 Every example in this documentation is runnable, commented code. If you have
 never used the language, start with the manual (chapter 1) and use the rest as

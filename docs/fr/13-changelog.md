@@ -10,7 +10,7 @@ adapter. Rien ne change ici en silence.
 
 ---
 
-## Non publié
+## 0.19.1
 
 ### Corrigé
 
@@ -39,6 +39,16 @@ adapter. Rien ne change ici en silence.
 - `--pages 1-20000000` allouait les numéros de page avant même l'ouverture d'un
   document — 214 Mo pour ne rien dire ensuite. Les plages de plus d'un million
   de pages sont refusées.
+
+### Bon à savoir
+
+- Les corrections ci-dessus posent des plafonds là où il n'y en avait aucun :
+  quelques choses jusque-là acceptées ne le sont plus — un script imbriqué
+  au-delà de 128 niveaux, un paquet dépassant 64 Mo à la décompression, un
+  paquet nommant un fichier avec `:` ou `\`, et une plage de plus d'un million
+  de pages. Tout cela est très loin de ce que contient un script, un paquet ou
+  un document réel — mais rien de tout cela n'échouait avant, d'où cette note
+  plutôt qu'une découverte.
 
 ---
 

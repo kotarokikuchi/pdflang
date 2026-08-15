@@ -1,7 +1,7 @@
 # PDFLang-Dokumentation — Deutsch
 
 Vollständige Anleitung zur Sprache `.pdfl` und zum Kommandozeilenwerkzeug
-`pdfl` — Version 0.19.0.
+`pdfl` — Version 0.19.1.
 
 Jedes Beispiel in dieser Dokumentation ist lauffähiger, kommentierter Code. Wenn
 Sie die Sprache zum ersten Mal verwenden, beginnen Sie mit dem Handbuch in

@@ -10,7 +10,7 @@ nichts stillschweigend.
 
 ---
 
-## Noch nicht veröffentlicht
+## 0.19.1
 
 ### Behoben
 
@@ -39,6 +39,15 @@ nichts stillschweigend.
 - `--pages 1-20000000` legte die Seitenzahlen an, noch bevor ein Dokument
   geöffnet war — 214 MB, um dann nichts zu sagen. Bereiche über einer Million
   Seiten werden abgelehnt.
+
+### Gut zu wissen
+
+- Die Korrekturen oben ziehen Grenzen, wo es keine gab: Einiges, was bisher
+  angenommen wurde, wird jetzt abgelehnt — ein Skript tiefer als 128 Ebenen, ein
+  Paket, das über 64 MB hinaus entpackt, ein Paket mit `:` oder `\` im
+  Dateinamen, und ein Seitenbereich über einer Million. Alles weit außerhalb
+  dessen, was ein echtes Skript, Paket oder Dokument enthält — aber nichts davon
+  schlug vorher fehl, deshalb steht es hier, statt entdeckt zu werden.
 
 ---
 

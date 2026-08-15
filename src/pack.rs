@@ -96,21 +96,66 @@ pub fn pack(folder: &Path, output: &Path, name: &str, version: &str) -> Result<M
 }
 
 /// Installs a local package into `dir/<name>@<version>/`, checking the hashes.
+/// What a package may expand to. Real ones are scripts and CSV tables — tens
+/// of kilobytes.
+const MAX_UNPACKED: u64 = 64 * 1024 * 1024;
+
+/// Rejects any entry path that is not a plain relative path.
+///
+/// Checking for `..` and a leading `/` is not enough. `C:/Windows/evil.dll` has
+/// neither and is absolute on Windows, where `Path::join` throws away the base
+/// it is joined to — the file lands where the package asked, not in the install
+/// folder. So does `\\server\share\x`.
+///
+/// The rules are spelled out rather than left to `Path`, which answers
+/// differently depending on where it runs: on Linux `C:` is an ordinary
+/// directory name and `components()` calls it Normal, so a check written that
+/// way passes the very package it was added to stop. A package crosses
+/// machines, so what it is allowed to contain cannot depend on the one
+/// unpacking it.
+fn check_entry_path(path: &str) -> Result<()> {
+    let bad = path.is_empty()
+        || path.starts_with('/')
+        || path.contains('\\')       // a Windows separator, or a UNC prefix
+        || path.contains(':')          // a drive letter, or an alternate stream
+        || path.contains('\0')
+        || path.split('/').any(|c| c.is_empty() || c == "." || c == "..");
+    if bad {
+        bail!("suspicious path in package: {path}");
+    }
+    Ok(())
+}
+
 pub fn add(package: &Path, dir: &Path) -> Result<(Manifest, PathBuf)> {
     let file = std::fs::File::open(package)
         .with_context(|| format!("could not open {}", package.display()))?;
     let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(file));
 
-    // Reads everything into memory (packages are small: scripts + tables)
+    // Read into memory, but only so much of it. A package arrives from
+    // somewhere else, and a gzip of zeros expands about a thousandfold: a
+    // 300 KB file was enough to take 380 MB, and nothing stopped a larger one
+    // from taking the machine. The cap is far above any real package — scripts
+    // and lookup tables — and the entry does not have to be in the manifest to
+    // be read, which is what made it a way in.
     let mut entries: Vec<(String, Vec<u8>)> = Vec::new();
+    let mut budget: u64 = MAX_UNPACKED;
     for entry in archive.entries()? {
         let mut entry = entry?;
         let path = entry.path()?.to_string_lossy().into_owned();
-        if path.contains("..") || path.starts_with('/') {
-            bail!("suspicious path in package: {path}");
-        }
+        check_entry_path(&path)?;
         let mut data = Vec::new();
-        std::io::Read::read_to_end(&mut entry, &mut data)?;
+        // take() so the reader stops at the cap instead of after it.
+        let read = std::io::Read::read_to_end(
+            &mut std::io::Read::take(&mut entry, budget + 1),
+            &mut data,
+        )? as u64;
+        if read > budget {
+            bail!(
+                "package expands past {} MB — refusing to unpack further",
+                MAX_UNPACKED / (1024 * 1024)
+            );
+        }
+        budget -= read;
         entries.push((path, data));
     }
 
@@ -174,6 +219,30 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    /// A package is built on one machine and unpacked on another, so what it
+    /// may contain cannot depend on the machine unpacking it. `C:/x` is an
+    /// ordinary relative path on Linux and an absolute one on Windows, where
+    /// `join` would drop the install folder and write where the package asked.
+    #[test]
+    fn a_package_cannot_name_a_path_outside_itself() {
+        for bad in [
+            "../etc/passwd",
+            "/etc/passwd",
+            "a/../../b",
+            "C:/Windows/System32/evil.dll",
+            "C:\\Windows\\evil.dll",
+            "\\\\server\\share\\evil.dll",
+            "data/../../x",
+            "sub/./x.csv",
+            "",
+        ] {
+            assert!(check_entry_path(bad).is_err(), "{bad} should have been refused");
+        }
+        for good in ["perfil.pdfl", "data/batches.csv", "a/b/c.json"] {
+            assert!(check_entry_path(good).is_ok(), "{good} should have been allowed");
+        }
     }
 
     #[test]

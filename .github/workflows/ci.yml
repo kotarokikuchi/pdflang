@@ -204,6 +204,47 @@ jobs:
           ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \
             tests/fixtures/suspeito.pdf --dpi 72 >/dev/null 2>/tmp/px.err || true
           test ! -s /tmp/px.err
+          # a script must never abort the process: nesting in the source became
+          # nesting on the call stack, and ~2000 brackets killed the run with
+          # SIGABRT (exit 134) instead of the exit 3 a bad script gets
+          python3 -c "print('check \"x\" { require ' + '('*5000 + '1' + ')'*5000 + ' == 1 }')" > /tmp/deep.pdfl
+          ec=0
+          ./target/debug/pdfl lint /tmp/deep.pdfl > /dev/null 2>&1 || ec=$?
+          test "$ec" -eq 3
+          python3 -c "print('check \"x\" { require ' + '!'*5000 + 'true }')" > /tmp/deep2.pdfl
+          ec=0
+          ./target/debug/pdfl lint /tmp/deep2.pdfl > /dev/null 2>&1 || ec=$?
+          test "$ec" -eq 3
+          # a package may not name a path outside the folder it installs into,
+          # nor expand without bound
+          python3 - <<'PYPKG'
+          import tarfile, io, json, hashlib, gzip
+          payload = b"pwned\n"
+          evil = "C:/Windows/System32/evil.pdfl"
+          m = {"name":"trojan","version":"1.0.0",
+               "files":[{"path":evil,"sha256":hashlib.sha256(payload).hexdigest()}]}
+          buf = io.BytesIO()
+          with tarfile.open(fileobj=buf, mode="w") as t:
+              for name, data in [("manifest.json", json.dumps(m).encode()), (evil, payload)]:
+                  ti = tarfile.TarInfo(name); ti.size = len(data)
+                  t.addfile(ti, io.BytesIO(data))
+          open("/tmp/trojan.pdflpkg","wb").write(gzip.compress(buf.getvalue()))
+          buf = io.BytesIO()
+          with tarfile.open(fileobj=buf, mode="w") as t:
+              m = json.dumps({"name":"bomb","version":"1.0.0","files":[]}).encode()
+              ti = tarfile.TarInfo("manifest.json"); ti.size = len(m); t.addfile(ti, io.BytesIO(m))
+              ti = tarfile.TarInfo("pad.csv"); ti.size = 300*1024*1024
+              t.addfile(ti, io.BytesIO(b"\0" * (300*1024*1024)))
+          open("/tmp/bomb.pdflpkg","wb").write(gzip.compress(buf.getvalue()))
+          PYPKG
+          rm -rf /tmp/inst && mkdir -p /tmp/inst
+          ec=0
+          ./target/debug/pdfl add /tmp/trojan.pdflpkg --dir /tmp/inst > /dev/null 2>&1 || ec=$?
+          test "$ec" -eq 10
+          test -z "$(find /tmp/inst -type f)"
+          ec=0
+          ./target/debug/pdfl add /tmp/bomb.pdflpkg --dir /tmp/inst > /dev/null 2>&1 || ec=$?
+          test "$ec" -eq 10
           # --jobs may make it faster, never make it say something else: the
           # fingerprints are in here, so this catches a fold taken out of order
           ./target/debug/pdfl pixelcompare tests/fixtures/prepress.pdf \

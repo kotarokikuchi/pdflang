@@ -10,6 +10,38 @@ adapter. Rien ne change ici en silence.
 
 ---
 
+## Non publié
+
+### Corrigé
+
+- **Un script pouvait interrompre le processus au lieu d'être rejeté.**
+  L'imbrication dans le source devenait de l'imbrication sur la pile d'appels :
+  environ deux mille parenthèses la faisaient déborder et l'exécution mourait
+  avec SIGABRT — pas de code de sortie 3, pas de message, rien de rattrapable.
+  Six formes le faisaient : `((((…))))`, `!!!!…`, `----…`, listes imbriquées,
+  blocs imbriqués et `"#{"#{…}"}"`. L'analyseur compte désormais sa profondeur
+  et refuse au-delà de 128 niveaux, bien plus que tout script écrit à la main
+  et bien en deçà de la limite de la pile. Le pire cas était la commande qu'on
+  lance *en premier* sur un script d'autrui : `pdfl lint` mourait au lieu de
+  rapporter.
+- **Un paquet pouvait nommer un fichier hors du dossier où il s'installe.** Le
+  contrôle refusait `..` et un `/` initial, mais pas `C:/Windows/evil.dll` ni
+  `\\serveur\share\x` — ni l'un ni l'autre n'en contient, et les deux sont
+  absolus sous Windows, où les joindre au dossier d'installation écarte ce
+  dossier. Chaque composant de chaque chemin doit maintenant être un nom
+  simple, selon des règles qui ne changent pas avec la plateforme qui
+  décompresse.
+- **Un paquet pouvait épuiser la mémoire pendant la lecture.** Les entrées
+  étaient lues entièrement en mémoire avant consultation du manifeste — y
+  compris celles qu'il ne mentionne jamais — si bien que 299 Ko de zéros
+  compressés prenaient 380 Mo, et davantage prenait la machine. La
+  décompression s'arrête désormais à 64 Mo, bien au-dessus de tout paquet réel.
+- `--pages 1-20000000` allouait les numéros de page avant même l'ouverture d'un
+  document — 214 Mo pour ne rien dire ensuite. Les plages de plus d'un million
+  de pages sont refusées.
+
+---
+
 ## 0.19.0
 
 ### Casse

@@ -10,6 +10,35 @@ quietly.
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- **A script could abort the process instead of being rejected.** Nesting in
+  the source became nesting on the call stack, so about two thousand brackets
+  overflowed the stack and the run died with SIGABRT — no exit code 3, no
+  message, nothing catchable. Six shapes did it: `((((…))))`, `!!!!…`, `----…`,
+  nested arrays, nested blocks, and `"#{"#{…}"}"`. The parser now counts its
+  depth and refuses past 128 levels, which is far more than any script written
+  by a person and far below where the stack runs out. It mattered most for the
+  one command you would run *first* on a script you did not write: `pdfl lint`
+  died rather than reporting.
+- **A package could name a file outside the folder it installs into.** The
+  check refused `..` and a leading `/`, but not `C:/Windows/evil.dll` or
+  `\\server\share\x` — neither contains either, and both are absolute on
+  Windows, where joining one to the install folder discards the folder. Every
+  component of every path must now be a plain name, tested by rules that do not
+  change with the platform doing the unpacking.
+- **A package could exhaust memory while being read.** Entries were read whole
+  into memory before the manifest was consulted — including entries the
+  manifest never mentions — so a 299 KB file of compressed zeros took 380 MB,
+  and a larger one took the machine. Unpacking now stops at 64 MB, far above
+  any real package of scripts and lookup tables.
+- `--pages 1-20000000` allocated the page numbers before a document was even
+  opened — 214 MB to then say nothing. Ranges over a million pages are refused.
+
+---
+
 ## 0.19.0
 
 ### Breaks

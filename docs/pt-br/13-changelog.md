@@ -10,6 +10,36 @@ em silêncio.
 
 ---
 
+## Ainda não publicado
+
+### Corrigido
+
+- **Um script podia abortar o processo em vez de ser rejeitado.** O aninhamento
+  no código virava aninhamento na pilha de chamadas, então cerca de dois mil
+  parênteses estouravam a pilha e a execução morria com SIGABRT — sem código de
+  saída 3, sem mensagem, sem nada capturável. Seis formas faziam isso:
+  `((((…))))`, `!!!!…`, `----…`, arrays aninhados, blocos aninhados e
+  `"#{"#{…}"}"`. O parser agora conta a profundidade e recusa além de 128
+  níveis, muito acima de qualquer script escrito por uma pessoa e muito abaixo
+  de onde a pilha acaba. O pior caso era justamente o comando que se roda
+  *primeiro* num script alheio: o `pdfl lint` morria em vez de reportar.
+- **Um pacote podia nomear um arquivo fora da pasta em que se instala.** A
+  checagem recusava `..` e `/` inicial, mas não `C:/Windows/evil.dll` nem
+  `\\servidor\share\x` — nenhum dos dois contém aquilo, e ambos são absolutos
+  no Windows, onde juntá-los à pasta de instalação descarta a pasta. Agora todo
+  componente de todo caminho precisa ser um nome simples, por regras que não
+  mudam com a plataforma que desempacota.
+- **Um pacote podia esgotar a memória durante a leitura.** As entradas eram
+  lidas inteiras para a memória antes de o manifesto ser consultado — inclusive
+  entradas que o manifesto nunca cita — então um arquivo de 299 KB de zeros
+  comprimidos tomava 380 MB, e um maior tomava a máquina. O desempacotamento
+  agora para em 64 MB, muito acima de qualquer pacote real de scripts e tabelas.
+- O `--pages 1-20000000` alocava os números de página antes mesmo de abrir um
+  documento — 214 MB para depois não dizer nada. Intervalos acima de um milhão
+  de páginas são recusados.
+
+---
+
 ## 0.19.0
 
 ### Quebra

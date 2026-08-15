@@ -10,6 +10,38 @@ nichts stillschweigend.
 
 ---
 
+## Noch nicht veröffentlicht
+
+### Behoben
+
+- **Ein Skript konnte den Prozess abbrechen, statt abgelehnt zu werden.**
+  Verschachtelung im Quelltext wurde zu Verschachtelung auf dem Aufrufstapel:
+  rund zweitausend Klammern brachten den Stapel zum Überlaufen und der Lauf
+  starb mit SIGABRT — kein Exit-Code 3, keine Meldung, nichts Abfangbares.
+  Sechs Formen taten das: `((((…))))`, `!!!!…`, `----…`, verschachtelte Listen,
+  verschachtelte Blöcke und `"#{"#{…}"}"`. Der Parser zählt jetzt seine Tiefe
+  und lehnt jenseits von 128 Ebenen ab — weit mehr als jedes von Hand
+  geschriebene Skript und weit unter dem, wo der Stapel endet. Am schlimmsten
+  traf es den Befehl, den man bei einem fremden Skript *zuerst* ausführt:
+  `pdfl lint` starb, statt zu berichten.
+- **Ein Paket konnte eine Datei außerhalb seines Installationsordners
+  benennen.** Die Prüfung wies `..` und ein führendes `/` ab, nicht aber
+  `C:/Windows/evil.dll` oder `\\server\share\x` — beide enthalten nichts
+  davon und sind unter Windows absolut, wo das Zusammenfügen mit dem Zielordner
+  den Ordner verwirft. Jeder Bestandteil jedes Pfades muss nun ein einfacher
+  Name sein, geprüft nach Regeln, die sich mit der entpackenden Plattform nicht
+  ändern.
+- **Ein Paket konnte beim Lesen den Speicher erschöpfen.** Einträge wurden ganz
+  in den Speicher gelesen, bevor das Manifest zu Rate gezogen wurde — auch
+  Einträge, die es nie erwähnt —, sodass 299 KB komprimierter Nullen 380 MB
+  belegten und mehr die Maschine. Das Entpacken endet jetzt bei 64 MB, weit
+  über jedem echten Paket aus Skripten und Tabellen.
+- `--pages 1-20000000` legte die Seitenzahlen an, noch bevor ein Dokument
+  geöffnet war — 214 MB, um dann nichts zu sagen. Bereiche über einer Million
+  Seiten werden abgelehnt.
+
+---
+
 ## 0.19.0
 
 ### Bricht

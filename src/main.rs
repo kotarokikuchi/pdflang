@@ -842,6 +842,10 @@ fn compare_cmd(
 /// `1-10` or `1,3,7-12` into a sorted list of page numbers. Returns the
 /// offending fragment on bad input rather than silently comparing everything —
 /// a typo that quietly widened the job is the kind of thing nobody notices.
+/// More pages than any real document, and far less than an allocation worth
+/// noticing.
+const MAX_PAGES: i64 = 1_000_000;
+
 fn parse_page_range(spec: &str) -> Result<Vec<i64>, String> {
     let mut pages = Vec::new();
     for part in spec.split(',').map(str::trim).filter(|p| !p.is_empty()) {
@@ -851,7 +855,11 @@ fn parse_page_range(spec: &str) -> Result<Vec<i64>, String> {
                 let (Ok(a), Ok(b)) = (from.parse::<i64>(), to.parse::<i64>()) else {
                     return Err(part.to_string());
                 };
-                if a < 1 || b < a {
+                // The upper bound is what stops `--pages 1-20000000` from
+                // asking for 160 MB of page numbers before a document has even
+                // been opened. No PDF has this many pages; a range this size is
+                // a typo or a probe.
+                if a < 1 || b < a || b - a + 1 > MAX_PAGES {
                     return Err(part.to_string());
                 }
                 pages.extend(a..=b);
@@ -1259,6 +1267,16 @@ mod tests {
         assert_eq!(sequential, run(4));
         assert_eq!(sequential, run(8));
         assert_eq!(sequential, run(32));
+    }
+
+    /// A range nobody could mean must not be allocated before a document has
+    /// even been opened: `--pages 1-20000000` took 214 MB to say nothing.
+    #[test]
+    fn an_enormous_page_range_is_refused() {
+        assert_eq!(parse_page_range("1-20000000").unwrap_err(), "1-20000000");
+        assert_eq!(parse_page_range("1-1000001").unwrap_err(), "1-1000001");
+        // The boundary itself stays usable: the limit is a count, not a span.
+        assert_eq!(parse_page_range("1-1000000").unwrap().len(), 1_000_000);
     }
 
     /// A typo must not quietly widen the job to every page.

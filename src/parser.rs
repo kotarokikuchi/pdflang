@@ -22,18 +22,29 @@ impl std::error::Error for ParseError {}
 
 pub fn parse(source: &str) -> Result<Vec<Stmt>, ParseError> {
     let toks = tokenize(source).map_err(|e| ParseError { message: e.message, line: e.line, col: e.col })?;
-    let mut p = Parser { toks, pos: 0, no_brace: false };
+    let mut p = Parser { toks, pos: 0, no_brace: false, depth: 0 };
     p.parse_program()
 }
 
 /// Parses a standalone expression (used by `#{...}` interpolations).
-fn parse_expr_source(source: &str, line: usize, col: usize) -> Result<Expr, ParseError> {
+///
+/// `depth` is the enclosing parser's, not zero: an interpolation holds a string
+/// which can hold another interpolation, and each level was starting a fresh
+/// parser with a fresh budget. The nesting was on the call stack all the same,
+/// and `"#{"#{"..."}"}"` went on aborting after the other shapes were fixed.
+fn parse_expr_source(
+    source: &str,
+    line: usize,
+    col: usize,
+    depth: usize,
+) -> Result<Expr, ParseError> {
     let toks = tokenize(source).map_err(|e| ParseError {
         message: format!("in interpolation: {}", e.message),
         line,
         col,
     })?;
-    let mut p = Parser { toks, pos: 0, no_brace: false };
+    let mut p = Parser { toks, pos: 0, no_brace: false, depth };
+    p.deeper()?;
     let expr = p.expr()?;
     p.skip_newlines();
     if !matches!(p.peek(), Tok::Eof) {
@@ -48,7 +59,20 @@ struct Parser {
     /// Set while parsing an `if` condition: a trailing `{` opens the body, so
     /// it must not be taken as a method block.
     no_brace: bool,
+    /// How deep the recursive descent currently is.
+    ///
+    /// Without this, nesting in the source becomes nesting on the call stack,
+    /// and around two thousand brackets abort the process — `((((...1...))))`
+    /// or `!!!!...true`. A stack overflow is not catchable: the whole run dies
+    /// with SIGABRT rather than the exit code 3 a bad script is supposed to
+    /// produce, and `pdfl lint` is exactly what someone would run *first* on a
+    /// script they do not trust.
+    depth: usize,
 }
+
+/// Deeper than any script a person writes, far below where the stack runs out.
+/// Expressions in the examples here nest three or four levels.
+const MAX_DEPTH: usize = 128;
 
 impl Parser {
     fn peek(&self) -> &Tok {
@@ -140,6 +164,13 @@ impl Parser {
     }
 
     fn stmt(&mut self) -> Result<Stmt, ParseError> {
+        self.deeper()?;
+        let out = self.stmt_inner();
+        self.depth -= 1;
+        out
+    }
+
+    fn stmt_inner(&mut self) -> Result<Stmt, ParseError> {
         match self.peek().clone() {
             Tok::Profile => {
                 self.advance();
@@ -288,7 +319,27 @@ impl Parser {
     // ---- expressions (increasing precedence) ----
 
     fn expr(&mut self) -> Result<Expr, ParseError> {
-        self.or_expr()
+        self.deeper()?;
+        let out = self.or_expr();
+        self.depth -= 1;
+        out
+    }
+
+    /// Counts one level in, refusing to go past `MAX_DEPTH`.
+    ///
+    /// Called from `expr`, `stmt` and `unary`. The first two catch every cycle
+    /// that goes back to the top of the grammar — a parenthesised expression, a
+    /// block, a method body. `unary` is counted on its own because a run of
+    /// prefix operators recurses within itself and reaches neither: guarding
+    /// only the first two left `!!!!...true` still aborting.
+    fn deeper(&mut self) -> Result<(), ParseError> {
+        if self.depth >= MAX_DEPTH {
+            return Err(self.error(format!(
+                "nested too deeply (limit: {MAX_DEPTH}); this is usually an unclosed bracket"
+            )));
+        }
+        self.depth += 1;
+        Ok(())
     }
 
     fn binary_level(
@@ -342,6 +393,16 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Result<Expr, ParseError> {
+        // Counted separately: a run of prefix operators — `!!!!x` — recurses
+        // here without ever passing back through `expr`, so the guard there
+        // does not see it.
+        self.deeper()?;
+        let out = self.unary_inner();
+        self.depth -= 1;
+        out
+    }
+
+    fn unary_inner(&mut self) -> Result<Expr, ParseError> {
         match self.peek() {
             Tok::Bang => {
                 self.advance();
@@ -521,7 +582,9 @@ impl Parser {
                 for seg in segs {
                     match seg {
                         StrSeg::Lit(l) => parts.push(StrPart::Lit(l)),
-                        StrSeg::Interp(src) => parts.push(StrPart::Interp(parse_expr_source(&src, line, col)?)),
+                        StrSeg::Interp(src) => {
+                            parts.push(StrPart::Interp(parse_expr_source(&src, line, col, self.depth)?))
+                        }
                     }
                 }
                 Ok(Expr::Str(parts))
@@ -703,6 +766,51 @@ check "Fontes" tags: ["fonts", "basico"] {
         let Stmt::Assert { message, source, .. } = &body[0] else { panic!("expected an assert") };
         assert!(message.is_none());
         assert_eq!(source, "doc.page_count > 0");
+    }
+
+    /// Nesting in the source must not become nesting on the call stack.
+    ///
+    /// Each of these aborted the process with SIGABRT — not a catchable error,
+    /// so `pdfl lint`, the thing you would run first on a script you do not
+    /// trust, died instead of reporting. Around two thousand levels was enough.
+    #[test]
+    fn deep_nesting_is_refused_rather_than_overflowing_the_stack() {
+        let deep = 5_000;
+        let cases = [
+            format!("check \"x\" {{ require {}1{} == 1 }}", "(".repeat(deep), ")".repeat(deep)),
+            format!("check \"x\" {{ require {}true }}", "!".repeat(deep)),
+            format!("check \"x\" {{ require {}1 < 0 }}", "-".repeat(deep)),
+            format!("check \"x\" {{ require {}{}.length() >= 0 }}", "[".repeat(deep), "]".repeat(deep)),
+            format!("check \"x\" {{{} require true {}}}", " if true {".repeat(deep), "}".repeat(deep)),
+            // An interpolation holds a string, which holds an interpolation:
+            // each level used to start a parser with a fresh budget.
+            format!("check \"x\" {{ print(\"{}a{}\") }}", "#{\"".repeat(500), "\"}".repeat(500)),
+        ];
+        for (i, src) in cases.iter().enumerate() {
+            let err = parse(src).expect_err(&format!("case {i} should not parse"));
+            assert!(
+                err.message.contains("nested too deeply"),
+                "case {i} failed for another reason: {}",
+                err.message
+            );
+        }
+    }
+
+    /// The limit has to leave ordinary scripts alone.
+    #[test]
+    fn ordinary_nesting_still_parses() {
+        let src = r#"
+profile "p" {
+  check "c" {
+    doc.pages.each { |page|
+      if page.number > 1 {
+        require ((page.width * 2) + (page.height / 2)) > 0
+      }
+    }
+  }
+}
+"#;
+        assert!(parse(src).is_ok());
     }
 
     #[test]

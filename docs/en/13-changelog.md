@@ -16,9 +16,11 @@ quietly.
 
 - The `pixelcompare` viewer is three panes side by side — the original, the new
   file, and both with the differences painted over them — instead of one pane
-  and a choice of modes. Dragging the third pane still wipes the new file over
-  the old one, and now the two references stay put while you do it, so you can
-  see what the wipe is cutting between.
+  and a choice of modes. Dragging still wipes the new file over the old one, and
+  now the two references stay put while you do it, so you can see what the wipe
+  is cutting between. The bar is in all three panes at the
+  same place and moves in all three at once: in the difference pane it cuts, in
+  the other two it is a ruler down the same column of the page.
 - The panes are sized against the window: the whole comparison is on screen
   without scrolling, at any window shape, and each keeps the page's own
   proportions. Where the two files disagree about a page's size, each is shown

@@ -294,11 +294,12 @@ Três painéis, lado a lado, sempre na mesma página:
 | **New** | a página do segundo arquivo, intacta |
 | **Difference** | os dois, com o que mudou pintado por cima — arraste para o wipe |
 
-Arrastar em qualquer ponto do terceiro painel varre o arquivo novo sobre o
-antigo: à esquerda da alça está o original, à direita está o novo. Os dois
-painéis de referência ficam parados enquanto isso, que é justamente o motivo de
-existirem — dá para ver entre o que o wipe está cortando sem perder nenhum dos
-lados.
+Os três painéis têm a mesma barra, na mesma posição, e arrastar em qualquer um
+move os três. No painel **Difference** a barra corta: à esquerda dela está o
+original, à direita está o novo. Nos outros dois ela é uma régua descendo pela
+mesma coluna da página, então dá para achar em cada original aquilo que o wipe
+está cortando, sem medir no olho. A posição é uma porcentagem da página, não de
+um painel, então ela sobrevive a trocar de página e a redimensionar a janela.
 
 As diferenças são pintadas no lugar, e a cor diz de que tipo:
 

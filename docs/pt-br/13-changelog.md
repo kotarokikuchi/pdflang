@@ -16,9 +16,12 @@ em silêncio.
 
 - O visualizador do `pixelcompare` agora são três painéis lado a lado — o
   original, o arquivo novo, e os dois com as diferenças pintadas por cima — em
-  vez de um painel com escolha de modos. Arrastar o terceiro painel continua
-  varrendo o arquivo novo sobre o antigo, e agora as duas referências ficam
-  paradas enquanto isso, então dá para ver entre o que o wipe está cortando.
+  vez de um painel com escolha de modos. Arrastar continua varrendo o arquivo
+  novo sobre o antigo, e agora as duas referências ficam
+  paradas enquanto isso, então dá para ver entre o que o wipe está cortando. A
+  barra fica nos três painéis, na mesma posição, e se move nos três de uma vez:
+  no painel da diferença ela corta, nos outros dois é uma régua descendo pela
+  mesma coluna da página.
 - Os painéis são dimensionados contra a janela: a comparação inteira cabe na
   tela sem rolagem, em qualquer formato de janela, e cada um mantém a proporção
   da página. Onde os dois arquivos discordam do tamanho de uma página, cada uma

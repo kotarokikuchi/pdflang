@@ -16,9 +16,12 @@ nichts stillschweigend.
 
 - Der `pixelcompare`-Betrachter besteht aus drei Bereichen nebeneinander — dem
   Original, der neuen Datei und beiden mit den eingefärbten Unterschieden —
-  statt aus einem Bereich mit Moduswahl. Ziehen im dritten Bereich wischt
-  weiterhin die neue Datei über die alte, und die beiden Referenzen bleiben
-  dabei stehen: Man sieht, wozwischen der Wischer schneidet.
+  statt aus einem Bereich mit Moduswahl. Ziehen wischt weiterhin die neue Datei
+  über die alte, und die beiden Referenzen bleiben
+  dabei stehen: Man sieht, wozwischen der Wischer schneidet. Die Leiste steht in
+  allen drei Bereichen an derselben Stelle und bewegt sich in allen dreien
+  zugleich: im Differenzbereich schneidet sie, in den beiden anderen ist sie ein
+  Lineal auf derselben Spalte der Seite.
 - Die Bereiche werden am Fenster bemessen: der ganze Vergleich passt ohne
   Scrollen auf den Schirm, bei jedem Fensterformat, und jeder behält die
   Proportionen der Seite. Wo die Dateien sich über die Seitengröße uneinig

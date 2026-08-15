@@ -285,10 +285,13 @@ Drei Bereiche nebeneinander, immer auf derselben Seite:
 | **New** | die Seite der zweiten Datei, unangetastet |
 | **Difference** | beide, mit dem Geänderten darübergelegt — zum Wischen ziehen |
 
-Ziehen an beliebiger Stelle im dritten Bereich schiebt die neue Datei über die
-alte: links vom Griff das Original, rechts die neue Datei. Die beiden
-Referenzbereiche bleiben dabei stehen — genau dafür sind sie da: Man sieht,
-wozwischen der Wischer schneidet, ohne eine der beiden Seiten zu verlieren.
+Alle drei Bereiche tragen dieselbe Leiste an derselben Stelle, und Ziehen in
+einem davon bewegt alle drei. Im Bereich **Difference** schneidet die Leiste:
+links davon das Original, rechts die neue Datei. In den beiden anderen ist sie
+ein Lineal auf derselben Spalte der Seite — so findet man in jedem Original
+wieder, wozwischen der Wischer schneidet, ohne nach Augenmaß zu messen. Die
+Position ist ein Prozentsatz der Seite, nicht eines Bereichs, und übersteht
+daher einen Seitenwechsel und das Ändern der Fenstergröße.
 
 Die Unterschiede werden an Ort und Stelle eingefärbt, und die Farbe sagt, welcher
 Art sie sind:

@@ -314,8 +314,9 @@ build all leave the text identical.
 — no CDN, no bundler, no server. Three panes side by side on the same page: the
 original, the new file, and both together with the differences painted in place
 — **red** ink that is gone, **green** ink that is new, **blue** the same weight
-in another colour. Dragging the third pane wipes the new file over the old one
-while the two references stay put. The panes are sized against the window, so
+in another colour. All three carry the same bar and it moves in all three at
+once: in the difference pane it wipes the new file over the old one, in the
+other two it is a ruler down the same column of the page. The panes are sized against the window, so
 the comparison fits the screen without scrolling, and it opens on the pages that
 differ: a document where three pages moved out of two hundred does not have to
 be paged through.

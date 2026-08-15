@@ -16,9 +16,12 @@ adapter. Rien ne change ici en silence.
 
 - La visionneuse de `pixelcompare` est faite de trois volets côte à côte —
   l'original, le nouveau fichier, et les deux avec les différences peintes
-  dessus — au lieu d'un volet et d'un choix de modes. Glisser dans le troisième
-  volet balaie toujours le nouveau fichier sur l'ancien, et les deux références
-  ne bougent plus pendant ce temps : on voit entre quoi le balayage tranche.
+  dessus — au lieu d'un volet et d'un choix de modes. Glisser balaie toujours le
+  nouveau fichier sur l'ancien, et les deux références
+  ne bougent plus pendant ce temps : on voit entre quoi le balayage tranche. La
+  barre est dans les trois volets au même endroit et bouge dans les trois à la
+  fois : dans le volet des différences elle tranche, dans les deux autres c'est
+  une règle sur la même colonne de la page.
 - Les volets sont dimensionnés d'après la fenêtre : toute la comparaison tient
   à l'écran sans défilement, quel que soit le format de la fenêtre, et chacun
   garde les proportions de la page. Là où les deux fichiers ne s'accordent pas

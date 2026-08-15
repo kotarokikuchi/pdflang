@@ -231,16 +231,24 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
   .layer {{ position: absolute; inset: 0; }}
   /* touch-action: the browser would otherwise claim a horizontal drag as a
      scroll gesture and cancel the pointer halfway. */
-  #wipe {{ touch-action: none; user-select: none; cursor: ew-resize; }}
+  .stage {{ touch-action: none; user-select: none; cursor: ew-resize; }}
   #wipe-after {{ clip-path: inset(0 0 0 var(--split, 50%)); }}
-  #handle {{
+  /* The same bar in all three panes, at the same place. In the difference pane
+     it cuts between the two files; in the other two it is a ruler down the same
+     column of the page, so what the wipe is cutting can be found in either
+     original without measuring by eye. */
+  .handle {{
     position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 3;
   }}
-  #handle::after {{
+  .handle::after {{
     content: ""; position: absolute; top: 50%; left: 50%;
     width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
     background: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.35);
   }}
+  /* Only the pane that actually cuts carries the grab dot; the other two show
+     a thinner line, so which pane does what stays obvious. */
+  .stage:not(#wipe) .handle {{ width: 1px; opacity: .75; }}
+  .stage:not(#wipe) .handle::after {{ width: 12px; height: 12px; margin: -6px 0 0 -6px; }}
   #empty {{ flex: none; padding: 10px 12px; text-align: center; color: var(--muted); }}
 
   /* Too narrow for three across: stack them and let the window scroll, rather
@@ -283,11 +291,11 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
 <main>
   <section class="pane">
     <h2>Original <em>{before}</em></h2>
-    <div class="fit"><div class="stage" id="s-before"><img id="p-before" alt=""></div></div>
+    <div class="fit"><div class="stage" id="s-before"><img id="p-before" alt=""><div class="handle"></div></div></div>
   </section>
   <section class="pane">
     <h2>New <em>{after}</em></h2>
-    <div class="fit"><div class="stage" id="s-after"><img id="p-after" alt=""></div></div>
+    <div class="fit"><div class="stage" id="s-after"><img id="p-after" alt=""><div class="handle"></div></div></div>
   </section>
   <section class="pane">
     <h2>Difference <em>drag to wipe</em></h2>
@@ -296,7 +304,7 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
         <img id="wipe-before" alt="">
         <div class="layer" id="wipe-after"><img id="wipe-after-img" alt=""></div>
         <img id="wipe-diff" alt="">
-        <div id="handle"></div>
+        <div class="handle"></div>
       </div>
     </div>
   </section>
@@ -308,7 +316,6 @@ const BEFORE = {before_js};
 const AFTER = {after_js};
 
 const el = id => document.getElementById(id);
-const wipe = el("wipe");
 // Opens on the pages that differ: on a long document those are the reason
 // anyone opened this at all. Falls back to every page when none differ.
 let filter = PAGES.some(p => p.diff > 0) ? "changed" : "all";
@@ -354,7 +361,7 @@ function render() {{
   el("p-before").alt = `${{BEFORE}}, page ${{p.page}}`;
   el("p-after").alt = `${{AFTER}}, page ${{p.page}}`;
   el("wipe-diff").alt = `differences on page ${{p.page}}`;
-  for (const id of ["s-before", "s-after", "wipe"]) {{
+  for (const id of STAGES) {{
     el(id).style.setProperty("--ar", `${{p.w}} / ${{p.h}}`);
     el(id).style.setProperty("--arn", String(p.w / p.h));
   }}
@@ -371,32 +378,45 @@ function render() {{
   }}
 }}
 
+const STAGES = ["s-before", "s-after", "wipe"];
+
+/// One position, three panes. `split` is a percentage of the page rather than
+/// of any pane, and every pane holds the page at the same proportions, so the
+/// same number lands on the same column of the document in all three.
 function applyWipe() {{
   el("wipe-after").style.clipPath = `inset(0 0 0 ${{split}}%)`;
-  el("handle").style.left = `calc(${{split}}% - 1px)`;
+  for (const bar of document.querySelectorAll(".handle")) {{
+    bar.style.left = `calc(${{split}}% - 1px)`;
+  }}
 }}
 
-// Dragging anywhere on the pane moves the wipe: grabbing a 2px handle with a
-// mouse is a chore, and the whole point is a quick back-and-forth.
-function dragTo(clientX) {{
-  const r = wipe.getBoundingClientRect();
+// Dragging anywhere on any pane moves all three: grabbing a 2px bar with a
+// mouse is a chore, and the point is a quick back-and-forth. Which pane the
+// drag started in does not matter — the bar means the same thing in each.
+function dragTo(stage, clientX) {{
+  const r = stage.getBoundingClientRect();
   split = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
   applyWipe();
 }}
-let dragging = false;
-wipe.addEventListener("pointerdown", e => {{
-  dragging = true;
-  wipe.setPointerCapture(e.pointerId);
-  dragTo(e.clientX);
-}});
-wipe.addEventListener("pointermove", e => {{ if (dragging) dragTo(e.clientX); }});
-for (const end of ["pointerup", "pointercancel"]) {{
-  // pointercancel as well as pointerup: a gesture the browser takes over
-  // never sends an up, and the wipe would stay stuck to the pointer.
-  wipe.addEventListener(end, e => {{
-    dragging = false;
-    if (wipe.hasPointerCapture(e.pointerId)) wipe.releasePointerCapture(e.pointerId);
+let dragging = null;
+for (const id of STAGES) {{
+  const stage = el(id);
+  stage.addEventListener("pointerdown", e => {{
+    dragging = stage;
+    stage.setPointerCapture(e.pointerId);
+    dragTo(stage, e.clientX);
   }});
+  stage.addEventListener("pointermove", e => {{
+    if (dragging === stage) dragTo(stage, e.clientX);
+  }});
+  for (const end of ["pointerup", "pointercancel"]) {{
+    // pointercancel as well as pointerup: a gesture the browser takes over
+    // never sends an up, and the bar would stay stuck to the pointer.
+    stage.addEventListener(end, e => {{
+      dragging = null;
+      if (stage.hasPointerCapture(e.pointerId)) stage.releasePointerCapture(e.pointerId);
+    }});
+  }}
 }}
 
 for (const f of ["all", "changed"]) {{
@@ -515,9 +535,20 @@ mod tests {
     #[test]
     fn three_panes_and_the_wipe_are_the_whole_interface() {
         let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
-        for id in ["p-before", "p-after", "wipe-before", "wipe-after-img", "wipe-diff", "handle"] {
+        for id in ["p-before", "p-after", "wipe-before", "wipe-after-img", "wipe-diff"] {
             assert!(html.contains(&format!(r#"id="{id}""#)), "missing {id}");
         }
+        // One bar per pane, and one `split` driving all of them: a bar that
+        // only one pane carries is the thing this replaced.
+        assert_eq!(
+            html.matches(r#"<div class="handle">"#).count(),
+            3,
+            "each pane carries the wipe bar"
+        );
+        assert!(
+            html.contains(r#"for (const bar of document.querySelectorAll(".handle"))"#),
+            "the bars are not moved together"
+        );
         for gone in ["m-flip", "m-fade", "fade-group", r#"id="fade""#, r#"id="ov""#, r#"id="zoom""#] {
             assert!(!html.contains(gone), "{gone} should have been removed");
         }

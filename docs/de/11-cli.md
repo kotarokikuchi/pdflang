@@ -306,8 +306,8 @@ Beide Positionen sind Prozentsätze der Seite, nicht eines Bereichs, und
 Das Mausrad zoomt, bis 8×, und alle drei Bereiche zoomen gemeinsam um den Punkt
 unter dem Zeiger — was man betrachtet hat, bleibt also, wo es war.
 Herauszoomen endet bei der eingepassten Seite: darunter gibt es nichts
-Nützliches, der Bereich fasst die ganze Seite bereits. Die Leisten behalten bei
-jedem Zoom ihre Stärke. **Reset view** setzt den Zoom auf die ganze Seite und
+Nützliches, der Bereich fasst die ganze Seite bereits. Leisten und Punkt behalten bei jedem Zoom
+ihre Größe, samt Schatten. **Reset view** setzt den Zoom auf die ganze Seite und
 die Leisten auf ihren Ausgangsplatz zurück; solange es nichts zurückzunehmen
 gibt, ist die Schaltfläche deaktiviert.
 

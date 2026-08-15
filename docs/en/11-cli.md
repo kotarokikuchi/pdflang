@@ -316,7 +316,7 @@ changing page and resizing the window.
 The wheel zooms, up to 8×, and all three panes zoom together around the point
 under the pointer — so what you were looking at stays where it was. Zooming out
 stops at the fitted page: there is nothing useful below it, the pane is already
-sized to hold the whole page. The bars keep their weight at any zoom. **Reset
+sized to hold the whole page. The bars and the dot keep their size at any zoom, shadow included. **Reset
 view** puts the zoom back to the whole page and the bars where they started; it
 is disabled while there is nothing to undo.
 

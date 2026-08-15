@@ -29,8 +29,8 @@ adapter. Rien ne change ici en silence.
   tient le pointeur. L'horizontale part du haut, ce qui laisse la verticale en
   balayage pleine hauteur tant qu'on ne la déplace pas.
 - La molette zoome les trois volets ensemble, jusqu'à 8×, autour du point sous
-  le pointeur, et s'arrête à la page ajustée en dézoomant. Les barres gardent
-  leur épaisseur à tout niveau. **Reset view** remet le zoom et les barres à
+  le pointeur, et s'arrête à la page ajustée en dézoomant. Les barres et la pastille gardent leur taille à
+  tout niveau, ombre comprise. **Reset view** remet le zoom et les barres à
   leur état de départ, et reste désactivé tant qu'il n'y a rien à défaire.
 - La pastille de la barre verticale est translucide, comme les barres des deux
   autres volets. Elle se pose sur la partie de la page que l'on regarde, et un

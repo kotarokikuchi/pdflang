@@ -29,8 +29,8 @@ nichts stillschweigend.
   hält. Die liegende Leiste beginnt oben, womit die stehende bis zur ersten
   Bewegung ein gewöhnlicher Wischer über die volle Höhe bleibt.
 - Das Mausrad zoomt alle drei Bereiche gemeinsam, bis 8×, um den Punkt unter dem
-  Zeiger, und endet beim Herauszoomen an der eingepassten Seite. Die Leisten
-  behalten bei jedem Zoom ihre Stärke. **Reset view** setzt Zoom und Leisten auf
+  Zeiger, und endet beim Herauszoomen an der eingepassten Seite. Leisten und Punkt behalten bei jedem Zoom
+  ihre Größe, samt Schatten. **Reset view** setzt Zoom und Leisten auf
   den Ausgangszustand zurück und ist deaktiviert, solange es nichts
   zurückzunehmen gibt.
 - Der Punkt auf der stehenden Leiste ist durchscheinend wie die Leisten in den

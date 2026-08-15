@@ -258,7 +258,11 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
     width: calc(22px / var(--z, 1)); height: calc(22px / var(--z, 1));
     margin: calc(-11px / var(--z, 1)) 0 0 calc(-11px / var(--z, 1));
     border-radius: 50%;
-    background: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    background: var(--accent);
+    /* The shadow is divided by the zoom like everything else on the dot. It is
+       painted inside the scaled element, so left alone a 4px blur becomes a
+       32px smudge at 8x — the disc stayed 22px while the circle plainly grew. */
+    box-shadow: 0 calc(1px / var(--z, 1)) calc(4px / var(--z, 1)) rgba(0,0,0,.35);
     /* Translucent like the bars in the other two panes: the dot sits on the
        part of the page being looked at, and an opaque disc hides exactly what
        it is pointing at. */
@@ -661,6 +665,10 @@ mod tests {
             "width: calc(2px / var(--z, 1))",
             "height: calc(2px / var(--z, 1))",
             "width: calc(22px / var(--z, 1))",
+            // The shadow too: it is painted inside the scaled element, so a
+            // 4px blur becomes a 32px smudge at 8x and the dot reads as a
+            // much bigger circle even though the disc has not moved.
+            "box-shadow: 0 calc(1px / var(--z, 1)) calc(4px / var(--z, 1))",
         ] {
             assert!(html.contains(counter), "the bars scale with the page: {counter}");
         }

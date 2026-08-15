@@ -303,8 +303,8 @@ survivent au changement de page et au redimensionnement de la fenêtre.
 La molette zoome, jusqu'à 8×, et les trois volets zooment ensemble autour du
 point sous le pointeur : ce que vous regardiez reste où il était. Le
 dézoomage s'arrête à la page ajustée — en dessous il n'y a rien d'utile, le
-volet contient déjà la page entière. Les barres gardent leur épaisseur à tout
-niveau de zoom. **Reset view** remet le zoom sur la page entière et les barres
+volet contient déjà la page entière. Les barres et la pastille gardent leur taille à
+tout niveau de zoom, ombre comprise. **Reset view** remet le zoom sur la page entière et les barres
 à leur place de départ ; le bouton reste désactivé tant qu'il n'y a rien à
 défaire.
 

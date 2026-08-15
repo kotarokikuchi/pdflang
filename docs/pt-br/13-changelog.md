@@ -29,8 +29,8 @@ em silêncio.
   começa no topo, o que deixa a em pé como um wipe simples de altura inteira
   até ela ser movida.
 - A roda do mouse dá zoom nos três painéis juntos, até 8×, em torno do ponto sob
-  o ponteiro, e para no ajuste à página ao diminuir. As barras mantêm a
-  espessura em qualquer zoom. O **Reset view** devolve o zoom e as barras ao
+  o ponteiro, e para no ajuste à página ao diminuir. As barras e o círculo mantêm o tamanho em
+  qualquer zoom, sombra inclusive. O **Reset view** devolve o zoom e as barras ao
   ponto de partida, e fica desabilitado enquanto não houver o que desfazer.
 - O círculo da barra em pé agora é translúcido, como as barras dos outros dois
   painéis. Ele fica sobre a parte da página que está sendo olhada, e um disco

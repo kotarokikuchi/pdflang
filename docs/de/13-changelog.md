@@ -10,6 +10,29 @@ nichts stillschweigend.
 
 ---
 
+## Noch nicht veröffentlicht
+
+### Geändert
+
+- Der `pixelcompare`-Betrachter besteht aus drei Bereichen nebeneinander — dem
+  Original, der neuen Datei und beiden mit den eingefärbten Unterschieden —
+  statt aus einem Bereich mit Moduswahl. Ziehen im dritten Bereich wischt
+  weiterhin die neue Datei über die alte, und die beiden Referenzen bleiben
+  dabei stehen: Man sieht, wozwischen der Wischer schneidet.
+- Die Bereiche werden am Fenster bemessen: der ganze Vergleich passt ohne
+  Scrollen auf den Schirm, bei jedem Fensterformat, und jeder behält die
+  Proportionen der Seite. Wo die Dateien sich über die Seitengröße uneinig
+  sind, wird jede ganz im gemeinsamen Rahmen gezeigt statt verzerrt.
+- Er öffnet auf den Seiten, die sich unterscheiden; **All** holt den Rest
+  zurück. In einem langen Dokument sind genau diese Seiten der Grund, ihn zu
+  öffnen.
+- **Flip**, **Fade**, der **Blend**-Regler und der **Differences**-Regler sind
+  entfallen, samt den Tasten `space` und `d`. Drei Bereiche beantworten, wofür
+  diese Modi da waren, und die Bedienelemente passen jetzt in eine schmale
+  Leiste — Platz, den die Seiten bekommen.
+
+---
+
 ## 0.18.0
 
 ### Bricht

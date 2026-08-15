@@ -272,38 +272,42 @@ vérifiée.
 ### La visionneuse
 
 `--viewer diff/` écrit un dossier contenant trois PNG par page et un
-`index.html`. Elle n'a aucune dépendance : ni CDN, ni bundler, ni serveur.
-Ouvrez le fichier, ou zippez le dossier et envoyez-le à qui doit approuver le
-retirage.
+`index.html`. Sans dépendance d'aucune sorte — pas de CDN, pas de bundler, pas
+de serveur. Ouvrez le fichier, ou zippez le dossier et envoyez-le à qui doit
+approuver le retirage.
 
-Trois façons de regarder la même paire :
+Trois volets côte à côte, toujours sur la même page :
 
-- **Wipe** — glissez sur la page pour balayer le nouveau fichier par-dessus
-  l'ancien. Le plus rapide pour voir si quelque chose a bougé.
-- **Flip** — maintenez le pointeur pour permuter sur place. Ce qui a bougé
-  saute aux yeux ; ce qui n'a pas bougé, non.
-- **Fade** — fondu entre les deux, pratique pour juger une couleur ou une
-  graisse.
-
-Par-dessus l'un ou l'autre, les différences sont peintes sur place, et la
-couleur dit de quel genre :
-
-| Couleur | Sens |
+| Volet | Ce qu'il montre |
 |---|---|
-| Rouge | Encre absente du nouveau fichier |
-| Vert | Encre nouvelle dedans |
+| **Original** | la page du premier fichier, telle quelle |
+| **New** | la page du second fichier, telle quelle |
+| **Difference** | les deux, avec ce qui a changé peint dessus — glissez pour balayer |
+
+Glisser n'importe où dans le troisième volet fait passer le nouveau fichier
+sur l'ancien : à gauche de la poignée l'original, à droite le nouveau. Les deux
+volets de référence, eux, ne bougent pas — c'est tout leur intérêt : on voit
+entre quoi le balayage tranche sans perdre l'un ou l'autre.
+
+Les différences sont peintes sur place, et la couleur dit laquelle :
+
+| Couleur | Signification |
+|---|---|
+| Rouge | Encre disparue du nouveau fichier |
+| Vert | Encre nouvelle dans celui-ci |
 | Bleu | Même graisse, autre couleur |
 
-Le curseur près de **Differences** estompe ce calque, pour vérifier la page
-dessous sans quitter la visionneuse. `←` et `→` changent de page, `space`
-permute, `d` bascule le calque.
+Les trois volets sont dimensionnés d'après la fenêtre : toute la comparaison
+tient à l'écran sans défilement, et ils gardent les proportions de la page quel
+que soit le format de la fenêtre. Là où les deux fichiers ne s'accordent pas
+sur la taille d'une page — l'une passée en paysage —, chacune est montrée
+entière dans le cadre commun plutôt qu'étirée pour le remplir.
 
-**Pages** filtre la bande du bas : **All**, ou **Changed only**. Sur un document
-de deux cents pages dont trois ont bougé, parcourir les cent quatre-vingt-dix-
-sept autres est la partie lente du travail. Les flèches suivent le filtre —
-elles enjambent ce que la bande masque — et passer à *Changed only* depuis une
-page inchangée amène à la plus proche qui a changé. Quand rien ne diffère, le
-bouton le dit et reste désactivé, au lieu de réduire la bande à rien.
+**Elle s'ouvre sur les pages qui diffèrent.** Sur un document de deux cents
+pages dont trois ont bougé, ces trois-là sont la raison de l'ouvrir ; **All**
+remet les autres. Les flèches et `←` `→` suivent le filtre et enjambent ce que
+la bande masque. Quand rien ne diffère, le bouton le dit et reste désactivé au
+lieu de réduire la bande à rien.
 
 ### Progression
 

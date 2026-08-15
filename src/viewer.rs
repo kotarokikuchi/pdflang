@@ -127,35 +127,86 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
     }}
   }}
   * {{ box-sizing: border-box; }}
+  html, body {{ height: 100%; }}
+  /* The three panes are sized against the window, so the page itself never
+     scrolls: what is on screen is the whole of it. */
   body {{
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+    margin: 0; background: var(--bg); color: var(--ink); overflow: hidden;
+    font: 13px/1.45 system-ui, -apple-system, Segoe UI, sans-serif;
+    display: flex; flex-direction: column;
   }}
-  header {{
-    padding: 14px 20px; border-bottom: 1px solid var(--line);
-    background: var(--panel); position: sticky; top: 0; z-index: 5;
-  }}
-  h1 {{ font-size: 15px; margin: 0 0 4px; font-weight: 600; }}
-  .files {{ color: var(--muted); font-size: 13px; }}
-  .files b {{ color: var(--ink); font-weight: 600; }}
+
+  /* One bar, one line where the window allows it: every pixel it takes is a
+     pixel the pages do not get. */
   .bar {{
-    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
-    padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
-    position: sticky; top: 58px; z-index: 4;
+    flex: none; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 6px 12px; background: var(--panel); border-bottom: 1px solid var(--line);
   }}
-  .group {{ display: flex; gap: 6px; align-items: center; }}
-  .group > label {{ color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }}
+  .files {{ font-size: 12.5px; color: var(--muted); white-space: nowrap; }}
+  .files b {{ color: var(--ink); font-weight: 600; }}
+  .sep {{ width: 1px; align-self: stretch; background: var(--line); }}
+  .group {{ display: flex; gap: 5px; align-items: center; }}
+  .group > label {{
+    color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  }}
   button {{
-    font: inherit; padding: 5px 11px; border-radius: 6px; cursor: pointer;
+    font: inherit; padding: 3px 9px; border-radius: 6px; cursor: pointer;
     border: 1px solid var(--line); background: transparent; color: var(--ink);
   }}
   button[aria-pressed="true"] {{ background: var(--accent); border-color: var(--accent); color: #fff; }}
-  select, input[type=range] {{ font: inherit; accent-color: var(--accent); }}
-  select {{ padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }}
-  main {{ padding: 20px; display: flex; justify-content: center; }}
+  button[disabled] {{ opacity: .45; cursor: not-allowed; }}
+  #showing {{ font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }}
+  .key {{ display: flex; gap: 10px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }}
+  .key span {{ display: inline-flex; gap: 4px; align-items: center; }}
+  .dot {{ width: 9px; height: 9px; border-radius: 2px; display: inline-block; }}
+
+  /* One scrolling row, never a block that grows down the window. */
+  .strip {{
+    flex: none; display: flex; gap: 5px; padding: 5px 12px; overflow-x: auto;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }}
+  .chip {{
+    flex: none; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line);
+    background: transparent; cursor: pointer; font-size: 12px; white-space: nowrap;
+  }}
+  .chip[aria-current="true"] {{ border-color: var(--accent); color: var(--accent); font-weight: 600; }}
+  .chip.identical {{ color: var(--muted); }}
+  .chip[hidden] {{ display: none; }}
+  .chip .pct {{ font-variant-numeric: tabular-nums; opacity: .75; margin-left: 5px; font-size: 11px; }}
+
+  /* min-height: 0 on both, or a grid child refuses to shrink below its content
+     and the panes push the window into scrolling. */
+  main {{
+    flex: 1 1 auto; min-height: 0; display: grid; gap: 8px; padding: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }}
+  .pane {{ display: flex; flex-direction: column; min-height: 0; min-width: 0; }}
+  .pane h2 {{
+    flex: none; margin: 0 0 5px; font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em;
+    display: flex; gap: 6px; align-items: baseline;
+  }}
+  .pane h2 em {{
+    font-style: normal; font-weight: 400; text-transform: none; letter-spacing: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }}
+  /* container-type: size makes cqw/cqh below resolve against this box. */
+  .fit {{ flex: 1 1 auto; min-height: 0; display: flex; container-type: size; }}
+  /* Fitting a page into a box in both directions, without distorting it.
+     `width: 100%` with `max-height` does not do this: when the height clamps,
+     the width stays and the page is stretched — a wide, short window turned
+     A4 into a letterbox. Taking the smaller of "as wide as the box" and "as
+     wide as this box's height allows" keeps the page's own proportions, which
+     is also what makes a wipe at 50% land at 50% of the page rather than of
+     some empty area beside it. The plain `width: 100%` first is the fallback
+     for a browser without container query units. */
   .stage {{
-    position: relative; background: var(--panel); border: 1px solid var(--line);
-    border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    margin: auto; position: relative; aspect-ratio: var(--ar, 1);
+    width: 100%;
+    width: min(100cqw, calc(100cqh * var(--arn, 1)));
+    max-width: 100%; max-height: 100%;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden;
     /* Chequerboard, so a transparent page is visibly transparent. */
     background-image:
       linear-gradient(45deg, rgba(128,128,128,.09) 25%, transparent 25%),
@@ -165,111 +216,91 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
     background-size: 16px 16px;
     background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   }}
-  /* An <img> is draggable by default: without this the browser starts its own
-     ghost-image drag on the first move and the wipe freezes where it began.
-     Events belong to the stage, never to the pictures on it. */
+  /* object-fit: when the two files disagree about a page's size — a page
+     turned landscape, a different paper — the box is the union of both, and
+     without this each image is stretched to fill it. Contained, each keeps its
+     own proportions inside the shared box, which is also what keeps the two
+     halves of the wipe measuring the same thing. */
   .stage img {{
-    display: block; max-width: 100%; height: auto;
+    position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+    object-fit: contain;
+    /* An <img> is draggable by default: without this the browser starts its own
+       ghost-image drag on the first move and the wipe freezes where it began. */
     pointer-events: none; user-select: none; -webkit-user-drag: none;
   }}
+  .layer {{ position: absolute; inset: 0; }}
   /* touch-action: the browser would otherwise claim a horizontal drag as a
      scroll gesture and cancel the pointer halfway. */
-  .stage {{ touch-action: none; user-select: none; }}
-  .layer {{ position: absolute; inset: 0; }}
-  .layer img {{ width: 100%; height: 100%; }}
-  /* The wipe: the top layer is clipped to the left of the handle. */
-  #after-layer {{ clip-path: inset(0 0 0 var(--split)); }}
-  #overlay-layer {{ pointer-events: none; opacity: 0; transition: opacity .12s; }}
+  #wipe {{ touch-action: none; user-select: none; cursor: ew-resize; }}
+  #wipe-after {{ clip-path: inset(0 0 0 var(--split, 50%)); }}
   #handle {{
-    position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent);
-    cursor: ew-resize; z-index: 3;
+    position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 3;
   }}
   #handle::after {{
     content: ""; position: absolute; top: 50%; left: 50%;
-    width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+    width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
     background: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.35);
   }}
-  .pages {{ display: flex; gap: 6px; flex-wrap: wrap; padding: 0 20px 20px; justify-content: center; }}
-  .chip {{
-    padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line);
-    background: var(--panel); cursor: pointer; font-size: 13px;
-  }}
-  .chip[aria-current="true"] {{ border-color: var(--accent); color: var(--accent); font-weight: 600; }}
-  .chip.identical {{ color: var(--muted); }}
-  .chip[hidden] {{ display: none; }}
-  .chip .pct {{ font-variant-numeric: tabular-nums; opacity: .75; margin-left: 5px; font-size: 12px; }}
-  button[disabled] {{ opacity: .45; cursor: not-allowed; }}
-  #empty {{ padding: 0 20px 20px; text-align: center; color: var(--muted); }}
-  footer {{ padding: 0 20px 28px; color: var(--muted); font-size: 12.5px; text-align: center; }}
-  .key {{ display: inline-flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }}
-  .key span {{ display: inline-flex; gap: 5px; align-items: center; }}
-  .dot {{ width: 10px; height: 10px; border-radius: 2px; display: inline-block; }}
-  kbd {{
-    font: 11px/1 ui-monospace, monospace; padding: 2px 5px; border: 1px solid var(--line);
-    border-bottom-width: 2px; border-radius: 4px; background: var(--panel);
+  #empty {{ flex: none; padding: 10px 12px; text-align: center; color: var(--muted); }}
+
+  /* Too narrow for three across: stack them and let the window scroll, rather
+     than shrinking each page to a stamp. */
+  @media (max-width: 760px) {{
+    body {{ overflow: auto; }}
+    main {{ grid-template-columns: 1fr; }}
+    .fit {{ min-height: 60vh; }}
   }}
 </style>
 </head>
 <body>
-<header>
-  <h1>Pixel comparison</h1>
-  <div class="files"><b>{before}</b> → <b>{after}</b> · {changed} of {total} page(s) differ · worst {worst:.2}%</div>
-</header>
 
 <div class="bar">
-  <div class="group">
-    <label>Mode</label>
-    <button id="m-wipe" aria-pressed="true">Wipe</button>
-    <button id="m-flip" aria-pressed="false">Flip</button>
-    <button id="m-fade" aria-pressed="false">Fade</button>
-  </div>
-  <div class="group" id="fade-group" hidden>
-    <label for="fade">Blend</label>
-    <input id="fade" type="range" min="0" max="100" value="50">
-  </div>
-  <div class="group">
-    <label for="ov">Differences</label>
-    <input id="ov" type="range" min="0" max="100" value="100" title="Overlay opacity">
-  </div>
-  <div class="group">
-    <label for="zoom">Zoom</label>
-    <select id="zoom">
-      <option value="fit" selected>Fit</option>
-      <option value="1">100%</option>
-      <option value="1.5">150%</option>
-      <option value="2">200%</option>
-    </select>
-  </div>
+  <div class="files"><b>{before}</b> → <b>{after}</b></div>
+  <div class="sep"></div>
+  <div class="files">{changed} of {total} page(s) differ · worst {worst:.2}%</div>
+  <div class="sep"></div>
   <div class="group">
     <label>Pages</label>
-    <button id="f-all" aria-pressed="true">All</button>
-    <button id="f-changed" aria-pressed="false">Changed only</button>
+    <button id="f-changed" aria-pressed="true">Changed only</button>
+    <button id="f-all" aria-pressed="false">All</button>
   </div>
-  <div class="group" id="showing"></div>
+  <div class="group">
+    <button id="prev" title="Previous page (left arrow)">←</button>
+    <button id="next" title="Next page (right arrow)">→</button>
+    <span id="showing"></span>
+  </div>
+  <div class="sep"></div>
+  <div class="key">
+    <span><i class="dot" style="background:var(--removed)"></i> gone</span>
+    <span><i class="dot" style="background:var(--added)"></i> new</span>
+    <span><i class="dot" style="background:var(--recoloured)"></i> recoloured</span>
+  </div>
 </div>
 
-<main>
-  <div class="stage" id="stage">
-    <img id="base" alt="">
-    <div class="layer" id="after-layer"><img id="after" alt=""></div>
-    <div class="layer" id="overlay-layer"><img id="overlay" alt=""></div>
-    <div id="handle"></div>
-  </div>
-</main>
-
-<div class="pages" id="pages"></div>
+<div class="strip" id="pages"></div>
 <div id="empty" hidden>Every page compared is identical.</div>
 
-<footer>
-  <div>
-    <kbd>←</kbd> <kbd>→</kbd> page · <kbd>space</kbd> flip · <kbd>d</kbd> differences
-  </div>
-  <div class="key">
-    <span><i class="dot" style="background:var(--removed)"></i> gone from the new file</span>
-    <span><i class="dot" style="background:var(--added)"></i> new in it</span>
-    <span><i class="dot" style="background:var(--recoloured)"></i> same weight, other colour</span>
-  </div>
-</footer>
+<main>
+  <section class="pane">
+    <h2>Original <em>{before}</em></h2>
+    <div class="fit"><div class="stage" id="s-before"><img id="p-before" alt=""></div></div>
+  </section>
+  <section class="pane">
+    <h2>New <em>{after}</em></h2>
+    <div class="fit"><div class="stage" id="s-after"><img id="p-after" alt=""></div></div>
+  </section>
+  <section class="pane">
+    <h2>Difference <em>drag to wipe</em></h2>
+    <div class="fit">
+      <div class="stage" id="wipe">
+        <img id="wipe-before" alt="">
+        <div class="layer" id="wipe-after"><img id="wipe-after-img" alt=""></div>
+        <img id="wipe-diff" alt="">
+        <div id="handle"></div>
+      </div>
+    </div>
+  </section>
+</main>
 
 <script>
 const PAGES = {pages_json};
@@ -277,14 +308,15 @@ const BEFORE = {before_js};
 const AFTER = {after_js};
 
 const el = id => document.getElementById(id);
-const stage = el("stage"), handle = el("handle");
-let index = 0, mode = "wipe", split = 50, flipShowsAfter = false, filter = "all";
+const wipe = el("wipe");
+// Opens on the pages that differ: on a long document those are the reason
+// anyone opened this at all. Falls back to every page when none differ.
+let filter = PAGES.some(p => p.diff > 0) ? "changed" : "all";
+let index = 0, split = 50;
 
 function pad(n) {{ return String(n).padStart(3, "0"); }}
 
-/// The indices the filter admits. On a long document most pages are usually
-/// untouched, and paging through them to reach the two that changed is the
-/// slow part of the job.
+/// The indices the filter admits.
 function shown() {{
   return PAGES.map((p, i) => i).filter(i => filter === "all" || PAGES[i].diff > 0);
 }}
@@ -304,97 +336,68 @@ function applyFilter() {{
   if (visible.length > 0 && !visible.includes(index)) {{
     index = visible.reduce((best, i) =>
       Math.abs(i - index) < Math.abs(best - index) ? i : best, visible[0]);
-    render();
   }}
+  render();
 }}
 
 function render() {{
   const p = PAGES[index];
   if (!p) return;
-  el("base").src = `page-${{pad(p.page)}}-before.png`;
-  el("after").src = `page-${{pad(p.page)}}-after.png`;
-  el("overlay").src = `page-${{pad(p.page)}}-diff.png`;
-  el("base").alt = `${{BEFORE}}, page ${{p.page}}`;
-  el("after").alt = `${{AFTER}}, page ${{p.page}}`;
-  el("overlay").alt = `differences on page ${{p.page}}`;
-  stage.style.aspectRatio = `${{p.w}} / ${{p.h}}`;
-  applyZoom();
-  applyMode();
+  const before = `page-${{pad(p.page)}}-before.png`;
+  const after = `page-${{pad(p.page)}}-after.png`;
+  const diff = `page-${{pad(p.page)}}-diff.png`;
+  el("p-before").src = before;
+  el("p-after").src = after;
+  el("wipe-before").src = before;
+  el("wipe-after-img").src = after;
+  el("wipe-diff").src = diff;
+  el("p-before").alt = `${{BEFORE}}, page ${{p.page}}`;
+  el("p-after").alt = `${{AFTER}}, page ${{p.page}}`;
+  el("wipe-diff").alt = `differences on page ${{p.page}}`;
+  for (const id of ["s-before", "s-after", "wipe"]) {{
+    el(id).style.setProperty("--ar", `${{p.w}} / ${{p.h}}`);
+    el(id).style.setProperty("--arn", String(p.w / p.h));
+  }}
+  applyWipe();
+
+  const visible = shown();
+  const at = visible.indexOf(index);
+  el("prev").disabled = at <= 0;
+  el("next").disabled = at < 0 || at >= visible.length - 1;
   el("showing").textContent =
-    p.diff === 0 ? "identical" : `${{p.diff.toFixed(2)}}% of pixels differ`;
+    `page ${{p.page}} · ` + (p.diff === 0 ? "identical" : `${{p.diff.toFixed(2)}}% of pixels differ`);
   for (const chip of document.querySelectorAll(".chip")) {{
     chip.setAttribute("aria-current", String(Number(chip.dataset.i) === index));
   }}
 }}
 
-function applyMode() {{
-  const wipe = mode === "wipe";
-  handle.hidden = !wipe;
-  el("fade-group").hidden = mode !== "fade";
-  const layer = el("after-layer");
-  if (wipe) {{
-    layer.style.clipPath = `inset(0 0 0 ${{split}}%)`;
-    layer.style.opacity = 1;
-    handle.style.left = `calc(${{split}}% - 1px)`;
-  }} else if (mode === "flip") {{
-    layer.style.clipPath = "none";
-    layer.style.opacity = flipShowsAfter ? 1 : 0;
-  }} else {{
-    layer.style.clipPath = "none";
-    layer.style.opacity = el("fade").value / 100;
-  }}
-  for (const b of ["wipe", "flip", "fade"]) {{
-    el("m-" + b).setAttribute("aria-pressed", String(mode === b));
-  }}
+function applyWipe() {{
+  el("wipe-after").style.clipPath = `inset(0 0 0 ${{split}}%)`;
+  el("handle").style.left = `calc(${{split}}% - 1px)`;
 }}
 
-function applyZoom() {{
-  const z = el("zoom").value;
-  const p = PAGES[index];
-  stage.style.width = z === "fit" ? "min(100%, 900px)" : `${{p.w * Number(z)}}px`;
-}}
-
-// Dragging anywhere on the stage moves the wipe: grabbing a 2px handle with a
+// Dragging anywhere on the pane moves the wipe: grabbing a 2px handle with a
 // mouse is a chore, and the whole point is a quick back-and-forth.
 function dragTo(clientX) {{
-  const r = stage.getBoundingClientRect();
+  const r = wipe.getBoundingClientRect();
   split = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
-  applyMode();
+  applyWipe();
 }}
 let dragging = false;
-stage.addEventListener("pointerdown", e => {{
-  if (mode !== "wipe") return;
+wipe.addEventListener("pointerdown", e => {{
   dragging = true;
-  stage.setPointerCapture(e.pointerId);
+  wipe.setPointerCapture(e.pointerId);
   dragTo(e.clientX);
 }});
-stage.addEventListener("pointermove", e => {{ if (dragging) dragTo(e.clientX); }});
+wipe.addEventListener("pointermove", e => {{ if (dragging) dragTo(e.clientX); }});
 for (const end of ["pointerup", "pointercancel"]) {{
   // pointercancel as well as pointerup: a gesture the browser takes over
   // never sends an up, and the wipe would stay stuck to the pointer.
-  stage.addEventListener(end, e => {{
+  wipe.addEventListener(end, e => {{
     dragging = false;
-    if (stage.hasPointerCapture(e.pointerId)) stage.releasePointerCapture(e.pointerId);
+    if (wipe.hasPointerCapture(e.pointerId)) wipe.releasePointerCapture(e.pointerId);
   }});
 }}
-
-// In flip mode, holding the pointer down shows the other file — the fastest
-// way to spot what moved.
-stage.addEventListener("pointerdown", () => {{
-  if (mode === "flip") {{ flipShowsAfter = true; applyMode(); }}
-}});
-stage.addEventListener("pointerup", () => {{
-  if (mode === "flip") {{ flipShowsAfter = false; applyMode(); }}
-}});
-
-for (const b of ["wipe", "flip", "fade"]) {{
-  el("m-" + b).addEventListener("click", () => {{ mode = b; applyMode(); }});
-}}
-el("fade").addEventListener("input", applyMode);
-el("ov").addEventListener("input", () => {{
-  el("overlay-layer").style.opacity = el("ov").value / 100;
-}});
-el("zoom").addEventListener("change", applyZoom);
 
 for (const f of ["all", "changed"]) {{
   el("f-" + f).addEventListener("click", () => {{ filter = f; applyFilter(); }});
@@ -411,20 +414,12 @@ function step(delta) {{
     render();
   }}
 }}
+el("prev").addEventListener("click", () => step(-1));
+el("next").addEventListener("click", () => step(1));
 
 document.addEventListener("keydown", e => {{
   if (e.key === "ArrowRight") {{ step(1); }}
   else if (e.key === "ArrowLeft") {{ step(-1); }}
-  else if (e.key === " ") {{
-    e.preventDefault();
-    if (mode !== "flip") {{ mode = "flip"; }}
-    flipShowsAfter = !flipShowsAfter;
-    applyMode();
-  }} else if (e.key.toLowerCase() === "d") {{
-    const o = el("ov");
-    o.value = o.value > 0 ? 0 : 100;
-    o.dispatchEvent(new Event("input"));
-  }}
 }});
 
 const list = el("pages");
@@ -444,9 +439,8 @@ if (!PAGES.some(p => p.diff > 0)) {{
   el("f-changed").title = "No page differs";
 }}
 
-el("overlay-layer").style.opacity = 1;
+index = shown()[0] ?? 0;
 applyFilter();
-render();
 </script>
 </body>
 </html>
@@ -513,6 +507,38 @@ mod tests {
         // Still the same string once parsed: `<` is just `<`.
         let back: String = serde_json::from_str(&quoted).unwrap();
         assert_eq!(back, "</script><!--x");
+    }
+
+    /// Three panes, and the wipe as the only thing to operate. The controls
+    /// that were removed are asserted absent by id: bringing one back without
+    /// deciding to is the failure this catches.
+    #[test]
+    fn three_panes_and_the_wipe_are_the_whole_interface() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
+        for id in ["p-before", "p-after", "wipe-before", "wipe-after-img", "wipe-diff", "handle"] {
+            assert!(html.contains(&format!(r#"id="{id}""#)), "missing {id}");
+        }
+        for gone in ["m-flip", "m-fade", "fade-group", r#"id="fade""#, r#"id="ov""#, r#"id="zoom""#] {
+            assert!(!html.contains(gone), "{gone} should have been removed");
+        }
+        // The three stages are sized from the page's own proportions, which is
+        // what keeps a wipe at 50% at 50% of the page.
+        assert!(html.contains("--arn"), "the panes lost their aspect sizing");
+    }
+
+    /// On a long document the changed pages are the reason anyone opened this.
+    #[test]
+    fn it_opens_on_the_pages_that_differ() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 0.0), diff(2, 3.0)]);
+        assert!(
+            html.contains(r#"PAGES.some(p => p.diff > 0) ? "changed" : "all""#),
+            "the initial filter is not derived from what changed"
+        );
+        assert!(html.contains("index = shown()[0]"), "it does not start on the first shown page");
+        // The button matches the state it starts in, rather than saying "All"
+        // while the strip shows something else.
+        assert!(html.contains(r#"<button id="f-changed" aria-pressed="true">"#));
+        assert!(html.contains(r#"<button id="f-all" aria-pressed="false">"#));
     }
 
     #[test]

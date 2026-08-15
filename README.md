@@ -311,12 +311,14 @@ build all leave the text identical.
   `--max-diff`, 2 at least one page past it
 
 `--viewer diff/` writes a folder with three PNGs per page and one `index.html`
-— no CDN, no bundler, no server. Wipe across the page, hold to flip between the
-files, or fade between them, with the differences painted in place: **red** ink
-that is gone, **green** ink that is new, **blue** the same weight in another
-colour. The page strip filters to **Changed only** and the arrow keys follow the
-filter, so a document where three pages moved out of two hundred does not have
-to be paged through.
+— no CDN, no bundler, no server. Three panes side by side on the same page: the
+original, the new file, and both together with the differences painted in place
+— **red** ink that is gone, **green** ink that is new, **blue** the same weight
+in another colour. Dragging the third pane wipes the new file over the old one
+while the two references stay put. The panes are sized against the window, so
+the comparison fits the screen without scrolling, and it opens on the pages that
+differ: a document where three pages moved out of two hundred does not have to
+be paged through.
 
 ## Command `pdfl watch`
 

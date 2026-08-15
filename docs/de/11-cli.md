@@ -273,38 +273,44 @@ Mit `--no-align` abschalten, wenn gerade die Position das Geprüfte *ist*.
 ### Der Betrachter
 
 `--viewer diff/` schreibt einen Ordner mit drei PNGs je Seite und einer
-`index.html`. Er hat keinerlei Abhängigkeiten — kein CDN, kein Bundler, kein
-Server. Datei öffnen, oder den Ordner zippen und dem schicken, der den
-Nachdruck freigeben muss.
+`index.html`. Ohne jede Abhängigkeit — kein CDN, kein Bundler, kein Server.
+Datei öffnen, oder den Ordner packen und an die Person schicken, die den
+Nachdruck freigibt.
 
-Drei Arten, dasselbe Paar anzusehen:
+Drei Bereiche nebeneinander, immer auf derselben Seite:
 
-- **Wipe** — über die Seite ziehen und die neue Datei über die alte wischen.
-  Der schnellste Weg zu sehen, ob sich etwas verschoben hat.
-- **Flip** — Zeiger gedrückt halten, um an Ort und Stelle umzuschalten. Was
-  sich bewegt hat, springt; was liegen blieb, nicht.
-- **Fade** — beide überblenden, gut für Farb- oder Gewichtsänderungen.
+| Bereich | Was er zeigt |
+|---|---|
+| **Original** | die Seite der ersten Datei, unangetastet |
+| **New** | die Seite der zweiten Datei, unangetastet |
+| **Difference** | beide, mit dem Geänderten darübergelegt — zum Wischen ziehen |
 
-Über allen dreien werden die Unterschiede an Ort und Stelle eingefärbt, und die
-Farbe sagt, welcher Art sie sind:
+Ziehen an beliebiger Stelle im dritten Bereich schiebt die neue Datei über die
+alte: links vom Griff das Original, rechts die neue Datei. Die beiden
+Referenzbereiche bleiben dabei stehen — genau dafür sind sie da: Man sieht,
+wozwischen der Wischer schneidet, ohne eine der beiden Seiten zu verlieren.
+
+Die Unterschiede werden an Ort und Stelle eingefärbt, und die Farbe sagt, welcher
+Art sie sind:
 
 | Farbe | Bedeutung |
 |---|---|
 | Rot | Farbe, die in der neuen Datei fehlt |
 | Grün | Farbe, die dort neu ist |
-| Blau | Gleiches Gewicht, andere Farbe |
+| Blau | Gleiche Stärke, andere Farbe |
 
-Der Regler neben **Differences** blendet diese Ebene aus, um die Seite darunter
-zu prüfen, ohne den Betrachter zu verlassen. `←` und `→` wechseln die Seite,
-`space` schaltet um, `d` blendet die Ebene ein und aus.
+Die drei Bereiche werden am Fenster bemessen, der ganze Vergleich passt also
+ohne Scrollen auf den Schirm, und sie behalten bei jedem Fensterformat die
+Proportionen der Seite. Wo die beiden Dateien sich über die Größe einer Seite
+uneinig sind — eine wurde quer gestellt —, wird jede ganz im gemeinsamen Rahmen
+gezeigt statt zum Füllen verzerrt.
 
-**Pages** filtert die Leiste unten: **All** oder **Changed only**. Bei einem
-Dokument mit zweihundert Seiten, von denen drei sich geändert haben, ist das
-Durchblättern der übrigen hundertsiebenundneunzig die langsame Arbeit. Die Pfeile
-folgen dem Filter — sie überspringen, was die Leiste verbirgt — und wer während
-einer unveränderten Seite auf *Changed only* schaltet, landet auf der nächsten
-geänderten. Ändert sich nichts, sagt der Knopf das und bleibt deaktiviert, statt
-die Leiste auf nichts zu filtern.
+**Er öffnet auf den Seiten, die sich unterscheiden.** Bei zweihundert Seiten,
+von denen drei sich geändert haben, sind genau diese drei der Grund, warum man
+ihn geöffnet hat; **All** holt den Rest zurück. Die Pfeile und `←` `→` folgen
+dem Filter und überspringen, was die Leiste ausblendet. Unterscheidet sich
+nichts, sagt der Filterknopf das und bleibt deaktiviert, statt die Leiste auf
+nichts zusammenzustreichen.
 
 ### Fortschritt
 

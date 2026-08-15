@@ -10,6 +10,28 @@ quietly.
 
 ---
 
+## Unreleased
+
+### Changed
+
+- The `pixelcompare` viewer is three panes side by side — the original, the new
+  file, and both with the differences painted over them — instead of one pane
+  and a choice of modes. Dragging the third pane still wipes the new file over
+  the old one, and now the two references stay put while you do it, so you can
+  see what the wipe is cutting between.
+- The panes are sized against the window: the whole comparison is on screen
+  without scrolling, at any window shape, and each keeps the page's own
+  proportions. Where the two files disagree about a page's size, each is shown
+  whole inside the shared box rather than stretched to fill it.
+- It opens on the pages that differ, with **All** to put the rest back. On a
+  long document those pages are the reason it was opened.
+- **Flip**, **Fade**, the **Blend** slider and the **Differences** slider are
+  gone, along with the `space` and `d` keys that drove them. Three panes answer
+  what those modes were for, and the controls now fit one thin bar, which is
+  space the pages get instead.
+
+---
+
 ## 0.18.0
 
 ### Breaks

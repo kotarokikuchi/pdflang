@@ -283,37 +283,42 @@ conferindo.
 ### O visualizador
 
 O `--viewer diff/` grava uma pasta com três PNGs por página e um `index.html`.
-Ele não tem dependência nenhuma — nada de CDN, bundler ou servidor. Abra o
-arquivo, ou zipe a pasta e mande para quem tem que aprovar a reimpressão.
+Sem dependência de nenhum tipo — sem CDN, sem bundler, sem servidor. Abra o
+arquivo, ou compacte a pasta e mande para quem precisa aprovar a reimpressão.
 
-Três jeitos de olhar o mesmo par:
+Três painéis, lado a lado, sempre na mesma página:
 
-- **Wipe** — arraste sobre a página para varrer o arquivo novo por cima do
-  velho. O jeito mais rápido de ver se alguma coisa saiu do lugar.
-- **Flip** — segure o ponteiro para trocar entre os dois no mesmo lugar. O que
-  se moveu salta aos olhos; o que ficou parado, não.
-- **Fade** — mistura os dois, bom para julgar mudança de cor ou de peso.
+| Painel | O que mostra |
+|---|---|
+| **Original** | a página do primeiro arquivo, intacta |
+| **New** | a página do segundo arquivo, intacta |
+| **Difference** | os dois, com o que mudou pintado por cima — arraste para o wipe |
 
-Por cima de qualquer um deles as diferenças são pintadas no lugar, e a cor diz
-de que tipo elas são:
+Arrastar em qualquer ponto do terceiro painel varre o arquivo novo sobre o
+antigo: à esquerda da alça está o original, à direita está o novo. Os dois
+painéis de referência ficam parados enquanto isso, que é justamente o motivo de
+existirem — dá para ver entre o que o wipe está cortando sem perder nenhum dos
+lados.
+
+As diferenças são pintadas no lugar, e a cor diz de que tipo:
 
 | Cor | Significado |
 |---|---|
 | Vermelho | Tinta que sumiu no arquivo novo |
 | Verde | Tinta que é nova nele |
-| Azul | Mesmo peso, outra cor |
+| Azul | Mesmo peso, cor diferente |
 
-O controle ao lado de **Differences** apaga essa camada aos poucos, para
-conferir a página por baixo sem sair do visualizador. `←` e `→` mudam de
-página, `space` alterna, `d` liga e desliga a camada.
+Os três painéis são dimensionados contra a janela, então a comparação inteira
+cabe na tela sem rolagem, e eles mantêm a proporção da página em qualquer
+formato de janela. Onde os dois arquivos discordam do tamanho de uma página —
+uma virou paisagem, digamos — cada uma é mostrada inteira dentro da caixa
+comum, em vez de esticada para preenchê-la.
 
-**Pages** filtra a faixa lá embaixo: **All**, ou **Changed only**. Num documento
-de duzentas páginas em que três se mexeram, passar pelas outras cento e noventa
-e sete é a parte lenta do trabalho. As setas seguem o filtro — pulam o que a
-faixa está escondendo em vez de parar nele — e trocar para *Changed only*
-olhando uma página que não mudou leva para a mais próxima que mudou. Quando nada
-difere, o botão avisa e fica desabilitado, em vez de filtrar a faixa até não
-sobrar nada.
+**Ele abre nas páginas que diferem.** Num documento de duzentas páginas em que
+três mudaram, essas três são o motivo de você ter aberto; o **All** traz as
+outras de volta. As setas e `←` `→` seguem o filtro, pulando o que a faixa está
+escondendo em vez de pousar em cima. Quando nada difere, o botão do filtro diz
+isso e fica desabilitado, em vez de reduzir a faixa a nada.
 
 ### Progresso
 

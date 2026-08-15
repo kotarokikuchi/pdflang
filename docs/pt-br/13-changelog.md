@@ -10,6 +10,28 @@ em silêncio.
 
 ---
 
+## Ainda não publicado
+
+### Mudou
+
+- O visualizador do `pixelcompare` agora são três painéis lado a lado — o
+  original, o arquivo novo, e os dois com as diferenças pintadas por cima — em
+  vez de um painel com escolha de modos. Arrastar o terceiro painel continua
+  varrendo o arquivo novo sobre o antigo, e agora as duas referências ficam
+  paradas enquanto isso, então dá para ver entre o que o wipe está cortando.
+- Os painéis são dimensionados contra a janela: a comparação inteira cabe na
+  tela sem rolagem, em qualquer formato de janela, e cada um mantém a proporção
+  da página. Onde os dois arquivos discordam do tamanho de uma página, cada uma
+  é mostrada inteira dentro da caixa comum, em vez de esticada para preenchê-la.
+- Ele abre nas páginas que diferem, com **All** para trazer as outras de volta.
+  Num documento longo, são essas páginas o motivo de ele ter sido aberto.
+- **Flip**, **Fade**, o slider **Blend** e o slider **Differences** foram
+  removidos, junto com as teclas `space` e `d` que os controlavam. Três painéis
+  respondem ao que aqueles modos serviam, e os controles agora cabem numa faixa
+  fina — espaço que passa a ser das páginas.
+
+---
+
 ## 0.18.0
 
 ### Quebra

@@ -10,6 +10,29 @@ adapter. Rien ne change ici en silence.
 
 ---
 
+## Non publié
+
+### Changé
+
+- La visionneuse de `pixelcompare` est faite de trois volets côte à côte —
+  l'original, le nouveau fichier, et les deux avec les différences peintes
+  dessus — au lieu d'un volet et d'un choix de modes. Glisser dans le troisième
+  volet balaie toujours le nouveau fichier sur l'ancien, et les deux références
+  ne bougent plus pendant ce temps : on voit entre quoi le balayage tranche.
+- Les volets sont dimensionnés d'après la fenêtre : toute la comparaison tient
+  à l'écran sans défilement, quel que soit le format de la fenêtre, et chacun
+  garde les proportions de la page. Là où les deux fichiers ne s'accordent pas
+  sur la taille d'une page, chacune est montrée entière dans le cadre commun
+  plutôt qu'étirée.
+- Elle s'ouvre sur les pages qui diffèrent, **All** remettant les autres. Sur un
+  document long, ce sont ces pages-là qui ont motivé son ouverture.
+- **Flip**, **Fade**, le curseur **Blend** et le curseur **Differences** ont
+  disparu, ainsi que les touches `space` et `d`. Trois volets répondent à ce que
+  ces modes servaient, et les commandes tiennent maintenant dans une barre fine
+  — de la place rendue aux pages.
+
+---
+
 ## 0.18.0
 
 ### Casse

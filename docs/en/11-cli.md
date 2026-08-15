@@ -288,16 +288,20 @@ Turn it off with `--no-align` when the position *is* the thing being checked.
 server. Open the file, or zip the folder and send it to whoever has to approve
 the reprint.
 
-Three ways to look at the same pair:
+Three panes, side by side, always on the same page:
 
-- **Wipe** — drag across the page to sweep the new file over the old one. The
-  fastest way to check whether something moved.
-- **Flip** — hold the pointer down to swap between them in place. What moved
-  jumps; what stayed still does not.
-- **Fade** — blend the two, for judging a colour or weight change.
+| Pane | What it shows |
+|---|---|
+| **Original** | the first file's page, untouched |
+| **New** | the second file's page, untouched |
+| **Difference** | both, with what changed painted over them — drag to wipe |
 
-Over any of them, the differences are painted in place, and the colour says
-which kind:
+Dragging anywhere in the third pane sweeps the new file over the old one: to
+the left of the handle is the original, to the right is the new file. The two
+reference panes stay put while you do it, which is the point of having them —
+you can see what the wipe is cutting between without losing either side.
+
+The differences are painted in place, and the colour says which kind:
 
 | Colour | Meaning |
 |---|---|
@@ -305,17 +309,18 @@ which kind:
 | Green | Ink that is new in it |
 | Blue | Same weight, different colour |
 
-The slider next to **Differences** fades that overlay out, so you can check the
-page underneath without leaving the viewer. `←` and `→` change page, `space`
-flips, `d` toggles the overlay.
+The three panes are sized against the window, so the whole comparison is on
+screen without scrolling, and they keep the page's proportions at any window
+shape. Where the two files disagree about a page's size — one turned
+landscape, say — each is shown whole inside the shared box rather than
+stretched to fill it.
 
-**Pages** filters the strip at the bottom: **All**, or **Changed only**. On a
-two-hundred-page document where three pages moved, paging through the other
-hundred and ninety-seven is the slow part of the job. The arrows follow the
-filter — they step over what the strip is hiding rather than landing on it —
-and switching to *Changed only* while looking at an unchanged page moves to the
-nearest one that did change. When nothing differs the button says so and stays
-disabled, instead of filtering the strip down to nothing.
+**It opens on the pages that differ.** On a two-hundred-page document where
+three pages moved, those three are the reason you opened it; **All** puts the
+rest back. The arrows and `←` `→` follow the filter, stepping over what the
+strip is hiding rather than landing on it. When nothing differs, the filter
+button says so and stays disabled instead of filtering the strip down to
+nothing.
 
 ### Progress
 

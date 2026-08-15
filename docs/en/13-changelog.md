@@ -20,7 +20,13 @@ quietly.
   now the two references stay put while you do it, so you can see what the wipe
   is cutting between. The bar is in all three panes at the
   same place and moves in all three at once: in the difference pane it cuts, in
-  the other two it is a ruler down the same column of the page.
+  the other two it is a ruler down the same column of the page. A second, flat
+  bar follows the pointer and moves in all three as well: in the difference pane
+  the new file shows to the right of the upright bar and below the flat one, so
+  where they cross is the corner of what is revealed — and the dot rides the
+  upright bar at that height, marking the spot the pointer is holding. The flat
+  bar starts at the top, which leaves the upright one a plain full-height wipe
+  until it is moved.
 - The panes are sized against the window: the whole comparison is on screen
   without scrolling, at any window shape, and each keeps the page's own
   proportions. Where the two files disagree about a page's size, each is shown

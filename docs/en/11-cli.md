@@ -296,12 +296,22 @@ Three panes, side by side, always on the same page:
 | **New** | the second file's page, untouched |
 | **Difference** | both, with what changed painted over them — drag to wipe |
 
-All three panes carry the same bar, at the same place, and dragging in any of
-them moves all three. In the **Difference** pane the bar cuts: to its left is
-the original, to its right is the new file. In the other two it is a ruler down
-the same column of the page, so what the wipe is cutting can be found in either
-original without measuring by eye. The position is a percentage of the page, not
-of a pane, so it survives changing page and resizing the window.
+All three panes carry the same pair of bars — one upright, one flat — in the
+same place, and they move in all three at once. The upright bar is dragged; the
+flat one follows the pointer, pressed or not. Where they cross is the corner of
+what is revealed, and the dot rides the upright bar at that height, so it marks
+the spot the pointer is holding.
+
+In the **Difference** pane the bars cut: the new file shows to the right of the
+upright bar and below the flat one, the original everywhere else. Untouched, the
+flat bar sits at the top, which makes the upright one a plain full-height wipe —
+drag the flat bar down when the change you are chasing is in a band rather than
+a column. In the other two panes the bars are rulers on the same column and the
+same line of the page, so what the wipe is cutting can be found in either
+original without measuring by eye.
+
+Both positions are percentages of the page, not of a pane, so they survive
+changing page and resizing the window.
 
 The differences are painted in place, and the colour says which kind:
 

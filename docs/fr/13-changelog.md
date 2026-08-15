@@ -21,7 +21,13 @@ adapter. Rien ne change ici en silence.
   ne bougent plus pendant ce temps : on voit entre quoi le balayage tranche. La
   barre est dans les trois volets au même endroit et bouge dans les trois à la
   fois : dans le volet des différences elle tranche, dans les deux autres c'est
-  une règle sur la même colonne de la page.
+  une règle sur la même colonne de la page. Une seconde barre, horizontale, suit
+  le pointeur et bouge elle aussi dans les trois : dans le volet des
+  différences, le nouveau fichier apparaît à droite de la verticale et sous
+  l'horizontale, leur croisement est donc le coin de ce qui est révélé — et la
+  pastille se place sur la verticale à cette hauteur, marquant l'endroit que
+  tient le pointeur. L'horizontale part du haut, ce qui laisse la verticale en
+  balayage pleine hauteur tant qu'on ne la déplace pas.
 - Les volets sont dimensionnés d'après la fenêtre : toute la comparaison tient
   à l'écran sans défilement, quel que soit le format de la fenêtre, et chacun
   garde les proportions de la page. Là où les deux fichiers ne s'accordent pas

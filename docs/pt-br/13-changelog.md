@@ -21,7 +21,13 @@ em silêncio.
   paradas enquanto isso, então dá para ver entre o que o wipe está cortando. A
   barra fica nos três painéis, na mesma posição, e se move nos três de uma vez:
   no painel da diferença ela corta, nos outros dois é uma régua descendo pela
-  mesma coluna da página.
+  mesma coluna da página. Uma segunda barra, deitada, acompanha o ponteiro e
+  também se move nos três: no painel da diferença o arquivo novo aparece à
+  direita da barra em pé e abaixo da deitada, então onde elas se cruzam é o
+  canto do que está sendo revelado — e o círculo fica na barra em pé nessa
+  altura, marcando o ponto onde o ponteiro está segurando. A barra deitada
+  começa no topo, o que deixa a em pé como um wipe simples de altura inteira
+  até ela ser movida.
 - Os painéis são dimensionados contra a janela: a comparação inteira cabe na
   tela sem rolagem, em qualquer formato de janela, e cada um mantém a proporção
   da página. Onde os dois arquivos discordam do tamanho de uma página, cada uma

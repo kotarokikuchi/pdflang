@@ -294,12 +294,22 @@ Três painéis, lado a lado, sempre na mesma página:
 | **New** | a página do segundo arquivo, intacta |
 | **Difference** | os dois, com o que mudou pintado por cima — arraste para o wipe |
 
-Os três painéis têm a mesma barra, na mesma posição, e arrastar em qualquer um
-move os três. No painel **Difference** a barra corta: à esquerda dela está o
-original, à direita está o novo. Nos outros dois ela é uma régua descendo pela
-mesma coluna da página, então dá para achar em cada original aquilo que o wipe
-está cortando, sem medir no olho. A posição é uma porcentagem da página, não de
-um painel, então ela sobrevive a trocar de página e a redimensionar a janela.
+Os três painéis têm o mesmo par de barras — uma em pé, uma deitada — na mesma
+posição, e elas se movem nos três de uma vez. A barra em pé é arrastada; a
+deitada acompanha o ponteiro, pressionado ou não. Onde elas se cruzam é o canto
+do que está sendo revelado, e o círculo fica na barra em pé nessa altura, ou
+seja, marca o ponto onde o ponteiro está segurando.
+
+No painel **Difference** as barras cortam: o arquivo novo aparece à direita da
+barra em pé e abaixo da deitada, e o original em todo o resto. Intacta, a barra
+deitada fica no topo, o que faz da barra em pé um wipe simples de altura
+inteira — desça a deitada quando a mudança que você persegue estiver numa faixa
+em vez de numa coluna. Nos outros dois painéis as barras são réguas sobre a
+mesma coluna e a mesma linha da página, então dá para achar em cada original
+aquilo que o wipe está cortando, sem medir no olho.
+
+As duas posições são porcentagens da página, não de um painel, então sobrevivem
+a trocar de página e a redimensionar a janela.
 
 As diferenças são pintadas no lugar, e a cor diz de que tipo:
 

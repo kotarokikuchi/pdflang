@@ -284,13 +284,21 @@ Trois volets côte à côte, toujours sur la même page :
 | **New** | la page du second fichier, telle quelle |
 | **Difference** | les deux, avec ce qui a changé peint dessus — glissez pour balayer |
 
-Les trois volets portent la même barre, au même endroit, et glisser dans l'un
-d'eux les déplace tous les trois. Dans le volet **Difference**, la barre
-tranche : à sa gauche l'original, à sa droite le nouveau fichier. Dans les deux
-autres, c'est une règle sur la même colonne de la page : on retrouve dans chaque
-original ce que le balayage tranche, sans mesurer à l'œil. La position est un
-pourcentage de la page et non d'un volet, elle survit donc au changement de page
-et au redimensionnement de la fenêtre.
+Les trois volets portent la même paire de barres — une verticale, une
+horizontale — au même endroit, et elles bougent dans les trois à la fois. La
+verticale se glisse ; l'horizontale suit le pointeur, pressé ou non. Leur
+croisement est le coin de ce qui est révélé, et la pastille se place sur la
+verticale à cette hauteur : elle marque donc l'endroit que tient le pointeur.
+
+Dans le volet **Difference**, les barres tranchent : le nouveau fichier apparaît
+à droite de la verticale et sous l'horizontale, l'original partout ailleurs.
+Intacte, l'horizontale reste en haut, ce qui fait de la verticale un balayage
+pleine hauteur ordinaire — descendez-la quand le changement cherché tient dans
+une bande plutôt que dans une colonne. Dans les deux autres volets, ce sont des
+règles sur la même colonne et la même ligne de la page.
+
+Les deux positions sont des pourcentages de la page et non d'un volet : elles
+survivent au changement de page et au redimensionnement de la fenêtre.
 
 Les différences sont peintes sur place, et la couleur dit laquelle :
 

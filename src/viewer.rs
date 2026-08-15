@@ -232,22 +232,27 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
   /* touch-action: the browser would otherwise claim a horizontal drag as a
      scroll gesture and cancel the pointer halfway. */
   .stage {{ touch-action: none; user-select: none; cursor: ew-resize; }}
-  #wipe-after {{ clip-path: inset(0 0 0 var(--split, 50%)); }}
-  /* The same bar in all three panes, at the same place. In the difference pane
-     it cuts between the two files; in the other two it is a ruler down the same
-     column of the page, so what the wipe is cutting can be found in either
-     original without measuring by eye. */
-  .handle {{
-    position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 3;
-  }}
+  /* Both cuts at once: the new file shows to the right of the upright bar and
+     below the flat one, so where they cross is the corner of the reveal. */
+  #wipe-after {{ clip-path: inset(var(--splity, 0%) 0 0 var(--splitx, 50%)); }}
+  /* The same pair of bars in all three panes, in the same place. In the
+     difference pane they cut between the two files; in the other two they are
+     rulers on the same column and the same line of the page, so what the wipe
+     is cutting can be found in either original without measuring by eye. */
+  .handle, .hbar {{ position: absolute; background: var(--accent); z-index: 3; }}
+  .handle {{ top: 0; bottom: 0; width: 2px; }}
+  .hbar {{ left: 0; right: 0; height: 2px; }}
+  /* The dot rides the upright bar at the height of the pointer, which puts it
+     exactly where the two bars cross. */
   .handle::after {{
-    content: ""; position: absolute; top: 50%; left: 50%;
+    content: ""; position: absolute; top: var(--doty, 50%); left: 50%;
     width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
     background: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.35);
   }}
-  /* Only the pane that actually cuts carries the grab dot; the other two show
-     a thinner line, so which pane does what stays obvious. */
+  /* Only the pane that actually cuts carries the grab dot at full size; the
+     other two show thinner lines, so which pane does what stays obvious. */
   .stage:not(#wipe) .handle {{ width: 1px; opacity: .75; }}
+  .stage:not(#wipe) .hbar {{ height: 1px; opacity: .75; }}
   .stage:not(#wipe) .handle::after {{ width: 12px; height: 12px; margin: -6px 0 0 -6px; }}
   #empty {{ flex: none; padding: 10px 12px; text-align: center; color: var(--muted); }}
 
@@ -291,11 +296,11 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
 <main>
   <section class="pane">
     <h2>Original <em>{before}</em></h2>
-    <div class="fit"><div class="stage" id="s-before"><img id="p-before" alt=""><div class="handle"></div></div></div>
+    <div class="fit"><div class="stage" id="s-before"><img id="p-before" alt=""><div class="handle"></div><div class="hbar"></div></div></div>
   </section>
   <section class="pane">
     <h2>New <em>{after}</em></h2>
-    <div class="fit"><div class="stage" id="s-after"><img id="p-after" alt=""><div class="handle"></div></div></div>
+    <div class="fit"><div class="stage" id="s-after"><img id="p-after" alt=""><div class="handle"></div><div class="hbar"></div></div></div>
   </section>
   <section class="pane">
     <h2>Difference <em>drag to wipe</em></h2>
@@ -305,6 +310,7 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
         <div class="layer" id="wipe-after"><img id="wipe-after-img" alt=""></div>
         <img id="wipe-diff" alt="">
         <div class="handle"></div>
+        <div class="hbar"></div>
       </div>
     </div>
   </section>
@@ -319,7 +325,7 @@ const el = id => document.getElementById(id);
 // Opens on the pages that differ: on a long document those are the reason
 // anyone opened this at all. Falls back to every page when none differ.
 let filter = PAGES.some(p => p.diff > 0) ? "changed" : "all";
-let index = 0, split = 50;
+let index = 0, splitX = 50, splitY = 0;
 
 function pad(n) {{ return String(n).padStart(3, "0"); }}
 
@@ -380,22 +386,33 @@ function render() {{
 
 const STAGES = ["s-before", "s-after", "wipe"];
 
-/// One position, three panes. `split` is a percentage of the page rather than
-/// of any pane, and every pane holds the page at the same proportions, so the
-/// same number lands on the same column of the document in all three.
+/// One position, three panes. Both splits are percentages of the page rather
+/// than of any pane, and every pane holds the page at the same proportions, so
+/// one pair of numbers lands on the same spot of the document in all three.
 function applyWipe() {{
-  el("wipe-after").style.clipPath = `inset(0 0 0 ${{split}}%)`;
+  const cut = el("wipe-after").style;
+  cut.setProperty("--splitx", `${{splitX}}%`);
+  cut.setProperty("--splity", `${{splitY}}%`);
   for (const bar of document.querySelectorAll(".handle")) {{
-    bar.style.left = `calc(${{split}}% - 1px)`;
+    bar.style.left = `calc(${{splitX}}% - 1px)`;
+    // The dot sits where the pointer is holding the bar, which is also where
+    // the two cuts meet: the corner of what is being revealed.
+    bar.style.setProperty("--doty", `${{splitY}}%`);
+  }}
+  for (const bar of document.querySelectorAll(".hbar")) {{
+    bar.style.top = `calc(${{splitY}}% - 1px)`;
   }}
 }}
 
-// Dragging anywhere on any pane moves all three: grabbing a 2px bar with a
-// mouse is a chore, and the point is a quick back-and-forth. Which pane the
-// drag started in does not matter — the bar means the same thing in each.
-function dragTo(stage, clientX) {{
+// The upright bar is dragged; the flat one follows the pointer wherever it is,
+// pressed or not. Dragging anywhere on any pane moves all three: grabbing a 2px
+// bar with a mouse is a chore, and the point is a quick back-and-forth.
+function moveTo(stage, clientX, clientY, withX) {{
   const r = stage.getBoundingClientRect();
-  split = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+  if (withX) {{
+    splitX = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+  }}
+  splitY = Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100));
   applyWipe();
 }}
 let dragging = null;
@@ -404,10 +421,13 @@ for (const id of STAGES) {{
   stage.addEventListener("pointerdown", e => {{
     dragging = stage;
     stage.setPointerCapture(e.pointerId);
-    dragTo(stage, e.clientX);
+    moveTo(stage, e.clientX, e.clientY, true);
   }});
   stage.addEventListener("pointermove", e => {{
-    if (dragging === stage) dragTo(stage, e.clientX);
+    // Held: both bars follow. Merely hovering: only the flat one, so passing
+    // over a pane on the way somewhere else does not move the cut sideways.
+    if (dragging === stage) moveTo(stage, e.clientX, e.clientY, true);
+    else if (!dragging) moveTo(stage, e.clientX, e.clientY, false);
   }});
   for (const end of ["pointerup", "pointercancel"]) {{
     // pointercancel as well as pointerup: a gesture the browser takes over
@@ -545,10 +565,23 @@ mod tests {
             3,
             "each pane carries the wipe bar"
         );
+        assert_eq!(
+            html.matches(r#"<div class="hbar">"#).count(),
+            3,
+            "each pane carries the flat bar too"
+        );
         assert!(
-            html.contains(r#"for (const bar of document.querySelectorAll(".handle"))"#),
+            html.contains(r#"for (const bar of document.querySelectorAll(".handle"))"#)
+                && html.contains(r#"for (const bar of document.querySelectorAll(".hbar"))"#),
             "the bars are not moved together"
         );
+        // Both cuts come from the same pair of numbers the bars are drawn from.
+        assert!(
+            html.contains("inset(var(--splity, 0%) 0 0 var(--splitx, 50%))"),
+            "the reveal is not cut by both bars"
+        );
+        // The dot rides the upright bar rather than sitting at its middle.
+        assert!(html.contains("top: var(--doty, 50%)"), "the dot is pinned to the centre");
         for gone in ["m-flip", "m-fade", "fade-group", r#"id="fade""#, r#"id="ov""#, r#"id="zoom""#] {
             assert!(!html.contains(gone), "{gone} should have been removed");
         }

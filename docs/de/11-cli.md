@@ -285,13 +285,23 @@ Drei Bereiche nebeneinander, immer auf derselben Seite:
 | **New** | die Seite der zweiten Datei, unangetastet |
 | **Difference** | beide, mit dem Geänderten darübergelegt — zum Wischen ziehen |
 
-Alle drei Bereiche tragen dieselbe Leiste an derselben Stelle, und Ziehen in
-einem davon bewegt alle drei. Im Bereich **Difference** schneidet die Leiste:
-links davon das Original, rechts die neue Datei. In den beiden anderen ist sie
-ein Lineal auf derselben Spalte der Seite — so findet man in jedem Original
-wieder, wozwischen der Wischer schneidet, ohne nach Augenmaß zu messen. Die
-Position ist ein Prozentsatz der Seite, nicht eines Bereichs, und übersteht
-daher einen Seitenwechsel und das Ändern der Fenstergröße.
+Alle drei Bereiche tragen dasselbe Leistenpaar — eine stehende, eine liegende —
+an derselben Stelle, und beide bewegen sich in allen dreien zugleich. Die
+stehende Leiste wird gezogen, die liegende folgt dem Zeiger, gedrückt oder
+nicht. Ihr Kreuzungspunkt ist die Ecke des Freigelegten, und der Punkt sitzt auf
+der stehenden Leiste in dieser Höhe — er markiert also die Stelle, die der
+Zeiger hält.
+
+Im Bereich **Difference** schneiden die Leisten: die neue Datei erscheint rechts
+der stehenden und unterhalb der liegenden, überall sonst das Original.
+Unberührt liegt die flache Leiste oben, womit die stehende ein gewöhnlicher
+Wischer über die volle Höhe ist — die flache zieht man herunter, wenn die
+gesuchte Änderung in einem Band statt in einer Spalte liegt. In den beiden
+anderen Bereichen sind die Leisten Lineale auf derselben Spalte und derselben
+Zeile der Seite.
+
+Beide Positionen sind Prozentsätze der Seite, nicht eines Bereichs, und
+überstehen daher einen Seitenwechsel und das Ändern der Fenstergröße.
 
 Die Unterschiede werden an Ort und Stelle eingefärbt, und die Farbe sagt, welcher
 Art sie sind:

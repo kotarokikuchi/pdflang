@@ -21,7 +21,13 @@ nichts stillschweigend.
   dabei stehen: Man sieht, wozwischen der Wischer schneidet. Die Leiste steht in
   allen drei Bereichen an derselben Stelle und bewegt sich in allen dreien
   zugleich: im Differenzbereich schneidet sie, in den beiden anderen ist sie ein
-  Lineal auf derselben Spalte der Seite.
+  Lineal auf derselben Spalte der Seite. Eine zweite, liegende Leiste folgt dem
+  Zeiger und bewegt sich ebenfalls in allen dreien: im Differenzbereich
+  erscheint die neue Datei rechts der stehenden und unterhalb der liegenden
+  Leiste, ihr Kreuzungspunkt ist also die Ecke des Freigelegten — und der Punkt
+  sitzt auf der stehenden Leiste in dieser Höhe und markiert, was der Zeiger
+  hält. Die liegende Leiste beginnt oben, womit die stehende bis zur ersten
+  Bewegung ein gewöhnlicher Wischer über die volle Höhe bleibt.
 - Die Bereiche werden am Fenster bemessen: der ganze Vergleich passt ohne
   Scrollen auf den Schirm, bei jedem Fensterformat, und jeder behält die
   Proportionen der Seite. Wo die Dateien sich über die Seitengröße uneinig

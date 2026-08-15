@@ -318,7 +318,9 @@ in another colour. All three carry the same crosshair and it moves in all three
 at once — the upright bar dragged, the flat one following the pointer. In the
 difference pane both cut, so the new file shows right of one and below the
 other and their crossing is the corner of the reveal; in the other two they are
-rulers on the same column and line of the page. The panes are sized against the window, so
+rulers on the same column and line of the page. The wheel zooms all three
+together and the middle button drags the page, with **Reset view** to undo
+both. The panes are sized against the window, so
 the comparison fits the screen without scrolling, and it opens on the pages that
 differ: a document where three pages moved out of two hundred does not have to
 be paged through.

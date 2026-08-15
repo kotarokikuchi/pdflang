@@ -297,8 +297,7 @@ Três painéis, lado a lado, sempre na mesma página:
 Os três painéis têm o mesmo par de barras — uma em pé, uma deitada — na mesma
 posição, e elas se movem nos três de uma vez. A barra em pé é arrastada; a
 deitada acompanha o ponteiro, pressionado ou não. Onde elas se cruzam é o canto
-do que está sendo revelado, e o círculo fica na barra em pé nessa altura, ou
-seja, marca o ponto onde o ponteiro está segurando.
+do que está sendo revelado.
 
 No painel **Difference** as barras cortam: o arquivo novo aparece à direita da
 barra em pé e abaixo da deitada, e o original em todo o resto. Intacta, a barra
@@ -314,9 +313,12 @@ a trocar de página e a redimensionar a janela.
 A roda do mouse dá zoom, até 8×, e os três painéis ampliam juntos em torno do
 ponto sob o ponteiro — então o que você estava olhando continua onde estava.
 Diminuir para no ajuste à página: abaixo disso não há nada de útil, o painel já
-tem o tamanho de segurar a página inteira. As barras e o círculo mantêm o tamanho em
-qualquer zoom, sombra inclusive. O **Reset view** devolve o zoom à página inteira e as barras à
-posição inicial; ele fica desabilitado enquanto não houver o que desfazer.
+tem o tamanho de segurar a página inteira. As barras mantêm a espessura em qualquer
+zoom. Segurar o **botão do meio** e mover arrasta a própria página, nos três
+painéis juntos e na velocidade do ponteiro seja qual for o zoom — que é como se
+alcança um canto depois de ampliar. O **Reset view** devolve o zoom, a
+panorâmica e as barras ao ponto de partida; ele fica desabilitado enquanto não
+houver o que desfazer.
 
 As diferenças são pintadas no lugar, e a cor diz de que tipo:
 

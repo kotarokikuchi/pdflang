@@ -299,8 +299,7 @@ Three panes, side by side, always on the same page:
 All three panes carry the same pair of bars — one upright, one flat — in the
 same place, and they move in all three at once. The upright bar is dragged; the
 flat one follows the pointer, pressed or not. Where they cross is the corner of
-what is revealed, and the dot rides the upright bar at that height, so it marks
-the spot the pointer is holding.
+what is revealed.
 
 In the **Difference** pane the bars cut: the new file shows to the right of the
 upright bar and below the flat one, the original everywhere else. Untouched, the
@@ -316,8 +315,10 @@ changing page and resizing the window.
 The wheel zooms, up to 8×, and all three panes zoom together around the point
 under the pointer — so what you were looking at stays where it was. Zooming out
 stops at the fitted page: there is nothing useful below it, the pane is already
-sized to hold the whole page. The bars and the dot keep their size at any zoom, shadow included. **Reset
-view** puts the zoom back to the whole page and the bars where they started; it
+sized to hold the whole page. The bars keep their weight at any zoom. Holding the **middle button** and
+moving drags the page itself, in all three panes together and at the speed of
+the pointer whatever the zoom — which is how you reach a corner once magnified.
+**Reset view** puts the zoom, the pan and the bars back where they started; it
 is disabled while there is nothing to undo.
 
 The differences are painted in place, and the colour says which kind:

@@ -24,18 +24,14 @@ nichts stillschweigend.
   Lineal auf derselben Spalte der Seite. Eine zweite, liegende Leiste folgt dem
   Zeiger und bewegt sich ebenfalls in allen dreien: im Differenzbereich
   erscheint die neue Datei rechts der stehenden und unterhalb der liegenden
-  Leiste, ihr Kreuzungspunkt ist also die Ecke des Freigelegten — und der Punkt
-  sitzt auf der stehenden Leiste in dieser Höhe und markiert, was der Zeiger
-  hält. Die liegende Leiste beginnt oben, womit die stehende bis zur ersten
+  Leiste, ihr Kreuzungspunkt ist also die Ecke des Freigelegten. Die liegende Leiste beginnt oben, womit die stehende bis zur ersten
   Bewegung ein gewöhnlicher Wischer über die volle Höhe bleibt.
 - Das Mausrad zoomt alle drei Bereiche gemeinsam, bis 8×, um den Punkt unter dem
-  Zeiger, und endet beim Herauszoomen an der eingepassten Seite. Leisten und Punkt behalten bei jedem Zoom
-  ihre Größe, samt Schatten. **Reset view** setzt Zoom und Leisten auf
-  den Ausgangszustand zurück und ist deaktiviert, solange es nichts
+  Zeiger, und endet beim Herauszoomen an der eingepassten Seite. Die Leisten behalten bei jedem Zoom ihre Stärke.
+  Mit gehaltener **mittlerer Maustaste** zieht man die Seite selbst, in allen
+  drei Bereichen zugleich und im Tempo des Zeigers. **Reset view** setzt Zoom, Verschiebung und Leisten
+  auf den Ausgangszustand zurück und ist deaktiviert, solange es nichts
   zurückzunehmen gibt.
-- Der Punkt auf der stehenden Leiste ist durchscheinend wie die Leisten in den
-  beiden anderen Bereichen. Er liegt auf dem Teil der Seite, den man betrachtet,
-  und eine deckende Scheibe verdeckt genau das, worauf sie zeigt.
 - Die Bereiche werden am Fenster bemessen: der ganze Vergleich passt ohne
   Scrollen auf den Schirm, bei jedem Fensterformat, und jeder behält die
   Proportionen der Seite. Wo die Dateien sich über die Seitengröße uneinig

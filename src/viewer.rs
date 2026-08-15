@@ -227,7 +227,10 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
      halves of the wipe measuring the same thing. */
   /* Zoom is paint, not layout: the box keeps the size the fit gave it and is
      drawn larger, so nothing about the fitting maths has to know about it. */
-  .stage {{ transform: scale(var(--z, 1)); transform-origin: var(--ox, 50%) var(--oy, 50%); }}
+  .stage {{
+    transform: translate(var(--panx, 0%), var(--pany, 0%)) scale(var(--z, 1));
+    transform-origin: var(--ox, 50%) var(--oy, 50%);
+  }}
   .stage img {{
     position: absolute; inset: 0; width: 100%; height: 100%; display: block;
     object-fit: contain;
@@ -251,31 +254,11 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
   .handle, .hbar {{ position: absolute; background: var(--accent); z-index: 3; }}
   .handle {{ top: 0; bottom: 0; width: calc(2px / var(--z, 1)); }}
   .hbar {{ left: 0; right: 0; height: calc(2px / var(--z, 1)); }}
-  /* The dot rides the upright bar at the height of the pointer, which puts it
-     exactly where the two bars cross. */
-  .handle::after {{
-    content: ""; position: absolute; top: var(--doty, 50%); left: 50%;
-    width: calc(22px / var(--z, 1)); height: calc(22px / var(--z, 1));
-    margin: calc(-11px / var(--z, 1)) 0 0 calc(-11px / var(--z, 1));
-    border-radius: 50%;
-    background: var(--accent);
-    /* The shadow is divided by the zoom like everything else on the dot. It is
-       painted inside the scaled element, so left alone a 4px blur becomes a
-       32px smudge at 8x — the disc stayed 22px while the circle plainly grew. */
-    box-shadow: 0 calc(1px / var(--z, 1)) calc(4px / var(--z, 1)) rgba(0,0,0,.35);
-    /* Translucent like the bars in the other two panes: the dot sits on the
-       part of the page being looked at, and an opaque disc hides exactly what
-       it is pointing at. */
-    opacity: .75;
-  }}
-  /* Only the pane that actually cuts carries the grab dot at full size; the
-     other two show thinner lines, so which pane does what stays obvious. */
+  /* Thinner lines in the two reference panes, so which pane does the cutting
+     stays obvious at a glance. */
   .stage:not(#wipe) .handle {{ width: calc(1px / var(--z, 1)); opacity: .75; }}
   .stage:not(#wipe) .hbar {{ height: calc(1px / var(--z, 1)); opacity: .75; }}
-  .stage:not(#wipe) .handle::after {{
-    width: calc(12px / var(--z, 1)); height: calc(12px / var(--z, 1));
-    margin: calc(-6px / var(--z, 1)) 0 0 calc(-6px / var(--z, 1));
-  }}
+
   #empty {{ flex: none; padding: 10px 12px; text-align: center; color: var(--muted); }}
 
   /* Too narrow for three across: stack them and let the window scroll, rather
@@ -351,7 +334,7 @@ const el = id => document.getElementById(id);
 // Opens on the pages that differ: on a long document those are the reason
 // anyone opened this at all. Falls back to every page when none differ.
 let filter = PAGES.some(p => p.diff > 0) ? "changed" : "all";
-let index = 0, splitX = 50, splitY = 0, zoom = 1, ox = 50, oy = 50;
+let index = 0, splitX = 50, splitY = 0, zoom = 1, ox = 50, oy = 50, panX = 0, panY = 0;
 
 function pad(n) {{ return String(n).padStart(3, "0"); }}
 
@@ -424,9 +407,12 @@ function applyView() {{
     st.setProperty("--z", String(zoom));
     st.setProperty("--ox", `${{ox}}%`);
     st.setProperty("--oy", `${{oy}}%`);
+    st.setProperty("--panx", `${{panX}}%`);
+    st.setProperty("--pany", `${{panY}}%`);
   }}
   el("zoomlevel").textContent = zoom > 1.001 ? `${{Math.round(zoom * 100)}}%` : "";
-  el("reset").disabled = zoom <= 1.001 && splitX === 50 && splitY === 0;
+  el("reset").disabled =
+    zoom <= 1.001 && splitX === 50 && splitY === 0 && panX === 0 && panY === 0;
 }}
 
 function applyWipe() {{
@@ -435,9 +421,6 @@ function applyWipe() {{
   cut.setProperty("--splity", `${{splitY}}%`);
   for (const bar of document.querySelectorAll(".handle")) {{
     bar.style.left = `calc(${{splitX}}% - 1px)`;
-    // The dot sits where the pointer is holding the bar, which is also where
-    // the two cuts meet: the corner of what is being revealed.
-    bar.style.setProperty("--doty", `${{splitY}}%`);
   }}
   for (const bar of document.querySelectorAll(".hbar")) {{
     bar.style.top = `calc(${{splitY}}% - 1px)`;
@@ -456,25 +439,61 @@ function moveTo(stage, clientX, clientY, withX) {{
   splitY = Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100));
   applyWipe();
 }}
-let dragging = null;
+let dragging = null, panning = null;
+
+/// Moves the page under the pointer by a screen distance, in all three panes.
+///
+/// The translate sits to the left of the scale in the transform, which makes it
+/// the outer one: it moves the already-scaled page by unscaled pixels, and its
+/// percentages resolve against the unscaled box. So a screen distance maps
+/// straight onto it — dividing by the zoom, as the first version did, made the
+/// page crawl at 3x and further behind at 8x. Held as a percentage of the page
+/// rather than pixels for the same reason the bars are: one number then means
+/// the same thing in every pane.
+function panBy(dx, dy) {{
+  const r = el("wipe").getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const w = r.width / zoom, h = r.height / zoom; // the box before scaling
+  panX += (dx / w) * 100;
+  panY += (dy / h) * 100;
+  applyView();
+}}
 for (const id of STAGES) {{
   const stage = el(id);
   stage.addEventListener("pointerdown", e => {{
+    // The middle button pans instead of moving the bars. preventDefault stops
+    // the browser starting its own autoscroll on the same press.
+    if (e.button === 1) {{
+      e.preventDefault();
+      panning = {{ stage, x: e.clientX, y: e.clientY }};
+      stage.setPointerCapture(e.pointerId);
+      return;
+    }}
     dragging = stage;
     stage.setPointerCapture(e.pointerId);
     moveTo(stage, e.clientX, e.clientY, true);
   }});
   stage.addEventListener("pointermove", e => {{
+    if (panning) {{
+      panBy(e.clientX - panning.x, e.clientY - panning.y);
+      panning.x = e.clientX;
+      panning.y = e.clientY;
+      return;
+    }}
     // Held: both bars follow. Merely hovering: only the flat one, so passing
     // over a pane on the way somewhere else does not move the cut sideways.
     if (dragging === stage) moveTo(stage, e.clientX, e.clientY, true);
     else if (!dragging) moveTo(stage, e.clientX, e.clientY, false);
   }});
+  // Chrome opens its autoscroll widget on the middle click itself, not only on
+  // the press, so that has to be refused as well.
+  stage.addEventListener("auxclick", e => {{ if (e.button === 1) e.preventDefault(); }});
   for (const end of ["pointerup", "pointercancel"]) {{
     // pointercancel as well as pointerup: a gesture the browser takes over
     // never sends an up, and the bar would stay stuck to the pointer.
     stage.addEventListener(end, e => {{
       dragging = null;
+      panning = null;
       if (stage.hasPointerCapture(e.pointerId)) stage.releasePointerCapture(e.pointerId);
     }});
   }}
@@ -497,7 +516,7 @@ for (const id of STAGES) {{
 // Back to the whole page with the bars where they started: a zoomed-in corner
 // with a wipe halfway across it is easy to reach and tedious to undo by hand.
 el("reset").addEventListener("click", () => {{
-  zoom = 1; ox = 50; oy = 50; splitX = 50; splitY = 0;
+  zoom = 1; ox = 50; oy = 50; panX = 0; panY = 0; splitX = 50; splitY = 0;
   applyWipe();
 }});
 
@@ -642,8 +661,7 @@ mod tests {
             html.contains("inset(var(--splity, 0%) 0 0 var(--splitx, 50%))"),
             "the reveal is not cut by both bars"
         );
-        // The dot rides the upright bar rather than sitting at its middle.
-        assert!(html.contains("top: var(--doty, 50%)"), "the dot is pinned to the centre");
+
         for gone in ["m-flip", "m-fade", "fade-group", r#"id="fade""#, r#"id="ov""#, r#"id="zoom""#] {
             assert!(!html.contains(gone), "{gone} should have been removed");
         }
@@ -660,15 +678,10 @@ mod tests {
         assert!(html.contains(r#"stage.addEventListener("wheel""#), "the wheel does nothing");
         // Without preventDefault the gesture scrolls the strip behind instead.
         assert!(html.contains("{ passive: false }"), "the wheel keeps its default");
-        assert!(html.contains("transform: scale(var(--z, 1))"), "nothing is scaled");
+        assert!(html.contains("scale(var(--z, 1))"), "nothing is scaled");
         for counter in [
             "width: calc(2px / var(--z, 1))",
             "height: calc(2px / var(--z, 1))",
-            "width: calc(22px / var(--z, 1))",
-            // The shadow too: it is painted inside the scaled element, so a
-            // 4px blur becomes a 32px smudge at 8x and the dot reads as a
-            // much bigger circle even though the disc has not moved.
-            "box-shadow: 0 calc(1px / var(--z, 1)) calc(4px / var(--z, 1))",
         ] {
             assert!(html.contains(counter), "the bars scale with the page: {counter}");
         }
@@ -678,15 +691,33 @@ mod tests {
         assert!(html.contains(r#"id="reset""#), "no way back to the starting view");
     }
 
-    /// The dot sits on the part of the page being looked at.
+    /// The middle button pans, and the browser's own middle-click behaviour
+    /// has to be refused twice: it starts on the press and again on the click.
     #[test]
-    fn the_dot_does_not_hide_what_it_points_at() {
+    fn the_middle_button_pans_and_nothing_else_happens() {
         let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
-        let dot = html
-            .split(".handle::after {")
-            .nth(1)
-            .expect("the dot is styled");
-        assert!(dot.contains("opacity: .75"), "the dot is opaque");
+        assert!(html.contains("e.button === 1"), "the middle button does nothing");
+        assert!(html.contains(r#"stage.addEventListener("auxclick""#), "autoscroll is not refused");
+        assert!(
+            html.contains("transform: translate(var(--panx, 0%), var(--pany, 0%)) scale(var(--z, 1))"),
+            "the pan does not reach the page"
+        );
+        // The translate is the outer transform, so a screen distance maps
+        // straight onto it: dividing by the zoom made the page crawl.
+        assert!(html.contains("const w = r.width / zoom"), "the pan is not in screen distance");
+        assert!(!html.contains("(dx / zoom)"), "the pan divides by the zoom again");
+        // Reset has to undo it too, or a page dragged off-screen is stuck there.
+        assert!(html.contains("panX = 0; panY = 0;"), "reset leaves the pan applied");
+    }
+
+    /// The blue discs are gone: the bars mark the position on their own, and a
+    /// disc sits on the part of the page being looked at.
+    #[test]
+    fn no_disc_covers_the_page() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
+        assert!(!html.contains(".handle::after"), "a dot is still drawn");
+        assert!(!html.contains("--doty"), "the dot's position is still computed");
+        assert!(html.contains(r#"<div class="handle">"#), "the bars went with it");
     }
 
     /// On a long document the changed pages are the reason anyone opened this.

@@ -24,17 +24,13 @@ adapter. Rien ne change ici en silence.
   une règle sur la même colonne de la page. Une seconde barre, horizontale, suit
   le pointeur et bouge elle aussi dans les trois : dans le volet des
   différences, le nouveau fichier apparaît à droite de la verticale et sous
-  l'horizontale, leur croisement est donc le coin de ce qui est révélé — et la
-  pastille se place sur la verticale à cette hauteur, marquant l'endroit que
-  tient le pointeur. L'horizontale part du haut, ce qui laisse la verticale en
+  l'horizontale, leur croisement est donc le coin de ce qui est révélé. L'horizontale part du haut, ce qui laisse la verticale en
   balayage pleine hauteur tant qu'on ne la déplace pas.
 - La molette zoome les trois volets ensemble, jusqu'à 8×, autour du point sous
-  le pointeur, et s'arrête à la page ajustée en dézoomant. Les barres et la pastille gardent leur taille à
-  tout niveau, ombre comprise. **Reset view** remet le zoom et les barres à
-  leur état de départ, et reste désactivé tant qu'il n'y a rien à défaire.
-- La pastille de la barre verticale est translucide, comme les barres des deux
-  autres volets. Elle se pose sur la partie de la page que l'on regarde, et un
-  disque opaque cache précisément ce qu'il désigne.
+  le pointeur, et s'arrête à la page ajustée en dézoomant. Les barres gardent leur épaisseur à tout niveau.
+  Le **bouton du milieu** maintenu fait glisser la page elle-même, dans les
+  trois volets à la fois et à la vitesse du pointeur. **Reset view** remet le zoom, le déplacement et les
+  barres à leur état de départ, et reste désactivé tant qu'il n'y a rien à défaire.
 - Les volets sont dimensionnés d'après la fenêtre : toute la comparaison tient
   à l'écran sans défilement, quel que soit le format de la fenêtre, et chacun
   garde les proportions de la page. Là où les deux fichiers ne s'accordent pas

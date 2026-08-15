@@ -286,9 +286,9 @@ Drei Bereiche nebeneinander, immer auf derselben Seite:
 | **Difference** | beide, mit dem Geänderten darübergelegt — zum Wischen ziehen |
 
 Alle drei Bereiche tragen dasselbe Leistenpaar — eine stehende, eine liegende —
-an derselben Stelle, und beide bewegen sich in allen dreien zugleich. Die
-stehende Leiste wird gezogen, die liegende folgt dem Zeiger, gedrückt oder
-nicht. Ihr Kreuzungspunkt ist die Ecke des Freigelegten.
+an derselben Stelle, und beide bewegen sich in allen dreien zugleich. Beide
+folgen dem Zeiger — nichts zu greifen, nichts zu treffen: der Kreuzungspunkt
+ist schlicht dort, wo die Maus steht. Ihr Kreuzungspunkt ist die Ecke des Freigelegten.
 
 Im Bereich **Difference** schneiden die Leisten: die neue Datei erscheint rechts
 der stehenden und unterhalb der liegenden, überall sonst das Original.
@@ -305,9 +305,10 @@ Das Mausrad zoomt, bis 8×, und alle drei Bereiche zoomen gemeinsam um den Punkt
 unter dem Zeiger — was man betrachtet hat, bleibt also, wo es war.
 Herauszoomen endet bei der eingepassten Seite: darunter gibt es nichts
 Nützliches, der Bereich fasst die ganze Seite bereits. Die Leisten behalten bei jedem Zoom ihre Stärke.
-Mit gehaltener **mittlerer Maustaste** zieht man die Seite selbst, in allen drei
-Bereichen zugleich und im Tempo des Zeigers, gleich bei welchem Zoom — so
-erreicht man eine Ecke, wenn vergrößert ist. **Reset view** setzt Zoom,
+Mit **irgendeiner gehaltenen Maustaste** zieht man die Seite selbst, in allen
+drei Bereichen zugleich und im Tempo des Zeigers, gleich bei welchem Zoom — so
+erreicht man eine Ecke, wenn vergrößert ist. Die Leisten folgen dabei weiter
+dem Zeiger. **Reset view** setzt Zoom,
 Verschiebung und Leisten auf den Ausgangszustand zurück; solange es nichts
 zurückzunehmen gibt, ist die Schaltfläche deaktiviert.
 

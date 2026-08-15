@@ -285,8 +285,9 @@ Trois volets côte à côte, toujours sur la même page :
 | **Difference** | les deux, avec ce qui a changé peint dessus — glissez pour balayer |
 
 Les trois volets portent la même paire de barres — une verticale, une
-horizontale — au même endroit, et elles bougent dans les trois à la fois. La
-verticale se glisse ; l'horizontale suit le pointeur, pressé ou non. Leur
+horizontale — au même endroit, et elles bougent dans les trois à la fois. Les deux suivent le
+pointeur — rien à saisir, rien à viser : le croisement est simplement là où est
+la souris. Leur
 croisement est le coin de ce qui est révélé.
 
 Dans le volet **Difference**, les barres tranchent : le nouveau fichier apparaît
@@ -303,9 +304,10 @@ La molette zoome, jusqu'à 8×, et les trois volets zooment ensemble autour du
 point sous le pointeur : ce que vous regardiez reste où il était. Le
 dézoomage s'arrête à la page ajustée — en dessous il n'y a rien d'utile, le
 volet contient déjà la page entière. Les barres gardent leur épaisseur à tout niveau.
-Le **bouton du milieu** maintenu fait glisser la page elle-même, dans les trois
-volets à la fois et à la vitesse du pointeur quel que soit le zoom — c'est ainsi
-qu'on atteint un coin une fois agrandi. **Reset view** remet le zoom, le
+**N'importe quel bouton** maintenu fait glisser la page elle-même, dans les
+trois volets à la fois et à la vitesse du pointeur quel que soit le zoom —
+c'est ainsi qu'on atteint un coin une fois agrandi. Les barres continuent de
+suivre le pointeur pendant ce temps. **Reset view** remet le zoom, le
 déplacement et les barres à leur place de départ ; le bouton reste désactivé
 tant qu'il n'y a rien à défaire.
 

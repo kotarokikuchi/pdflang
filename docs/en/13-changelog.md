@@ -16,23 +16,23 @@ quietly.
 
 - The `pixelcompare` viewer is three panes side by side — the original, the new
   file, and both with the differences painted over them — instead of one pane
-  and a choice of modes. Dragging still wipes the new file over the old one, and
-  the two references stay put while you do it, so you can see what the wipe is
-  cutting between.
-- Every pane carries the same pair of bars, in the same place, and they move in
-  all three at once. The upright one is dragged; the flat one follows the
-  pointer. In the difference pane they cut — the new file shows right of the
-  upright bar and below the flat one, so where they cross is the corner of what
-  is revealed. In the other two they are rulers on the same column and the same
-  line of the page. The flat bar starts at the top, which leaves the upright one
-  a plain full-height wipe until it is moved.
+  and a choice of modes. The two references stay put while the third wipes, so
+  you can see what the wipe is cutting between.
+- Every pane carries the same pair of bars — one upright, one flat — in the same
+  place, and all six move together. They follow the pointer: nothing to grab,
+  nothing to aim at, the crossing is wherever the mouse is. In the difference
+  pane the bars cut, so the new file shows to the right of the upright one and
+  below the flat one and their crossing is the corner of what is revealed; in
+  the other two they are rulers on the same column and the same line of the
+  page. The flat bar starts at the top, which leaves the upright one a plain
+  full-height wipe until the pointer enters a pane.
 - The wheel zooms all three panes together, up to 8×, around the point under the
-  pointer, and stops at the fitted page on the way out. Holding the **middle
-  button** drags the page itself, in all three at once and at the speed of the
-  pointer whatever the zoom. The bars keep their weight at any zoom. **Reset
-  view** puts the zoom, the pan and the bars back where they started, and is
-  disabled while there is nothing to undo. Moving to another page does the same:
-  a zoom belongs to the page it was set on.
+  pointer, and stops at the fitted page on the way out. Dragging with either
+  mouse button moves the page itself, in all three at once and at the speed of
+  the pointer whatever the zoom. The bars keep their weight at any zoom.
+  **Reset view** puts the zoom, the pan and the bars back where they started and
+  is disabled while there is nothing to undo; moving to another page does the
+  same, since a zoom belongs to the page it was set on.
 - The panes are sized against the window: the whole comparison is on screen
   without scrolling, at any window shape, and each keeps the page's own
   proportions. Where the two files disagree about a page's size, each is shown

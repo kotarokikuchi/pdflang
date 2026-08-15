@@ -295,9 +295,9 @@ Três painéis, lado a lado, sempre na mesma página:
 | **Difference** | os dois, com o que mudou pintado por cima — arraste para o wipe |
 
 Os três painéis têm o mesmo par de barras — uma em pé, uma deitada — na mesma
-posição, e elas se movem nos três de uma vez. A barra em pé é arrastada; a
-deitada acompanha o ponteiro, pressionado ou não. Onde elas se cruzam é o canto
-do que está sendo revelado.
+posição, e elas se movem nos três de uma vez. As duas acompanham o ponteiro —
+não há o que agarrar nem o que mirar, o cruzamento é simplesmente onde o mouse
+está. Onde elas se cruzam é o canto do que está sendo revelado.
 
 No painel **Difference** as barras cortam: o arquivo novo aparece à direita da
 barra em pé e abaixo da deitada, e o original em todo o resto. Intacta, a barra
@@ -314,9 +314,10 @@ A roda do mouse dá zoom, até 8×, e os três painéis ampliam juntos em torno 
 ponto sob o ponteiro — então o que você estava olhando continua onde estava.
 Diminuir para no ajuste à página: abaixo disso não há nada de útil, o painel já
 tem o tamanho de segurar a página inteira. As barras mantêm a espessura em qualquer
-zoom. Segurar o **botão do meio** e mover arrasta a própria página, nos três
+zoom. Segurar **qualquer botão do mouse** e mover arrasta a própria página, nos três
 painéis juntos e na velocidade do ponteiro seja qual for o zoom — que é como se
-alcança um canto depois de ampliar. O **Reset view** devolve o zoom, a
+alcança um canto depois de ampliar. As barras continuam acompanhando o ponteiro
+enquanto isso. O **Reset view** devolve o zoom, a
 panorâmica e as barras ao ponto de partida; ele fica desabilitado enquanto não
 houver o que desfazer.
 

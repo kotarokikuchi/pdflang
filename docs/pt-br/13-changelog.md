@@ -16,23 +16,23 @@ em silêncio.
 
 - O visualizador do `pixelcompare` agora são três painéis lado a lado — o
   original, o arquivo novo, e os dois com as diferenças pintadas por cima — em
-  vez de um painel com escolha de modos. Arrastar continua varrendo o arquivo
-  novo sobre o antigo, e agora as duas referências ficam
-  paradas enquanto isso, então dá para ver entre o que o wipe está cortando. A
-  barra fica nos três painéis, na mesma posição, e se move nos três de uma vez:
-  no painel da diferença ela corta, nos outros dois é uma régua descendo pela
-  mesma coluna da página. Uma segunda barra, deitada, acompanha o ponteiro e
-  também se move nos três: no painel da diferença o arquivo novo aparece à
-  direita da barra em pé e abaixo da deitada, então onde elas se cruzam é o
-  canto do que está sendo revelado. A barra deitada
-  começa no topo, o que deixa a em pé como um wipe simples de altura inteira
-  até ela ser movida.
+  vez de um painel com escolha de modos. As duas referências ficam paradas
+  enquanto o terceiro varre, então dá para ver entre o que o wipe está cortando.
+- Cada painel tem o mesmo par de barras — uma em pé, uma deitada — na mesma
+  posição, e as seis se movem juntas. Elas acompanham o ponteiro: não há o que
+  agarrar nem o que mirar, o cruzamento é onde o mouse está. No painel da
+  diferença as barras cortam, então o arquivo novo aparece à direita da em pé e
+  abaixo da deitada, e o cruzamento é o canto do que está sendo revelado; nos
+  outros dois elas são réguas sobre a mesma coluna e a mesma linha da página. A
+  barra deitada começa no topo, o que deixa a em pé como um wipe simples de
+  altura inteira até o ponteiro entrar num painel.
 - A roda do mouse dá zoom nos três painéis juntos, até 8×, em torno do ponto sob
-  o ponteiro, e para no ajuste à página ao diminuir. As barras mantêm a espessura em qualquer zoom.
-  Segurar o **botão do meio** arrasta a própria página, nos três painéis juntos
-  e na velocidade do ponteiro seja qual for o zoom. Ir para outra página faz o mesmo: um zoom pertence à página em que
-  foi feito. O **Reset view** devolve o zoom, a panorâmica e as barras
-  ao ponto de partida, e fica desabilitado enquanto não houver o que desfazer.
+  o ponteiro, e para no ajuste à página ao diminuir. Arrastar com qualquer botão
+  do mouse move a própria página, nos três de uma vez e na velocidade do
+  ponteiro seja qual for o zoom. As barras mantêm a espessura em qualquer zoom.
+  O **Reset view** devolve o zoom, a panorâmica e as barras ao ponto de partida
+  e fica desabilitado enquanto não houver o que desfazer; ir para outra página
+  faz o mesmo, já que um zoom pertence à página em que foi feito.
 - Os painéis são dimensionados contra a janela: a comparação inteira cabe na
   tela sem rolagem, em qualquer formato de janela, e cada um mantém a proporção
   da página. Onde os dois arquivos discordam do tamanho de uma página, cada uma

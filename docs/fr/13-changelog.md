@@ -16,22 +16,25 @@ adapter. Rien ne change ici en silence.
 
 - La visionneuse de `pixelcompare` est faite de trois volets côte à côte —
   l'original, le nouveau fichier, et les deux avec les différences peintes
-  dessus — au lieu d'un volet et d'un choix de modes. Glisser balaie toujours le
-  nouveau fichier sur l'ancien, et les deux références
-  ne bougent plus pendant ce temps : on voit entre quoi le balayage tranche. La
-  barre est dans les trois volets au même endroit et bouge dans les trois à la
-  fois : dans le volet des différences elle tranche, dans les deux autres c'est
-  une règle sur la même colonne de la page. Une seconde barre, horizontale, suit
-  le pointeur et bouge elle aussi dans les trois : dans le volet des
-  différences, le nouveau fichier apparaît à droite de la verticale et sous
-  l'horizontale, leur croisement est donc le coin de ce qui est révélé. L'horizontale part du haut, ce qui laisse la verticale en
-  balayage pleine hauteur tant qu'on ne la déplace pas.
+  dessus — au lieu d'un volet et d'un choix de modes. Les deux références ne
+  bougent pas pendant que le troisième balaie : on voit entre quoi le balayage
+  tranche.
+- Chaque volet porte la même paire de barres — une verticale, une horizontale —
+  au même endroit, et les six bougent ensemble. Elles suivent le pointeur : rien
+  à saisir, rien à viser, le croisement est là où est la souris. Dans le volet
+  des différences les barres tranchent, le nouveau fichier apparaît donc à
+  droite de la verticale et sous l'horizontale et leur croisement est le coin de
+  ce qui est révélé ; dans les deux autres ce sont des règles sur la même
+  colonne et la même ligne de la page. L'horizontale part du haut, ce qui laisse
+  la verticale en balayage pleine hauteur tant que le pointeur n'est pas entré
+  dans un volet.
 - La molette zoome les trois volets ensemble, jusqu'à 8×, autour du point sous
-  le pointeur, et s'arrête à la page ajustée en dézoomant. Les barres gardent leur épaisseur à tout niveau.
-  Le **bouton du milieu** maintenu fait glisser la page elle-même, dans les
-  trois volets à la fois et à la vitesse du pointeur. Changer de page fait de même : un zoom appartient à la page où il a été
-  fait. **Reset view** remet le zoom, le déplacement et les
-  barres à leur état de départ, et reste désactivé tant qu'il n'y a rien à défaire.
+  le pointeur, et s'arrête à la page ajustée en dézoomant. Glisser avec
+  n'importe quel bouton déplace la page elle-même, dans les trois à la fois et à
+  la vitesse du pointeur quel que soit le zoom. Les barres gardent leur
+  épaisseur à tout niveau. **Reset view** remet le zoom, le déplacement et les
+  barres à leur état de départ et reste désactivé tant qu'il n'y a rien à
+  défaire ; changer de page fait de même, un zoom appartenant à sa page.
 - Les volets sont dimensionnés d'après la fenêtre : toute la comparaison tient
   à l'écran sans défilement, quel que soit le format de la fenêtre, et chacun
   garde les proportions de la page. Là où les deux fichiers ne s'accordent pas

@@ -16,23 +16,24 @@ nichts stillschweigend.
 
 - Der `pixelcompare`-Betrachter besteht aus drei Bereichen nebeneinander — dem
   Original, der neuen Datei und beiden mit den eingefärbten Unterschieden —
-  statt aus einem Bereich mit Moduswahl. Ziehen wischt weiterhin die neue Datei
-  über die alte, und die beiden Referenzen bleiben
-  dabei stehen: Man sieht, wozwischen der Wischer schneidet. Die Leiste steht in
-  allen drei Bereichen an derselben Stelle und bewegt sich in allen dreien
-  zugleich: im Differenzbereich schneidet sie, in den beiden anderen ist sie ein
-  Lineal auf derselben Spalte der Seite. Eine zweite, liegende Leiste folgt dem
-  Zeiger und bewegt sich ebenfalls in allen dreien: im Differenzbereich
-  erscheint die neue Datei rechts der stehenden und unterhalb der liegenden
-  Leiste, ihr Kreuzungspunkt ist also die Ecke des Freigelegten. Die liegende Leiste beginnt oben, womit die stehende bis zur ersten
-  Bewegung ein gewöhnlicher Wischer über die volle Höhe bleibt.
+  statt aus einem Bereich mit Moduswahl. Die beiden Referenzen bleiben stehen,
+  während der dritte wischt: Man sieht, wozwischen der Wischer schneidet.
+- Jeder Bereich trägt dasselbe Leistenpaar — eine stehende, eine liegende — an
+  derselben Stelle, und alle sechs bewegen sich gemeinsam. Sie folgen dem
+  Zeiger: nichts zu greifen, nichts zu treffen, der Kreuzungspunkt ist dort, wo
+  die Maus steht. Im Differenzbereich schneiden die Leisten, die neue Datei
+  erscheint also rechts der stehenden und unterhalb der liegenden und ihr
+  Kreuzungspunkt ist die Ecke des Freigelegten; in den beiden anderen sind sie
+  Lineale auf derselben Spalte und derselben Zeile der Seite. Die liegende
+  Leiste beginnt oben, womit die stehende ein gewöhnlicher Wischer über die
+  volle Höhe bleibt, bis der Zeiger einen Bereich betritt.
 - Das Mausrad zoomt alle drei Bereiche gemeinsam, bis 8×, um den Punkt unter dem
-  Zeiger, und endet beim Herauszoomen an der eingepassten Seite. Die Leisten behalten bei jedem Zoom ihre Stärke.
-  Mit gehaltener **mittlerer Maustaste** zieht man die Seite selbst, in allen
-  drei Bereichen zugleich und im Tempo des Zeigers. Ein Seitenwechsel tut dasselbe: Zoom und Verschiebung gehören zu ihrer
-  Seite. **Reset view** setzt Zoom, Verschiebung und Leisten
-  auf den Ausgangszustand zurück und ist deaktiviert, solange es nichts
-  zurückzunehmen gibt.
+  Zeiger und endet beim Herauszoomen an der eingepassten Seite. Ziehen mit
+  irgendeiner Maustaste bewegt die Seite selbst, in allen dreien zugleich und im
+  Tempo des Zeigers, gleich bei welchem Zoom. Die Leisten behalten bei jedem
+  Zoom ihre Stärke. **Reset view** setzt Zoom, Verschiebung und Leisten auf den
+  Ausgangszustand zurück und ist deaktiviert, solange es nichts zurückzunehmen
+  gibt; ein Seitenwechsel tut dasselbe, denn ein Zoom gehört zu seiner Seite.
 - Die Bereiche werden am Fenster bemessen: der ganze Vergleich passt ohne
   Scrollen auf den Schirm, bei jedem Fensterformat, und jeder behält die
   Proportionen der Seite. Wo die Dateien sich über die Seitengröße uneinig

@@ -241,7 +241,7 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
   .layer {{ position: absolute; inset: 0; }}
   /* touch-action: the browser would otherwise claim a horizontal drag as a
      scroll gesture and cancel the pointer halfway. */
-  .stage {{ touch-action: none; user-select: none; cursor: ew-resize; }}
+  .stage {{ touch-action: none; user-select: none; cursor: crosshair; }}
   /* Both cuts at once: the new file shows to the right of the upright bar and
      below the flat one, so where they cross is the corner of the reveal. */
   #wipe-after {{ clip-path: inset(var(--splity, 0%) 0 0 var(--splitx, 50%)); }}
@@ -313,7 +313,7 @@ fn index_html(before_name: &str, after_name: &str, diffs: &[PageDiff]) -> String
     <div class="fit"><div class="stage" id="s-after"><img id="p-after" alt=""><div class="handle"></div><div class="hbar"></div></div></div>
   </section>
   <section class="pane">
-    <h2>Difference <em>drag to wipe</em></h2>
+    <h2>Difference <em>move to wipe · drag to pan</em></h2>
     <div class="fit">
       <div class="stage" id="wipe">
         <img id="wipe-before" alt="">
@@ -430,18 +430,16 @@ function applyWipe() {{
   applyView();
 }}
 
-// The upright bar is dragged; the flat one follows the pointer wherever it is,
-// pressed or not. Dragging anywhere on any pane moves all three: grabbing a 2px
-// bar with a mouse is a chore, and the point is a quick back-and-forth.
-function moveTo(stage, clientX, clientY, withX) {{
+// Both bars sit wherever the pointer is: nothing to grab, nothing to aim at.
+// The percentages are of the page, so the crossing lands on the same spot of
+// the document in all three panes at once.
+function moveTo(stage, clientX, clientY) {{
   const r = stage.getBoundingClientRect();
-  if (withX) {{
-    splitX = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
-  }}
+  splitX = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
   splitY = Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100));
   applyWipe();
 }}
-let dragging = null, panning = null;
+let panning = null;
 
 /// Moves the page under the pointer by a screen distance, in all three panes.
 ///
@@ -463,29 +461,25 @@ function panBy(dx, dy) {{
 for (const id of STAGES) {{
   const stage = el(id);
   stage.addEventListener("pointerdown", e => {{
-    // The middle button pans instead of moving the bars. preventDefault stops
-    // the browser starting its own autoscroll on the same press.
-    if (e.button === 1) {{
+    // Either button drags the page. preventDefault stops two browser defaults
+    // on the same press: a text selection from the left, an autoscroll from
+    // the middle.
+    if (e.button === 0 || e.button === 1) {{
       e.preventDefault();
-      panning = {{ stage, x: e.clientX, y: e.clientY }};
+      panning = {{ x: e.clientX, y: e.clientY }};
       stage.setPointerCapture(e.pointerId);
-      return;
     }}
-    dragging = stage;
-    stage.setPointerCapture(e.pointerId);
-    moveTo(stage, e.clientX, e.clientY, true);
+    moveTo(stage, e.clientX, e.clientY);
   }});
   stage.addEventListener("pointermove", e => {{
+    // The bars follow the pointer whatever it is doing; a held button drags
+    // the page under them as well.
     if (panning) {{
       panBy(e.clientX - panning.x, e.clientY - panning.y);
       panning.x = e.clientX;
       panning.y = e.clientY;
-      return;
     }}
-    // Held: both bars follow. Merely hovering: only the flat one, so passing
-    // over a pane on the way somewhere else does not move the cut sideways.
-    if (dragging === stage) moveTo(stage, e.clientX, e.clientY, true);
-    else if (!dragging) moveTo(stage, e.clientX, e.clientY, false);
+    moveTo(stage, e.clientX, e.clientY);
   }});
   // Chrome opens its autoscroll widget on the middle click itself, not only on
   // the press, so that has to be refused as well.
@@ -494,7 +488,6 @@ for (const id of STAGES) {{
     // pointercancel as well as pointerup: a gesture the browser takes over
     // never sends an up, and the bar would stay stuck to the pointer.
     stage.addEventListener(end, e => {{
-      dragging = null;
       panning = null;
       if (stage.hasPointerCapture(e.pointerId)) stage.releasePointerCapture(e.pointerId);
     }});
@@ -709,7 +702,10 @@ mod tests {
     #[test]
     fn the_middle_button_pans_and_nothing_else_happens() {
         let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
-        assert!(html.contains("e.button === 1"), "the middle button does nothing");
+        assert!(
+            html.contains("e.button === 0 || e.button === 1"),
+            "both buttons should drag the page"
+        );
         assert!(html.contains(r#"stage.addEventListener("auxclick""#), "autoscroll is not refused");
         assert!(
             html.contains("transform: translate(var(--panx, 0%), var(--pany, 0%)) scale(var(--z, 1))"),
@@ -751,6 +747,27 @@ mod tests {
         );
         assert!(!html.contains("calc(1px / var(--z, 1))"), "a pane still draws thinner lines");
         assert!(!html.contains(".stage:not(#wipe)"), "a pane is still styled apart");
+    }
+
+    /// Nothing is grabbed: the crossing is wherever the pointer is, and both
+    /// bars are set from the same move.
+    #[test]
+    fn both_bars_follow_the_pointer() {
+        let html = index_html("a.pdf", "b.pdf", &[diff(1, 4.0)]);
+        let body = html
+            .split("function moveTo(stage, clientX, clientY)")
+            .nth(1)
+            .expect("moveTo is defined without a which-axis argument");
+        let body = &body[..body.find("}").unwrap_or(body.len())];
+        assert!(body.contains("splitX ="), "the upright bar is not set from the pointer");
+        assert!(body.contains("splitY ="), "the flat bar is not set from the pointer");
+        // The pointermove handler is unconditional: no held button required.
+        // moveTo sits after the `if (panning)` block, not inside it: the bars
+        // move whether or not a button is down.
+        assert!(
+            html.contains("    }\n    moveTo(stage, e.clientX, e.clientY);"),
+            "the bars only move under some condition"
+        );
     }
 
     /// The blue discs are gone: the bars mark the position on their own, and a
